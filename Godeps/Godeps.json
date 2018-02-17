@@ -1,0 +1,54 @@
+{
+	"ImportPath": "github.com/mipimipi/smsync",
+	"GoVersion": "go1.9",
+	"GodepVersion": "v79",
+	"Deps": [
+		{
+			"ImportPath": "github.com/go-ini/ini",
+			"Comment": "v1.32.0",
+			"Rev": "32e4c1e6bc4e7d0d8451aa6b75200d19e37a536a"
+		},
+		{
+			"ImportPath": "github.com/inconshreveable/mousetrap",
+			"Comment": "v1.0",
+			"Rev": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
+		},
+		{
+			"ImportPath": "github.com/mipimipi/go-lhlp",
+			"Comment": "v1.1",
+			"Rev": "90083d167f54f4b173a6352a360bb0512ab01b97"
+		},
+		{
+			"ImportPath": "github.com/mipimipi/go-worker",
+			"Comment": "v1.0-2-g38afa7c",
+			"Rev": "38afa7c8f842a23d1485e3c3513df6bf137c42dd"
+		},
+		{
+			"ImportPath": "github.com/sirupsen/logrus",
+			"Comment": "v1.0.4",
+			"Rev": "d682213848ed68c0a260ca37d6dd5ace8423f5ba"
+		},
+		{
+			"ImportPath": "github.com/spf13/cobra",
+			"Comment": "v0.0.1-19-gccaecb1",
+			"Rev": "ccaecb155a2177302cb56cae929251a256d0f646"
+		},
+		{
+			"ImportPath": "github.com/spf13/pflag",
+			"Comment": "v1.0.0-10-g4c012f6",
+			"Rev": "4c012f6dcd9546820e378d0bdda4d8fc772cdfea"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/ssh/terminal",
+			"Rev": "0fcca4842a8d74bfddc2c96a073bd2a4d2a7a2e8"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "9418b3fdda89831e55f1d80702d6bf2f06d5438f"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/windows",
+			"Rev": "9418b3fdda89831e55f1d80702d6bf2f06d5438f"
+		}
+	]
+}

@@ -2,11 +2,12 @@
 
 smsync is an easy-to-use command line application for Linux. It helps to keep huge music collections in sync and is also taking care of conversions between different formats.
 
-smsync is made for use cases where you have a folder structure for your high quaility lossless or lossy but high bit rate music that acts as a "master". From this master you replicate your music to "slaves", such as a smart phone or an SD card / hard drive for your car etc. On a smart phone or in the car you either don't have or you don't want to spend that much storage capacity that you might have for you master music storage. Thus, the replication step from the master to the slaves is not a simply copy, but it's in fact a conversion step. For instance, music that is stored on the master in the lossless [FLAC format](https://xiph.org/flac/) shall be converted to [MP3](https://en.wikipedia.org/wiki/MP3) while being replicated to a slave. Normally, you want to keep the folder structure during replication. I.e. a certain music file on the slave shall have the same folder path as its counterpart has on the master. New music is typically added to the master only. If that happened you want to update the slaves accordingly. If you deleted files or folders on the master for whatwever reason, also these deletions shall be propagated to the slaves. And, last but not least, as we are talking about huge music collections (several thousands or ten thousands of music files), the whole synchronization and replication process must happen in a highly automated and efficient way.
+smsync is made for use cases where you have a folder structure for your high quality lossless or lossy but high bit rate music that acts as a "master". From this master you replicate your music to "slaves", such as a smartphone or an SD card / hard drive for your car etc. On a smartphone or in the car you either don't have or you don't want to spend that much storage capacity that you might have for you master music storage. Thus, the replication step from the master to the slaves is not a simple copy, it's in fact a conversion step. For instance, music that is stored on the master in the lossless [FLAC format](https://xiph.org/flac/) shall be converted to [MP3](https://en.wikipedia.org/wiki/MP3) while being replicated to a slave.
+Normally, you want to keep the folder structure during replication. I.e. a certain music file on the slave shall have the same folder path as its counterpart has on the master. New music is typically added to the master only. If that happened you want to update the slaves accordingly with minmal effort. If you deleted files or folders on the master for whatwever reason, also these deletions shall be propagated to the slaves. And, last but not least, as we are talking about huge music collections (several thousands or ten thousands of music files), the whole synchronization and replication process must happen in a highly automated and efficient way.
 
 ## Features
 
-smsync takes care of all this.
+smsync takes care of all this:
 
 ### Conversion
 
@@ -18,23 +19,23 @@ Conversions can be configurated per slave and for each file type (i.e. for each 
 
 * Simple file copy
 
-For conversions to MP3, the quality and bit rate can be configured.
+For conversions to MP3, the quality and bitrate can be configured.
 
 ### Synchronization
 
-The synchronization is done based on time stamps. If new music has been added to the master since the last sync, smsync only replicates the added files to the slave. If you have deleted files or folders on the master since the last sync, smsync deletes its counterparts on the slave.
+The synchronization is done based on timestamps. If new music has been added to the master since the last synchronization, smsync only replicates the added files to the slave. If you have deleted files or folders on the master since the last synchronization, smsync deletes its counterparts on the slave.
 
 The synchronization can be done stepwise. That's practical if a huge number of files has to be synchronized. In this case, the synchronization can be interrupted and continued at a later point in time.
 
 ### Parallel Processing
 
-To make the synchronization as efficient as possible, the determination of changes since the last synchronization and the replication / conversions of files are done in parallel processes. The number of CPUs that you want to use for this as well as the number of parallel processe can be configured.
+To make the synchronization as efficient as possible, the determination of changes since the last synchronization and the replication / conversions of files are done in parallel processes. The number of CPUs that is used for this as well as the number of parallel processe can be configured.
 
 ## Installation
 
 smsync is written in [Golang](https://golang.org/) and thus requires the installation of Go and the [Go tool](https://golang.org/cmd/go/). Make sure that you've set the environment variable `GOPATH` accordingly. Make sure that [git](https://git-scm.com/) is installed.
 
-To download smsync and all dependencies, enter
+To download smsync and all dependencies, open a terminal and enter
 
     go get github.com/mipimipi/smsync
 
@@ -53,7 +54,7 @@ as `root` to copy the smsync binary to `/usr/bin`.
 
 ### Configuration File
 
-A slave has to have the configuration file `SMSYNC_CONF` in its root folder. This file contains the conifiguration for the slave in [INI format](https://en.wikipedia.org/wiki/INI_file).
+A slave has to have the configuration file `SMSYNC_CONF` in its root folder. This file contains the configuration for that slave in [INI format](https://en.wikipedia.org/wiki/INI_file).
 
 Example:
 
@@ -98,15 +99,15 @@ In the example, [rule0] tells smsync to convert FLAC files (i.e. files with the 
 
 * The third part must contain the conversion quality `q{x}`, with x = 0, ..., 9.
 
-Thus, the transformation string `vbr|v5|q3` tells smsync to convert with a variable bitrate, VBR quality v5 and conversion quality q3.
+Thus, the transformation string `vbr|v5|q3` tells smsync to convert with a variable bitrate, VBR quality 5 and conversion quality 3.
 
-[rule1] tells smsync to simply copy MP3 files. If files are copied, `dest` doesn't have to be specified in the rule. Another possibility would have been to convert MP3 to MP3 by reducing the bitrate. This can be achieved by defining a transformation string as explained above (instead of `copy`).
+[rule1] tells smsync to simply copy MP3 files. If files are copied, `dest` doesn't have to be specified in the rule. Another possibility was to convert MP3 to MP3 by reducing the bitrate. This can be achieved by defining a transformation string as explained above (instead of `copy`).
 
-[rule2] tells smsync to copy als other file, e.g. JPG files (cover pictures). Without [rule2], files that do neither have the extension '.flac' nor '.mp3' would have been ignored in this example.
+[rule2] tells smsync to copy als other file, e.g. cover pictures. Without [rule2], files that do neither have the extension '.flac' nor '.mp3' would have been ignored in this example.
 
 ### Synchronization Process
 
-For the example, let's assume the config file `SMSYNC_CONF` is stored in `/home/musiclover/Music/SLAVE`. To execute smsync for the slave open a terminal and type
+For the example, let's assume the config file `SMSYNC_CONF` is stored in `/home/musiclover/Music/SLAVE`. To execute smsync for the slave open a terminal and enter
 
     cd /home/musiclover/Music/SLAVE
     smsync
@@ -115,13 +116,13 @@ The synchronization process is executed in the following steps:
 
 1. smsync reads the configuration file in `/home/musiclover/Music/SLAVE`. A summary of the configuration is shown and the user is asked for confirmation.
 
-1. smsync determines all files and directions of the master, that have changed since the last synchronization. In our example, there was no synchronization (as otherwise the configuration file would have had an entry `last_sync` that contains the time stamp of the last synchronization). Depending on the number of files, this could take a few minutes. smsync displays how many directories and files need to be synchronized and again, the user is asked for confirmation.
+1. smsync determines all files and directions of the master, that have changed since the last synchronization. In our example, there was no synchronization before (as otherwise the configuration file would have an entry `last_sync` that contained the time stamp of the last synchronization). Depending on the number of files, this could take a few minutes. smsync displays how many directories and files need to be synchronized and again, the user is asked for confirmation.
 
 1. The replication / conversion of files and directories is executed. smsync shows the progress and an estimation of the remaining time.
 
 1. After the synchronization is done, the current time is stored as `last_sync` in the configuration file.
 
-In the example, the synchronization would replicate the master
+In the example, the synchronization would replicate such a the master folder structure:
 
     /home/musiclover/Music/MASTER
       |- ...
@@ -142,7 +143,7 @@ In the example, the synchronization would replicate the master
                   |- ...
                   |- folder.png
 
-to the slave
+to such a slave folder structure:
 
     /home/musiclover/Music/SLAVE
       |- ...
@@ -152,7 +153,7 @@ to the slave
           |   |- Love Over Gold
           |       |- ...
           |           |- ...
-          |           |- Private Investigations.mps
+          |           |- Private Investigations.mp3
           |           |- ...
           |           |- cover.jpg
           |- ...
