@@ -33,6 +33,8 @@ To make the synchronization as efficient as possible, the determination of chang
 
 ## Installation
 
+### Manual Installation
+
 smsync is written in [Golang](https://golang.org/) and thus requires the installation of Go and the [Go tool](https://golang.org/cmd/go/). Make sure that you've set the environment variable `GOPATH` accordingly. Make sure that [git](https://git-scm.com/) is installed.
 
 To download smsync and all dependencies, open a terminal and enter
@@ -49,6 +51,10 @@ Finally, execute
     make install
 
 as `root` to copy the smsync binary to `/usr/bin`.
+
+### Installation with Package Managers
+
+For Arch Linux (and other Linux distros, that can install packages from the Arch User Repository) there's a [smsync package in AUR](https://aur.archlinux.org/packages/smsync-git/).
 
 ## Usage
 
