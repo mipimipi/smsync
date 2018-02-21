@@ -182,6 +182,9 @@ func FileExists(filePath string) (bool, error) {
 // FileSuffix return the suffix of a file without the dot. If the file name
 // contains no dot, an empty string is returned
 func FileSuffix(f string) string {
+	if len(path.Ext(f)) == 0 {
+		return ""
+	}
 	return path.Ext(f)[1:]
 }
 
