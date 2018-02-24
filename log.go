@@ -28,100 +28,15 @@ import (
 // smsync always logs into ./smsync.log
 const logFileName = "smsync.log"
 
-/*
-// text formatting structure for gool
-type smsyncTextFormatter struct{}
-
-// Format prints one log line in smsync specific format
-func (f *smsyncTextFormatter) Format(entry *log.Entry) ([]byte, error) {
-	var b *bytes.Buffer
-
-	// initialize buffer
-	if entry.Buffer != nil {
-		b = entry.Buffer
-	} else {
-		b = &bytes.Buffer{}
-	}
-
-	// write log level
-	if _, err := b.WriteString(fmt.Sprintf("[%-7s]:", entry.Level.String())); err != nil {
-		panic(err.Error())
-	}
-
-	// write custom data fields
-	for _, value := range entry.Data {
-		if b.Len() > 0 {
-			if err := b.WriteByte(' '); err != nil {
-				panic(err.Error())
-			}
-		}
-		stringVal, ok := value.(string)
-		if !ok {
-			stringVal = fmt.Sprint(value)
-		}
-		if _, err := b.WriteString("[" + stringVal + "]"); err != nil {
-			panic(err.Error())
-		}
-	}
-
-	// write log message
-	if err := b.WriteByte(' '); err != nil {
-		panic(err.Error())
-	}
-	if _, err := b.WriteString(entry.Message); err != nil {
-		panic(err.Error())
-	}
-
-	// new line
-	if err := b.WriteByte('\n'); err != nil {
-		panic(err.Error())
-	}
-
-	return b.Bytes(), nil
-}
-*/
-
 // createLogger creates and initializes the logger for smsync
 func createLogger(level log.Level) {
-	/*
-		// get absolute filepath for log file
-		fp, err := filepath.Abs(filepath.Join(".", logFileName))
-		if err != nil {
-			panic(err.Error())
-		}
-
-		// delete log file if it already exists
-		exists, err := lhlp.FileExists(fp)
-		if err != nil {
-			panic(err.Error())
-		}
-		if exists {
-			if err = os.Remove(fp); err != nil {
-				panic(err.Error())
-			}
-		}
-
-		// create log file
-		f, err := os.Create(fp)
-		if err != nil {
-			fmt.Printf("Log file could not be created/opened: %v", err)
-			return
-		}
-
-		// set log file as output for logging
-		log.SetOutput(f)
-	*/
+	// set log file
 	fp, err := filepath.Abs(filepath.Join(".", logFileName))
 	if err != nil {
 		panic(err.Error())
 	}
 	log.SetLogFilePath(fp)
 
-	// log all messages
+	// set log level
 	log.SetLevel(level)
-
-	/*
-		// set custom formatter
-		log.SetFormatter(new(smsyncTextFormatter))
-	*/
 }
