@@ -129,7 +129,7 @@ func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 		// check if the file has been changed since last sync. If not:
 		// Return false
 		if fi.ModTime().Before(cfg.lastSync) {
-			if !fi.IsDir() {
+			if fi.IsDir() {
 				return false
 			}
 			// in case, srcFile is a file (and no directory), another check
