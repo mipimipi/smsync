@@ -60,7 +60,7 @@ For Arch Linux (and other Linux distros, that can install packages from the Arch
 
 ### Configuration File
 
-A slave has to have the configuration file `SMSYNC_CONF` in its root folder. This file contains the configuration for that slave in [INI format](https://en.wikipedia.org/wiki/INI_file).
+A slave has to have the configuration file `SMSYNC.CONF` in its root folder. This file contains the configuration for that slave in [INI format](https://en.wikipedia.org/wiki/INI_file).
 
 Example:
 
@@ -113,7 +113,7 @@ Thus, the transformation string `vbr|v5|q3` tells smsync to convert with a varia
 
 ### Synchronization Process
 
-For the example, let's assume the config file `SMSYNC_CONF` is stored in `/home/musiclover/Music/SLAVE`. To execute smsync for the slave open a terminal and enter
+For the example, let's assume the config file `SMSYNC.CONF` is stored in `/home/musiclover/Music/SLAVE`. To execute smsync for the slave open a terminal and enter
 
     cd /home/musiclover/Music/SLAVE
     smsync

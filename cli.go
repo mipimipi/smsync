@@ -52,9 +52,9 @@ var rootCmd = &cobra.Command{
 
 		// set up logging
 		if cli.doLog {
-			createLogger("./smsync.log", log.DebugLevel)
+			createLogger(log.DebugLevel)
 		} else {
-			createLogger("./smsync.log", log.ErrorLevel)
+			createLogger(log.ErrorLevel)
 		}
 
 		// print copyright etc. on command line

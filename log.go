@@ -22,13 +22,15 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	lhlp "github.com/mipimipi/go-lhlp"
 	log "github.com/sirupsen/logrus"
 )
+
+// smsync always logs into ./smsync.log
+const logFileName = "smsync.log"
 
 // text formatting structure for gool
 type smsyncTextFormatter struct{}
@@ -82,15 +84,9 @@ func (f *smsyncTextFormatter) Format(entry *log.Entry) ([]byte, error) {
 }
 
 // createLogger creates and initializes the logger for smsync
-func createLogger(logFile string, level log.Level) {
-	// if no log file was specified at command line: Set logger output to Nirwana and do nothing else
-	if logFile == "" {
-		log.SetOutput(ioutil.Discard)
-		return
-	}
-
+func createLogger(level log.Level) {
 	// get absolute filepath for log file
-	fp, err := filepath.Abs(logFile)
+	fp, err := filepath.Abs(filepath.Join(".", logFileName))
 	if err != nil {
 		panic(err.Error())
 	}

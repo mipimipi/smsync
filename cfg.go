@@ -38,16 +38,16 @@ import (
 
 // Constants for smsync configuration
 const (
-	cfgFileName       = "SMSYNC_CONFIG" // file name of config file
-	cfgSectionGeneral = "general"       // id of general section
-	cfgSectionRule    = "rule"          // base id of rule sections
-	cfgKeyLastSync    = "last_sync"     // id of key for last sync time
-	cfgKeySrcDir      = "source_dir"    // id of key for source directiory
-	cfgKeyNumCPUs     = "num_cpus"      // id of key for #cpus to be used
-	cfgKeyNumWrkrs    = "num_wrkrs"     // id of key for #workers to be created
-	cfgKeySrc         = "source"        // id of key for source file suffix (rules)
-	cfgKeyDst         = "dest"          // id of key for destination file suffix (rules)
-	cfgKeyTransform   = "transform"     // id of key for transformation to execute (rules), a. k. a. transformation string
+	cfgFileName       = "SMSYNC.CONF" // file name of config file
+	cfgSectionGeneral = "general"     // id of general section
+	cfgSectionRule    = "rule"        // base id of rule sections
+	cfgKeyLastSync    = "last_sync"   // id of key for last sync time
+	cfgKeySrcDir      = "source_dir"  // id of key for source directiory
+	cfgKeyNumCPUs     = "num_cpus"    // id of key for #cpus to be used
+	cfgKeyNumWrkrs    = "num_wrkrs"   // id of key for #workers to be created
+	cfgKeySrc         = "source"      // id of key for source file suffix (rules)
+	cfgKeyDst         = "dest"        // id of key for destination file suffix (rules)
+	cfgKeyTransform   = "transform"   // id of key for transformation to execute (rules), a. k. a. transformation string
 )
 
 const suffixStar = "*"

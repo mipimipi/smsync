@@ -84,7 +84,7 @@ func deleteObsoleteFiles(cfg *config, srcDirPath string) {
 				continue
 			}
 			// if entry is a smsync file (smsync.log or SMSYNC_CONF)
-			if strings.Contains(dstEntr.Name(), "smsync.log") || strings.Contains(dstEntr.Name(), "SMSYNC_CONF") {
+			if strings.Contains(dstEntr.Name(), logFileName) || strings.Contains(dstEntr.Name(), cfgFileName) {
 				continue
 			}
 			// check if counterpart file on source side exists
@@ -129,7 +129,24 @@ func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 		// check if the file has been changed since last sync. If not:
 		// Return false
 		if fi.ModTime().Before(cfg.lastSync) {
-			return false
+			if !fi.IsDir() {
+				return false
+			}
+			// in case, srcFile is a file (and no directory), another check
+			// is necessary since the modification time of downloaded music
+			// files is sometimes earlier then the download time (i.e. the
+			// modification time is not updated during download). That's the
+			// case if an entire album is downloaded as zip file. Therefore,
+			// in addition, it is checked whether the modification time of
+			// directory of the file has changed since last sync. If that's
+			// the case, the file is relevant for the synchronization
+			fiDir, err := os.Stat(filepath.Dir(srcFile))
+			if err != nil {
+				return false
+			}
+			if fiDir.ModTime().Before(cfg.lastSync) {
+				return false
+			}
 		}
 
 		// if smsync has been called in add only mode, files on source side
