@@ -20,18 +20,15 @@ package main
 // log.go implements some wrapper functionality for logging
 
 import (
-	"bytes"
-	"fmt"
-	"os"
 	"path/filepath"
 
-	lhlp "github.com/mipimipi/go-lhlp"
-	log "github.com/sirupsen/logrus"
+	log "github.com/mipimipi/go-lazylog"
 )
 
 // smsync always logs into ./smsync.log
 const logFileName = "smsync.log"
 
+/*
 // text formatting structure for gool
 type smsyncTextFormatter struct{}
 
@@ -82,39 +79,49 @@ func (f *smsyncTextFormatter) Format(entry *log.Entry) ([]byte, error) {
 
 	return b.Bytes(), nil
 }
+*/
 
 // createLogger creates and initializes the logger for smsync
 func createLogger(level log.Level) {
-	// get absolute filepath for log file
+	/*
+		// get absolute filepath for log file
+		fp, err := filepath.Abs(filepath.Join(".", logFileName))
+		if err != nil {
+			panic(err.Error())
+		}
+
+		// delete log file if it already exists
+		exists, err := lhlp.FileExists(fp)
+		if err != nil {
+			panic(err.Error())
+		}
+		if exists {
+			if err = os.Remove(fp); err != nil {
+				panic(err.Error())
+			}
+		}
+
+		// create log file
+		f, err := os.Create(fp)
+		if err != nil {
+			fmt.Printf("Log file could not be created/opened: %v", err)
+			return
+		}
+
+		// set log file as output for logging
+		log.SetOutput(f)
+	*/
 	fp, err := filepath.Abs(filepath.Join(".", logFileName))
 	if err != nil {
 		panic(err.Error())
 	}
-
-	// delete log file if it already exists
-	exists, err := lhlp.FileExists(fp)
-	if err != nil {
-		panic(err.Error())
-	}
-	if exists {
-		if err = os.Remove(fp); err != nil {
-			panic(err.Error())
-		}
-	}
-
-	// create log file
-	f, err := os.Create(fp)
-	if err != nil {
-		fmt.Printf("Log file could not be created/opened: %v", err)
-		return
-	}
-
-	// set log file as output for logging
-	log.SetOutput(f)
+	log.SetLogFilePath(fp)
 
 	// log all messages
 	log.SetLevel(level)
 
-	// set custom formatter
-	log.SetFormatter(new(smsyncTextFormatter))
+	/*
+		// set custom formatter
+		log.SetFormatter(new(smsyncTextFormatter))
+	*/
 }

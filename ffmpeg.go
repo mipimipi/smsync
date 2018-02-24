@@ -22,7 +22,7 @@ import (
 	"path"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	log "github.com/mipimipi/go-lazylog"
 )
 
 type tfFFmpeg struct{}

@@ -14,6 +14,10 @@
 			"Rev": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
 		},
 		{
+			"ImportPath": "github.com/mipimipi/go-lazylog",
+			"Rev": "1c13217a2a2f2890746d5100047ddae9e841b1fa"
+		},
+		{
 			"ImportPath": "github.com/mipimipi/go-lhlp",
 			"Comment": "v1.1-1-gdab374b",
 			"Rev": "dab374bfbf851f1770eea7b3767b553eb45835b3"

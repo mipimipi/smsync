@@ -32,8 +32,8 @@ import (
 	"time"
 
 	"github.com/go-ini/ini"
+	log "github.com/mipimipi/go-lazylog"
 	lhlp "github.com/mipimipi/go-lhlp"
-	log "github.com/sirupsen/logrus"
 )
 
 // Constants for smsync configuration

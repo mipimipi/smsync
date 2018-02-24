@@ -24,8 +24,8 @@ import (
 	"strconv"
 	"strings"
 
+	log "github.com/mipimipi/go-lazylog"
 	lhlp "github.com/mipimipi/go-lhlp"
-	log "github.com/sirupsen/logrus"
 )
 
 // constants for bit rate options

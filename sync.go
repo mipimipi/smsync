@@ -25,9 +25,9 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/mipimipi/go-lazylog"
 	lhlp "github.com/mipimipi/go-lhlp"
 	worker "github.com/mipimipi/go-worker"
-	log "github.com/sirupsen/logrus"
 )
 
 // deleteObsoleteFile deletes directories and files that are available in the
@@ -126,8 +126,8 @@ func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 			}
 		}
 
-		// check if the file has been changed since last sync. If not:
-		// Return false
+		// check if the file/directory has been changed since last sync.
+		// If not: Return false
 		if fi.ModTime().Before(cfg.lastSync) {
 			if fi.IsDir() {
 				return false
@@ -136,10 +136,10 @@ func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 			// is necessary since the modification time of downloaded music
 			// files is sometimes earlier then the download time (i.e. the
 			// modification time is not updated during download). That's the
-			// case if an entire album is downloaded as zip file. Therefore,
-			// in addition, it is checked whether the modification time of
-			// directory of the file has changed since last sync. If that's
-			// the case, the file is relevant for the synchronization
+			// case if an entire album is downloaded as zip file, for instance.
+			// Therefore, in addition, it is checked whether the modification
+			// time of directory of the file has changed since last sync. If
+			// that's the case, the file is relevant for the synchronization
 			fiDir, err := os.Stat(filepath.Dir(srcFile))
 			if err != nil {
 				return false
