@@ -14,10 +14,6 @@
 			"Rev": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
 		},
 		{
-			"ImportPath": "github.com/mipimipi/go-lazylog",
-			"Rev": "1c13217a2a2f2890746d5100047ddae9e841b1fa"
-		},
-		{
 			"ImportPath": "github.com/mipimipi/go-lhlp",
 			"Comment": "v1.1-1-gdab374b",
 			"Rev": "dab374bfbf851f1770eea7b3767b553eb45835b3"
@@ -28,9 +24,9 @@
 			"Rev": "38afa7c8f842a23d1485e3c3513df6bf137c42dd"
 		},
 		{
-			"ImportPath": "github.com/sirupsen/logrus",
-			"Comment": "v1.0.4",
-			"Rev": "d682213848ed68c0a260ca37d6dd5ace8423f5ba"
+			"ImportPath": "github.com/mipimipi/logrus",
+			"Comment": "v1.0.4-11-g4f22a1d",
+			"Rev": "4f22a1deb17bdaf3a79b6c69b11c60736c5bb0b8"
 		},
 		{
 			"ImportPath": "github.com/spf13/cobra",
