@@ -20,13 +20,68 @@ package main
 // log.go implements some wrapper functionality for logging
 
 import (
+	"bytes"
+	"fmt"
+	"os"
 	"path/filepath"
 
-	log "github.com/mipimipi/go-lazylog"
+	lhlp "github.com/mipimipi/go-lhlp"
+	log "github.com/mipimipi/logrus"
 )
 
 // smsync always logs into ./smsync.log
 const logFileName = "smsync.log"
+
+// text formatting structure for gool
+type smsyncTextFormatter struct{}
+
+// Format prints one log line in smsync specific format
+func (f *smsyncTextFormatter) Format(entry *log.Entry) ([]byte, error) {
+	var b *bytes.Buffer
+
+	// initialize buffer
+	if entry.Buffer != nil {
+		b = entry.Buffer
+	} else {
+		b = &bytes.Buffer{}
+	}
+
+	// write log level
+	if _, err := b.WriteString(fmt.Sprintf("[%-7s]:", entry.Level.String())); err != nil {
+		panic(err.Error())
+	}
+
+	// write custom data fields
+	for _, value := range entry.Data {
+		if b.Len() > 0 {
+			if err := b.WriteByte(' '); err != nil {
+				panic(err.Error())
+			}
+		}
+		stringVal, ok := value.(string)
+		if !ok {
+			stringVal = fmt.Sprint(value)
+		}
+		if _, err := b.WriteString("[" + stringVal + "]"); err != nil {
+			panic(err.Error())
+		}
+	}
+
+	// write log message
+	if err := b.WriteByte(' '); err != nil {
+		panic(err.Error())
+	}
+	if _, err := b.WriteString(entry.Message); err != nil {
+		panic(err.Error())
+	}
+
+	// new line
+	if err := b.WriteByte('\n'); err != nil {
+		panic(err.Error())
+	}
+
+	return b.Bytes(), nil
+}
 
 // createLogger creates and initializes the logger for smsync
 func createLogger(level log.Level) {
@@ -35,8 +90,24 @@ func createLogger(level log.Level) {
 	if err != nil {
 		panic(err.Error())
 	}
-	log.SetLogFilePath(fp)
+
+	// delete log file if it already exists
+	exists, err := lhlp.FileExists(fp)
+	if err != nil {
+		panic(err.Error())
+	}
+	if exists {
+		if err = os.Remove(fp); err != nil {
+			panic(err.Error())
+		}
+	}
+
+	// set log file name
+	log.SetFilename(fp)
 
 	// set log level
 	log.SetLevel(level)
+
+	// set custom formatter
+	log.SetFormatter(new(smsyncTextFormatter))
 }

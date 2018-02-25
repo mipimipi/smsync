@@ -25,9 +25,9 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/mipimipi/go-lazylog"
 	lhlp "github.com/mipimipi/go-lhlp"
 	worker "github.com/mipimipi/go-worker"
+	log "github.com/mipimipi/logrus"
 )
 
 // deleteObsoleteFile deletes directories and files that are available in the

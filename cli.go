@@ -22,7 +22,7 @@ package main
 import (
 	"fmt"
 
-	log "github.com/mipimipi/go-lazylog"
+	log "github.com/mipimipi/logrus"
 	"github.com/spf13/cobra"
 )
 
