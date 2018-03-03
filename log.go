@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	lhlp "github.com/mipimipi/go-lhlp"
 	log "github.com/mipimipi/logrus"
@@ -47,15 +48,21 @@ func (f *smsyncTextFormatter) Format(entry *log.Entry) ([]byte, error) {
 	}
 
 	// write log level
-	if _, err := b.WriteString(fmt.Sprintf("[%-7s]:", entry.Level.String())); err != nil {
-		panic(err.Error())
+	if _, err := b.WriteString(fmt.Sprintf("[%-7s]:", strings.ToUpper(entry.Level.String()))); err != nil {
+		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
+			panic(e.Error())
+		}
+		return nil, err
 	}
 
 	// write custom data fields
 	for _, value := range entry.Data {
 		if b.Len() > 0 {
 			if err := b.WriteByte(' '); err != nil {
-				panic(err.Error())
+				if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
+					panic(e.Error())
+				}
+				return nil, err
 			}
 		}
 		stringVal, ok := value.(string)
@@ -63,42 +70,63 @@ func (f *smsyncTextFormatter) Format(entry *log.Entry) ([]byte, error) {
 			stringVal = fmt.Sprint(value)
 		}
 		if _, err := b.WriteString("[" + stringVal + "]"); err != nil {
-			panic(err.Error())
+			if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
+				panic(e.Error())
+			}
+			return nil, err
 		}
 	}
 
 	// write log message
 	if err := b.WriteByte(' '); err != nil {
-		panic(err.Error())
+		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
+			panic(e.Error())
+		}
+		return nil, err
 	}
 	if _, err := b.WriteString(entry.Message); err != nil {
-		panic(err.Error())
+		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
+			panic(e.Error())
+		}
+		return nil, err
 	}
 
 	// new line
 	if err := b.WriteByte('\n'); err != nil {
-		panic(err.Error())
+		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
+			panic(e.Error())
+		}
+		return nil, err
 	}
 
 	return b.Bytes(), nil
 }
 
 // createLogger creates and initializes the logger for smsync
-func createLogger(level log.Level) {
+func createLogger(level log.Level) error {
 	// set log file
 	fp, err := filepath.Abs(filepath.Join(".", logFileName))
 	if err != nil {
-		panic(err.Error())
+		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
+			panic(e.Error())
+		}
+		return err
 	}
 
 	// delete log file if it already exists
 	exists, err := lhlp.FileExists(fp)
 	if err != nil {
-		panic(err.Error())
+		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
+			panic(e.Error())
+		}
+		return err
 	}
 	if exists {
 		if err = os.Remove(fp); err != nil {
-			panic(err.Error())
+			if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
+				panic(e.Error())
+			}
+			return err
 		}
 	}
 
@@ -110,4 +138,6 @@ func createLogger(level log.Level) {
 
 	// set custom formatter
 	log.SetFormatter(new(smsyncTextFormatter))
+
+	return nil
 }

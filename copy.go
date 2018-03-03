@@ -30,5 +30,9 @@ func (tfCopy) isValid(s string) bool {
 
 // exec executes a file copy
 func (tfCopy) exec(cfg *config, f string) error {
-	return lhlp.CopyFile(f, assembleDstFile(cfg, f))
+	dstFile, err := assembleDstFile(cfg, f)
+	if err != nil {
+		return err
+	}
+	return lhlp.CopyFile(f, dstFile)
 }

@@ -18,6 +18,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 )
 
@@ -26,6 +27,9 @@ var Version string
 
 func main() {
 	if err := execute(); err != nil {
+		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
+			panic(e.Error())
+		}
 		os.Exit(1)
 	}
 }

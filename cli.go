@@ -21,14 +21,14 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	log "github.com/mipimipi/logrus"
 	"github.com/spf13/cobra"
 )
 
 var preamble = `smsync (Smart Music Sync) ` + Version + `
-Copyright (C) 2018 Michael Picht <https://github.com/mipimipi/smsync>
-`
+Copyright (C) 2018 Michael Picht <https://github.com/mipimipi/smsync>`
 
 var helpTemplate = preamble + `
 {{with (or .Long .Short)}}{{. | trimTrailingWhitespaces}}
@@ -41,30 +41,34 @@ var rootCmd = &cobra.Command{
 	Version:               Version,
 	DisableFlagsInUseLine: true,
 	Args: cobra.NoArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-
+	RunE: func(cmd *cobra.Command, args []string) error {
 		// retrieve flags
-		if err = cmd.ParseFlags(args); err != nil {
-			fmt.Printf("Error during parsing of flags: %v", err)
-			return
+		if err := cmd.ParseFlags(args); err != nil {
+			if _, e := fmt.Fprintf(os.Stderr, "Error during parsing of flags: %v", err); e != nil {
+				return e
+			}
+			return err
 		}
 
 		// set up logging
+		var level log.Level
 		if cli.doLog {
-			createLogger(log.DebugLevel)
+			level = log.DebugLevel
 		} else {
-			createLogger(log.ErrorLevel)
+			level = log.ErrorLevel
+		}
+		if err := createLogger(level); err != nil {
+			if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
+				return e
+			}
+			return err
 		}
 
 		// print copyright etc. on command line
 		fmt.Println(preamble)
 
 		// call synchronization (which contains the main logic of smsync)
-		if err = synchronize(); err != nil {
-			fmt.Printf("%v\n", err)
-			return
-		}
+		return synchronize()
 	},
 }
 

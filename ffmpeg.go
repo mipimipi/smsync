@@ -67,7 +67,11 @@ func (tfFFmpeg) exec(cfg *config, f string) error {
 	args = append(args, "-y")
 
 	// assemble output file
-	args = append(args, assembleDstFile(cfg, f))
+	dstFile, err := assembleDstFile(cfg, f)
+	if err != nil {
+		return err
+	}
+	args = append(args, dstFile)
 
 	log.Debugf("FFmpeg command: ffmpeg %s", strings.Join(args, " "))
 

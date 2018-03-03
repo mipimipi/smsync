@@ -128,13 +128,13 @@ func CopyFile(srcFn, dstFn string) error {
 	return dst.Sync()
 }
 
-// DurToHms converts a duration in a string that shows hours, minutes and
+// DurToHms converts a duration into a string that shows hours, minutes and
 // seconds. The concrete format of the returned string is determined by
 // the format string. Since DurToHms retrieves hours, minutes abd seconds
-// fro the duration as intergers, the format string needs to contain %d's.
+// from the duration as integers, the format string needs to contain %d's.
 // DurToHms replaces the first %d by hours, the second by minutes and the
 // last by seconds
-func DurToHms(d time.Duration, format string) string {
+func DurToHms(d time.Duration, format string) (string, error) {
 	// a is an aray of length 2: a[0] is time in full seconds, a[1] contains
 	// the sub second time
 	a := strings.Split(strconv.FormatFloat(d.Seconds(), 'f', 6, 64), ".")
@@ -142,7 +142,7 @@ func DurToHms(d time.Duration, format string) string {
 	// i is time in full seconds as integer
 	i, err := strconv.Atoi(a[0])
 	if err != nil {
-		panic(err.Error())
+		return "", fmt.Errorf("Duration couldn't be converted to string: %v", err)
 	}
 
 	// hours
@@ -157,11 +157,12 @@ func DurToHms(d time.Duration, format string) string {
 	// seconds
 	s := i - m*60
 
-	return fmt.Sprintf(format, h, m, s)
+	return fmt.Sprintf(format, h, m, s), nil
 }
 
 // EscapePattern escapes special characters in pattern strings for usage in
-// filepath.Glob() or filepath.Match. See: https://godoc.org/path/filepath#Match
+// filepath.Glob() or filepath.Match()
+// See: https://godoc.org/path/filepath#Match
 func EscapePattern(s string) string {
 	special := [...]string{"[", "?", "*"}
 	for _, sp := range special {
@@ -176,7 +177,10 @@ func FileExists(filePath string) (bool, error) {
 	if os.IsNotExist(err) {
 		return false, nil
 	}
-	return err == nil, err
+	if err != nil {
+		return false, fmt.Errorf("Existence of file '%s' couldn't be determined: %v", filePath, err)
+	}
+	return true, nil
 }
 
 // FileSuffix return the suffix of a file without the dot. If the file name
@@ -188,19 +192,24 @@ func FileSuffix(f string) string {
 	return path.Ext(f)[1:]
 }
 
-// FindFiles traverses directory trees starting for a list of root directories,
-// to find files and directories to fulfill a certain filter condition.
-// This condition must be implemented in a function, which is passed to
-// FindFiles as a parameter. numWorkers is the number of concurrent Go
-// routines that FindFiles uses.
+// FindFiles traverses directory trees to find files and directories that
+// fulfill a certain filter condition. It starts at a list of root
+// directories. The condition must be implemented in a function, which is
+// passed to FindFiles as a parameter. numWorkers is the number of concurrent
+// Go routines that FindFiles uses.
 // FindFiles returns two string arrays: One contains the directories and one
-// the files. Both lists contain the absolute paths.
+// the files that fulfill the filter condition. Both lists contain the absolute
+// paths.
+// This function is inspired by the Concurrent Directory Traversal from the
+// book "The Go Programming Language" by Alan A. A. Donovan & Brian W.
+// Kernighan.
+// See: https://github.com/adonovan/gopl.io/blob/master/ch8/du4/main.go
 func FindFiles(roots []string, filter func(string) bool, numWorkers int) (*[]*string, *[]*string) {
 	var (
 		dirs     []*string      // list of directories to be returned
 		files    []*string      // list of files to be returned
 		traverse func(string)   // func needs to be declared here since it calls itself recursively
-		wg       sync.WaitGroup // waiting group for the traversal
+		wg       sync.WaitGroup // waiting group for the concurrent traversal
 	)
 
 	// create buffered channel, used as semaphore to restrict the number of Go routines
@@ -269,7 +278,7 @@ func FindFiles(roots []string, filter func(string) bool, numWorkers int) (*[]*st
 		go traverse(root)
 	}
 
-	// wait for traversals to be done
+	// wait for traversals to be finalized
 	wg.Wait()
 
 	return &dirs, &files
@@ -288,7 +297,7 @@ func PathRelCopy(srcBase, path, dstBase string) (string, error) {
 	// determine the relative path using filepath.Rel()
 	// See: https://godoc.org/path/filepath#Rel
 	if rel, err = filepath.Rel(srcBase, path); err != nil {
-		return "", err
+		return "", fmt.Errorf("PathRelCopy: %v", err)
 	}
 
 	// if the relative path is empty: Just return dstBase

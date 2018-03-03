@@ -18,6 +18,8 @@
 package main
 
 import (
+	"fmt"
+
 	lhlp "github.com/mipimipi/go-lhlp"
 	log "github.com/mipimipi/logrus"
 )
@@ -69,13 +71,14 @@ var (
 
 // assembleDstFile creates the destination file path from the source file path
 // (f) and the configuration
-func assembleDstFile(cfg *config, srcFilePath string) string {
+func assembleDstFile(cfg *config, srcFilePath string) (string, error) {
 	var dstSuffix string
 
 	// get transformation rule from config
 	tfm, exists := cfg.getTf(srcFilePath)
 	if !exists {
-		panic("No transformation rule for " + srcFilePath)
+		log.Errorf("No transformation rule for '%s'", srcFilePath)
+		return "", fmt.Errorf("No transformation rule for '%s'", srcFilePath)
 	}
 
 	// if corresponding transformation rule is for '*' ...
@@ -89,10 +92,10 @@ func assembleDstFile(cfg *config, srcFilePath string) string {
 
 	dstFilePath, err := lhlp.PathRelCopy(cfg.srcDirPath, lhlp.PathTrunk(srcFilePath)+"."+dstSuffix, cfg.dstDirPath)
 	if err != nil {
-		log.Errorf("%v", err)
-		return ""
+		log.Errorf("Destination path cannot be assembled: %v", err)
+		return "", err
 	}
-	return dstFilePath
+	return dstFilePath, nil
 }
 
 // transform executes transformation/conversion for one file

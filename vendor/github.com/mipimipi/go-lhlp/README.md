@@ -1,6 +1,6 @@
 # go-lhlp
 
-"Go's little helper": The package go-lhlp contains practical and handy functions that are useful in many Go projects, but which are not part of the standards Go libraries, such as
+"Go's little helper": Practical and handy functions that are useful in many Go projects, but which are not part of the standards Go libraries, such as
 
 * `Contains` checks if an array contains a certain element
 

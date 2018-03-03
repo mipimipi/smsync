@@ -33,21 +33,21 @@ import (
 // deleteObsoleteFile deletes directories and files that are available in the
 // destination directory tree but not in the source directory tree. It is called
 // for all source directories that have been changes since the last sync
-func deleteObsoleteFiles(cfg *config, srcDirPath string) {
+func deleteObsoleteFiles(cfg *config, srcDirPath string) error {
 	// assemble destination directory path
 	dstDirPath, err := lhlp.PathRelCopy(cfg.srcDirPath, srcDirPath, cfg.dstDirPath)
 	if err != nil {
-		log.Errorf("%v", err)
-		return
+		log.Errorf("Destination path cannot be assembled: %v", err)
+		return err
 	}
 
 	// open destination directory
 	dstDir, err := os.Open(dstDirPath)
 	if err != nil {
-		log.Errorf("%v", err)
-		return
+		log.Errorf("Cannot open '%s': %v", dstDirPath, err)
+		return err
 	}
-	// close destiantion directory (deferred)
+	// close destination directory (deferred)
 	defer func() {
 		if err = dstDir.Close(); err != nil {
 			log.Errorf("%s can't be closed: %v", dstDirPath, err)
@@ -57,8 +57,8 @@ func deleteObsoleteFiles(cfg *config, srcDirPath string) {
 	// read entries of destination directory
 	dstEntrs, err := dstDir.Readdir(0)
 	if err != nil {
-		log.Errorf("%v", err)
-		return
+		log.Errorf("Cannot read directory '%s': %v", dstDir, err)
+		return err
 	}
 
 	// loop over all entries of destination directory
@@ -67,14 +67,14 @@ func deleteObsoleteFiles(cfg *config, srcDirPath string) {
 			// if entry is a directory ...
 			b, _ := lhlp.FileExists(filepath.Join(srcDirPath, dstEntr.Name()))
 			if err != nil {
-				panic(err.Error())
+				log.Errorf("%v", err)
 			}
 			// ... and the counterpart on source side doesn't exists: ...
 			if !b {
 				// ... delete entry
 				if err = os.Remove(filepath.Join(dstDirPath, dstEntr.Name())); err != nil {
-					log.Errorf("%v", err)
-					return
+					log.Errorf("Cannot remove '%s': %v", filepath.Join(dstDirPath, dstEntr.Name()), err)
+					return err
 				}
 			}
 		} else // if entry is a file
@@ -91,20 +91,21 @@ func deleteObsoleteFiles(cfg *config, srcDirPath string) {
 			tr := lhlp.PathTrunk(dstEntr.Name())
 			fs, err := filepath.Glob(lhlp.EscapePattern(filepath.Join(srcDirPath, tr)) + ".*")
 			if err != nil {
-				log.Errorf("%v", err)
-				log.Debugf(filepath.Join(srcDirPath, tr+".*"))
-				return
+				log.Errorf("Error from Glob('%s'): %v", lhlp.EscapePattern(filepath.Join(srcDirPath, tr))+".*", err)
+				return err
 			}
 			// if counterpart does not exist: ...
 			if fs == nil {
 				// ... delete entry
 				if err = os.Remove(filepath.Join(dstDirPath, dstEntr.Name())); err != nil {
-					log.Errorf("%v", err)
-					return
+					log.Errorf("Cannot remove '%s': %v", filepath.Join(dstDirPath, dstEntr.Name()), err)
+					return err
 				}
 			}
 		}
 	}
+
+	return nil
 }
 
 // getSyncFiles determines which directory and files need to be synched
@@ -114,6 +115,7 @@ func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 	filter := func(srcFile string) bool {
 		fi, err := os.Stat(srcFile)
 		if err != nil {
+			log.Errorf("Error from os.Stat('%s'): %v", srcFile, err)
 			return false
 		}
 
@@ -142,6 +144,7 @@ func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 			// that's the case, the file is relevant for the synchronization
 			fiDir, err := os.Stat(filepath.Dir(srcFile))
 			if err != nil {
+				log.Errorf("Error from os.Stat('%s'): %v", filepath.Dir(srcFile), err)
 				return false
 			}
 			if fiDir.ModTime().Before(cfg.lastSync) {
@@ -156,7 +159,8 @@ func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 			// assemble destination file path
 			dstFile, err := lhlp.PathRelCopy(cfg.srcDirPath, srcFile, cfg.dstDirPath)
 			if err != nil {
-				panic(err.Error())
+				log.Errorf("Destination path cannot be assembled: %v", err)
+				return false
 			}
 
 			// if source file is a directory, check it the counterpart on
@@ -164,7 +168,8 @@ func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 			if fi.IsDir() {
 				exists, err := lhlp.FileExists(dstFile)
 				if err != nil {
-					panic(err.Error())
+					log.Errorf("%v", err)
+					return false
 				}
 				return !exists
 			}
@@ -173,7 +178,7 @@ func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 			// destination side as well
 			fs, err := filepath.Glob(lhlp.EscapePattern(lhlp.PathTrunk(dstFile)) + ".*")
 			if err != nil {
-				log.Errorf("%v", err)
+				log.Errorf("Error from Glob('%s'): %v", lhlp.EscapePattern(lhlp.PathTrunk(dstFile))+".*", err)
 				return false
 			}
 			return (fs == nil)
@@ -189,10 +194,10 @@ func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 // processDirs creates new and deletes obsolets directories. processDirs
 // displays the progress on the command line and returns the overall time that
 // has been needed
-func processDirs(cfg *config, dirs *[]*string) time.Duration {
+func processDirs(cfg *config, dirs *[]*string) (time.Duration, error) {
 	// nothing to do in case of empty directory array
 	if len(*dirs) == 0 {
-		return 0
+		return 0, nil
 	}
 
 	// variables needed to display progress
@@ -212,24 +217,27 @@ func processDirs(cfg *config, dirs *[]*string) time.Duration {
 		// assemble full path of new directory (source & destination)
 		dstDirPath, err := lhlp.PathRelCopy(cfg.srcDirPath, *d, cfg.dstDirPath)
 		if err != nil {
-			log.Errorf("%v", err)
-			continue
+			log.Errorf("Destination path cannot be assembled: %v", err)
+			return 0, err
 		}
 
 		// determine if directory exists
 		exists, err := lhlp.FileExists(dstDirPath)
 		if err != nil {
 			log.Errorf("%v", err)
-			continue
+			return 0, err
 		}
 
 		if exists {
 			// if it exists: check if there are obsolete files and delete them
-			deleteObsoleteFiles(cfg, *d)
+			if err := deleteObsoleteFiles(cfg, *d); err != nil {
+				return 0, err
+			}
 		} else {
 			// if it doesn't exist: create it
 			if err = os.MkdirAll(dstDirPath, os.ModeDir|0755); err != nil {
-				log.Errorf("%v", err)
+				log.Errorf("Error from MkdirAll('%s'): %v", dstDirPath, err)
+				return 0, err
 			}
 		}
 
@@ -242,17 +250,17 @@ func processDirs(cfg *config, dirs *[]*string) time.Duration {
 		progressTable(numDone, len(*dirs), elapsed, 0, false, progModeDirs)
 	}
 
-	return elapsed
+	return elapsed, nil
 }
 
 // processFiles calls the transformation for all new or changes files. Files
 // are processes in parallel using the package github.com/mipimipi/go-worker.
 // processFiles displays the progress on the command line and returns the
 // overall time that has been needed
-func processFiles(cfg *config, files *[]*string) time.Duration {
+func processFiles(cfg *config, files *[]*string) (time.Duration, error) {
 	// nothing to do in case of empty files array
 	if len(*files) == 0 {
-		return 0
+		return 0, nil
 	}
 
 	// print headline
@@ -289,7 +297,9 @@ func processFiles(cfg *config, files *[]*string) time.Duration {
 			// determine elapsed time
 			elapsed = time.Since(start)
 			// update progress table on command line
-			progressTable(numDone, len(*files), elapsed, numErr, false, progModeFiles)
+			if err := progressTable(numDone, len(*files), elapsed, numErr, false, progModeFiles); err != nil {
+				return 0, err
+			}
 		case r, ok := <-res:
 			// if all files have been transformed ...
 			if !ok {
@@ -308,11 +318,13 @@ func processFiles(cfg *config, files *[]*string) time.Duration {
 			// determine elapsed time
 			elapsed = time.Since(start)
 			// update progress table on command line
-			progressTable(numDone, len(*files), elapsed, numErr, false, progModeFiles)
+			if err := progressTable(numDone, len(*files), elapsed, numErr, false, progModeFiles); err != nil {
+				return 0, err
+			}
 		}
 	}
 
-	return elapsed
+	return elapsed, nil
 }
 
 // synchronize is the main function of smsync. It triggers the entire sync
@@ -361,14 +373,25 @@ func synchronize() error {
 	}
 
 	// process directories
-	durDirs := processDirs(cfg, dirs)
+	durDirs, err := processDirs(cfg, dirs)
+	if err != nil {
+		return err
+	}
 
 	// process files
-	durFiles := processFiles(cfg, files)
+	durFiles, err := processFiles(cfg, files)
+	if err != nil {
+		return err
+	}
 
 	// print headline
 	fmt.Println("\n\033[1m\033[34m# Done :)\033[22m\033[39m")
-	fmt.Printf("Processed %d directories and %d files in %s\n", len(*dirs), len(*files), lhlp.DurToHms(durDirs+durFiles, "%dh %02dmin %02ds"))
+	// print total duration into a string
+	totalStr, err := lhlp.DurToHms(durDirs+durFiles, "%dh %02dmin %02ds")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Processed %d directories and %d files in %s\n", len(*dirs), len(*files), totalStr)
 
 	// update last sync time in config file
 	return cfg.updateLastSync()

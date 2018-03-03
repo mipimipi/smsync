@@ -75,7 +75,7 @@ func progressStr(act string, interval time.Duration) chan<- struct{} {
 }
 
 // progressTable prints diverse data about the progress on stdout
-func progressTable(done int, total int, elapsed time.Duration, numErr int, init bool, mode string) {
+func progressTable(done int, total int, elapsed time.Duration, numErr int, init bool, mode string) error {
 	var (
 		formatStr string
 		objStr    string
@@ -96,7 +96,7 @@ func progressTable(done int, total int, elapsed time.Duration, numErr int, init 
 		fmt.Printf(formatStrHead, "", "DONE", "REMAINING", "ERRORS")
 		fmt.Printf(formatStrLine, objStr, "0", "0", "0")
 		fmt.Printf(formatStrLine, "TIME", "00:00:00", "00:00:00", "")
-		return
+		return nil
 	}
 
 	var remaining time.Duration
@@ -111,5 +111,18 @@ func progressTable(done int, total int, elapsed time.Duration, numErr int, init 
 		formatStr = formatStrLineErr
 	}
 	fmt.Printf(formatStr, objStr, strconv.Itoa(done), strconv.Itoa(total-done), strconv.Itoa(numErr))
-	fmt.Printf(formatStrLine, "TIME", lhlp.DurToHms(elapsed, "%02d:%02d:%02d"), lhlp.DurToHms(remaining, "%02d:%02d:%02d"), "")
+	// print elapsed time into a string
+	elapsedStr, err := lhlp.DurToHms(elapsed, "%02d:%02d:%02d")
+	if err != nil {
+		return err
+	}
+	// print remaining time into a string
+	remainingStr, err := lhlp.DurToHms(remaining, "%02d:%02d:%02d")
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf(formatStrLine, "TIME", elapsedStr, remainingStr, "")
+
+	return nil
 }

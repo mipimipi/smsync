@@ -89,7 +89,8 @@ func getCfgFile() (*ini.File, error) {
 		// determine working directory for error message
 		wd, err0 := os.Getwd()
 		if err0 != nil {
-			panic(err0.Error())
+			log.Errorf("Cannot determine working directory: %v", err0)
+			return nil, fmt.Errorf("Cannot determine working directory: %v", err0)
 		}
 		log.Errorf("No configuration file found in '%s'", wd)
 		return nil, fmt.Errorf("No configuration file found in '%s'", wd)

@@ -137,7 +137,11 @@ func (tfLame) exec(cfg *config, f string) error {
 	args = append(args, f)
 
 	// assemble output file
-	args = append(args, assembleDstFile(cfg, f))
+	dstFile, err := assembleDstFile(cfg, f)
+	if err != nil {
+		return err
+	}
+	args = append(args, dstFile)
 
 	log.Debugf("LAME command: lame %s", strings.Join(args, " "))
 
