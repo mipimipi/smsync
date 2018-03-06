@@ -57,7 +57,7 @@ func deleteObsoleteFiles(cfg *config, srcDirPath string) error {
 	// read entries of destination directory
 	dstEntrs, err := dstDir.Readdir(0)
 	if err != nil {
-		log.Errorf("Cannot read directory '%s': %v", dstDir, err)
+		log.Errorf("Cannot read directory '%s': %v", dstDir.Name(), err)
 		return err
 	}
 
@@ -283,7 +283,9 @@ func processFiles(cfg *config, files *[]*string) (time.Duration, error) {
 	}()
 
 	// print initial progress table
-	progressTable(0, len(*files), 0, 0, true, progModeFiles)
+	if err := progressTable(0, len(*files), 0, 0, true, progModeFiles); err != nil {
+		return 0, err
+	}
 
 	// variables needed to measure progress
 	var (

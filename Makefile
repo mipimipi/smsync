@@ -20,7 +20,7 @@ BINARY=smsync
 
 # set VERSION if VERSION hasn't been passed from command line
 ifndef $(VERSION)
-	VERSION=1.2.1
+	VERSION=1.3.1
 endif
 
 # Setup the -ldflags option for go build here, interpolate the variable values
