@@ -27,7 +27,6 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -126,38 +125,6 @@ func CopyFile(srcFn, dstFn string) error {
 
 	// flush dest file
 	return dst.Sync()
-}
-
-// DurToHms converts a duration into a string that shows hours, minutes and
-// seconds. The concrete format of the returned string is determined by
-// the format string. Since DurToHms retrieves hours, minutes abd seconds
-// from the duration as integers, the format string needs to contain %d's.
-// DurToHms replaces the first %d by hours, the second by minutes and the
-// last by seconds
-func DurToHms(d time.Duration, format string) (string, error) {
-	// a is an aray of length 2: a[0] is time in full seconds, a[1] contains
-	// the sub second time
-	a := strings.Split(strconv.FormatFloat(d.Seconds(), 'f', 6, 64), ".")
-
-	// i is time in full seconds as integer
-	i, err := strconv.Atoi(a[0])
-	if err != nil {
-		return "", fmt.Errorf("Duration couldn't be converted to string: %v", err)
-	}
-
-	// hours
-	h := i / 3600
-
-	// decrease i by full hours
-	i -= h * 3600
-
-	// minutes
-	m := i / 60
-
-	// seconds
-	s := i - m*60
-
-	return fmt.Sprintf(format, h, m, s), nil
 }
 
 // EscapePattern escapes special characters in pattern strings for usage in
@@ -313,6 +280,22 @@ func PathRelCopy(srcBase, path, dstBase string) (string, error) {
 // E.g. Trunk("/home/test/abc.mp3") return "/home/test/abc"
 func PathTrunk(p string) string {
 	return p[0 : len(p)-len(path.Ext(p))]
+}
+
+// SplitDuration disaggregates a duration and return is splitted into hours,
+// minutes, seconds and nanoseconds
+func SplitDuration(d time.Duration) map[time.Duration]time.Duration {
+	var (
+		out  = make(map[time.Duration]time.Duration)
+		cmps = []time.Duration{time.Hour, time.Minute, time.Second, time.Nanosecond}
+	)
+
+	for _, cmp := range cmps {
+		out[cmp] = d / cmp
+		d -= out[cmp] * cmp
+	}
+
+	return out
 }
 
 // UserOK print the message s followed by " (Y/n)?" on stdout and askes the

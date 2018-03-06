@@ -112,15 +112,12 @@ func progressTable(done int, total int, elapsed time.Duration, numErr int, init 
 	}
 	fmt.Printf(formatStr, objStr, strconv.Itoa(done), strconv.Itoa(total-done), strconv.Itoa(numErr))
 	// print elapsed time into a string
-	elapsedStr, err := lhlp.DurToHms(elapsed, "%02d:%02d:%02d")
-	if err != nil {
-		return err
-	}
+	split := lhlp.SplitDuration(elapsed)
+	elapsedStr := fmt.Sprintf("%02d:%02d:%02d", split[time.Hour], split[time.Minute], split[time.Second])
+
 	// print remaining time into a string
-	remainingStr, err := lhlp.DurToHms(remaining, "%02d:%02d:%02d")
-	if err != nil {
-		return err
-	}
+	split = lhlp.SplitDuration(remaining)
+	remainingStr := fmt.Sprintf("%02d:%02d:%02d", split[time.Hour], split[time.Minute], split[time.Second])
 
 	fmt.Printf(formatStrLine, "TIME", elapsedStr, remainingStr, "")
 

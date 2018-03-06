@@ -25,7 +25,7 @@ import (
 )
 
 type (
-	// transformation needs to by unique for a pair of sourc suffix and
+	// transformation needs to by unique for a pair of source suffix and
 	// destination suffix
 	tfKey struct {
 		srcSuffix string
@@ -86,7 +86,7 @@ func assembleDstFile(cfg *config, srcFilePath string) (string, error) {
 		// ... destination suffix is same as source suffix
 		dstSuffix = lhlp.FileSuffix(srcFilePath)
 	} else {
-		// otherwise take destination suffix from transformation rule
+		// ... otherwise take destination suffix from transformation rule
 		dstSuffix = tfm.dstSuffix
 	}
 

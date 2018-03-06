@@ -205,13 +205,16 @@ func processDirs(cfg *config, dirs *[]*string) (time.Duration, error) {
 		numDone int           // number of processed files
 		start   = time.Now()  // start time of transformation
 		elapsed time.Duration // elapsed time of transformation
+		err     error
 	)
 
 	// print headline
 	fmt.Println("\n\033[1m\033[34m# Process directories\033[22m\033[39m")
 
 	// print initial progress table
-	progressTable(0, len(*dirs), 0, 0, true, progModeDirs)
+	if err = progressTable(0, len(*dirs), 0, 0, true, progModeDirs); err != nil {
+		return 0, err
+	}
 
 	for _, d := range *dirs {
 		// assemble full path of new directory (source & destination)
@@ -230,12 +233,12 @@ func processDirs(cfg *config, dirs *[]*string) (time.Duration, error) {
 
 		if exists {
 			// if it exists: check if there are obsolete files and delete them
-			if err := deleteObsoleteFiles(cfg, *d); err != nil {
+			if err = deleteObsoleteFiles(cfg, *d); err != nil {
 				return 0, err
 			}
 		} else {
 			// if it doesn't exist: create it
-			if err = os.MkdirAll(dstDirPath, os.ModeDir|0755); err != nil {
+			if err = os.MkdirAll(dstDirPath, os.ModeDir|0755); (err != nil) && (err != os.ErrExist) {
 				log.Errorf("Error from MkdirAll('%s'): %v", dstDirPath, err)
 				return 0, err
 			}
@@ -247,7 +250,9 @@ func processDirs(cfg *config, dirs *[]*string) (time.Duration, error) {
 		elapsed = time.Since(start)
 
 		// update progress table on command line
-		progressTable(numDone, len(*dirs), elapsed, 0, false, progModeDirs)
+		if err = progressTable(numDone, len(*dirs), elapsed, 0, false, progModeDirs); err != nil {
+			return 0, err
+		}
 	}
 
 	return elapsed, nil
@@ -387,10 +392,8 @@ func synchronize() error {
 	// print headline
 	fmt.Println("\n\033[1m\033[34m# Done :)\033[22m\033[39m")
 	// print total duration into a string
-	totalStr, err := lhlp.DurToHms(durDirs+durFiles, "%dh %02dmin %02ds")
-	if err != nil {
-		return err
-	}
+	split := lhlp.SplitDuration(durDirs + durFiles)
+	totalStr := fmt.Sprintf("%dh %02dmin %02ds", split[time.Hour], split[time.Minute], split[time.Second])
 	fmt.Printf("Processed %d directories and %d files in %s\n", len(*dirs), len(*files), totalStr)
 
 	// update last sync time in config file
