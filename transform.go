@@ -54,9 +54,15 @@ type (
 // Constants for copy
 const tfCopyStr = "copy"
 
+// constants for bit rate options
+const (
+	abr = "abr" // average bit rate
+	cbr = "cbr" // constant bit rate
+	vbr = "vbr" // variable bit rate
+)
+
 // supported transformations
 var (
-	mp32mp3 tfMP32MP3 // conversion of MP3 to MP3
 	all2MP3 tfAll2MP3 // conversion of all types to MP3
 	cp      tfCopy    // copy transfromation
 
@@ -64,7 +70,7 @@ var (
 	// suffices) to the supported transformations
 	validTfs = map[tfKey]transformation{
 		tfKey{"flac", "mp3"}: all2MP3,
-		tfKey{"mp3", "mp3"}:  mp32mp3,
+		tfKey{"mp3", "mp3"}:  all2MP3,
 		tfKey{"*", "*"}:      cp,
 	}
 )
