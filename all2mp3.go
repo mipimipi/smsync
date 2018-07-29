@@ -30,7 +30,7 @@ import (
 
 type tfAll2MP3 struct{}
 
-// isMP3Bitrate checks if the input is a valid LAME bitrate (i.e. 8, 16,
+// isMP3Bitrate checks if the input is a valid MP3 bitrate (i.e. 8, 16,
 // 24, ..., 320)
 func isMP3Bitrate(s string) bool {
 	var b bool
@@ -45,36 +45,36 @@ func isMP3Bitrate(s string) bool {
 	}
 
 	if !b {
-		log.Errorf("'%s' is no a valid LAME bitrate", s)
+		log.Errorf("'%s' is no a valid MP3 bitrate", s)
 	}
 
 	return b
 }
 
-// isMP3Quality checks if the input is a valid LAME quality (i.e. "qX"
+// isMP3Quality checks if the input is a valid MP3 quality (i.e. "qX"
 // with s="X" = 0,1, ..., 9)
 func isMP3Quality(s string) bool {
 	if re, _ := regexp.Compile(`q\d{1}`); re.FindString(s) != s {
-		log.Errorf("'%s' is no a valid LAME quality", s)
+		log.Errorf("'%s' is no a valid MP3 quality", s)
 		return false
 	}
 
 	return true
 }
 
-// isMP3VBRQuality checks if the input is a valid LAME VBR quality
+// isMP3VBRQuality checks if the input is a valid MP3 VBR quality
 // (i.e. s="vX" with X =0, ..., 9.999)
 func isMP3VBRQuality(s string) bool {
 	if re, _ := regexp.Compile(`v\d{1}(.\d{1,3})?`); re.FindString(s) != s {
-		log.Errorf("'%s' is no a valid LAME VBR quality", s)
+		log.Errorf("'%s' is no a valid MP3 VBR quality", s)
 		return false
 	}
 
 	return true
 }
 
-// isValidMP3Str checks if s is a valid LAME parameter string
-func isValidMP3Str(s string) bool {
+// isValid checks if s is a valid parameter string
+func (tfAll2MP3) isValid(s string) bool {
 	var b bool
 
 	a := strings.Split(s, "|")
@@ -99,12 +99,6 @@ func isValidMP3Str(s string) bool {
 	}
 
 	return b
-}
-
-// isValid checks if s is a valid parameter string. For FFMPEG the same
-// parameters as for LAME are used
-func (tfAll2MP3) isValid(s string) bool {
-	return isValidMP3Str(s)
 }
 
 // exec assembles and executes the FFMPEG command. For details about the
