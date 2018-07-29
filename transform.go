@@ -56,15 +56,15 @@ const tfCopyStr = "copy"
 
 // supported transformations
 var (
-	lame   tfLame   // LAME transformation
-	ffmpeg tfFFmpeg // FFMPEG transformation
-	cp     tfCopy   // copy transfromation
+	mp32mp3 tfMP32MP3 // conversion of MP3 to MP3
+	all2MP3 tfAll2MP3 // conversion of all types to MP3
+	cp      tfCopy    // copy transfromation
 
 	// validTfs maps transformation keys (i.e. pairs of source and destination
 	// suffices) to the supported transformations
 	validTfs = map[tfKey]transformation{
-		tfKey{"flac", "mp3"}: ffmpeg,
-		tfKey{"mp3", "mp3"}:  lame,
+		tfKey{"flac", "mp3"}: all2MP3,
+		tfKey{"mp3", "mp3"}:  mp32mp3,
 		tfKey{"*", "*"}:      cp,
 	}
 )

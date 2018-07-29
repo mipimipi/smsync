@@ -25,16 +25,27 @@ import (
 	log "github.com/mipimipi/logrus"
 )
 
-type tfLame struct{}
+type tfAll2MP3 struct{}
 
-// isValid checks if s is a valid parameter string
-func (tfLame) isValid(s string) bool {
+// isValid checks if s is a valid parameter string. For FFMPEG the same
+// parameters as for LAME are used
+func (tfAll2MP3) isValid(s string) bool {
 	return isValidLameStr(s)
 }
 
-// exec assembles and executes the LAME command
-func (tfLame) exec(cfg *config, f string) error {
+// exec assembles and executes the FFMPEG command. For details about the
+// parameters of FFMPEG see https://trac.ffmpeg.org/wiki/Encode/MP3
+func (tfAll2MP3) exec(cfg *config, f string) error {
 	var args []string
+
+	// assemble input file
+	args = append(args, "-i", f)
+
+	// only audio
+	args = append(args, "-codec:a")
+
+	// use lame
+	args = append(args, "libmp3lame")
 
 	// assemble options
 	{
@@ -43,17 +54,17 @@ func (tfLame) exec(cfg *config, f string) error {
 
 		switch tf[0] {
 		case abr:
-			args = append(args, "--abr", tf[1])
+			args = append(args, "-b:a", tf[1]+"k", "-abr", "1")
 		case cbr:
-			args = append(args, "-b", tf[1])
+			args = append(args, "-b:a", tf[1]+"k")
 		case vbr:
-			args = append(args, "-V", tf[1][1:])
+			args = append(args, "-q:a", tf[1][1:])
 		}
-		args = append(args, "-q", tf[2][1:])
+		args = append(args, "-compression_level", tf[2][1:])
 	}
 
-	// assemble input file
-	args = append(args, f)
+	// overwrite output file (in case it's existing)
+	args = append(args, "-y")
 
 	// assemble output file
 	dstFile, err := assembleDstFile(cfg, f)
@@ -62,11 +73,11 @@ func (tfLame) exec(cfg *config, f string) error {
 	}
 	args = append(args, dstFile)
 
-	log.Debugf("LAME command: lame %s", strings.Join(args, " "))
+	log.Debugf("FFmpeg command: ffmpeg %s", strings.Join(args, " "))
 
-	// execute LAME command
-	if err := exec.Command("lame", args...).Run(); err != nil {
-		log.Errorf("Executed LAME for %s: %v", f, err)
+	// execute FFMPEG command
+	if err := exec.Command("ffmpeg", args...).Run(); err != nil {
+		log.Errorf("Executed FFMPEG for %s: %v", f, err)
 		return err
 	}
 
