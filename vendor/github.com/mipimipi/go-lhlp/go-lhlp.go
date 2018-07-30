@@ -299,7 +299,9 @@ func SplitDuration(d time.Duration) map[time.Duration]time.Duration {
 }
 
 // UserOK print the message s followed by " (Y/n)?" on stdout and askes the
-// user to press either Y (to continue) or n (to stop)
+// user to press either Y (to continue) or n (to stop). Y is treated as
+// default. I.e. if the user only presses return, that's interpreted as if
+// he has pressed Y.
 func UserOK(s string) bool {
 	var input string
 
@@ -309,7 +311,7 @@ func UserOK(s string) bool {
 			return false
 		}
 		switch {
-		case input == "Y":
+		case input == "Y" || input == "":
 			return true
 		case input == "n":
 			return false
