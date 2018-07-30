@@ -310,6 +310,7 @@ func UserOK(s string) bool {
 		if _, err := fmt.Scan(&input); err != nil {
 			return false
 		}
+		fmt.Println("Hallo")
 		switch {
 		case input == "Y" || input == "":
 			return true

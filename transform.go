@@ -63,15 +63,22 @@ const (
 
 // supported transformations
 var (
-	all2MP3 tfAll2MP3 // conversion of all types to MP3
-	cp      tfCopy    // copy transfromation
+	all2FLAC tfAll2FLAC // conversion of all types to FLAC
+	all2MP3  tfAll2MP3  // conversion of all types to MP3
+	cp       tfCopy     // copy transfromation
 
 	// validTfs maps transformation keys (i.e. pairs of source and destination
 	// suffices) to the supported transformations
 	validTfs = map[tfKey]transformation{
+		// valid conversions to FLAC
+		tfKey{"flac", "flac"}: all2FLAC,
+		tfKey{"wav", "flac"}:  all2FLAC,
+		// valid conversions to MP3
 		tfKey{"flac", "mp3"}: all2MP3,
 		tfKey{"mp3", "mp3"}:  all2MP3,
-		tfKey{"*", "*"}:      cp,
+		tfKey{"wav", "mp3"}:  all2MP3,
+		// copy
+		tfKey{"*", "*"}: cp,
 	}
 )
 
