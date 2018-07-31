@@ -24,24 +24,21 @@ import (
 	"strconv"
 	"strings"
 
-	lhlp "github.com/mipimipi/go-lhlp"
 	log "github.com/mipimipi/logrus"
 )
 
 type tfAll2OGG struct{}
 
-// isOGGBitrate checks if the input is a valid OGG bitrate (i.e. 8, 16,
-// 24, ..., 320)
+// isOGGBitrate checks if the input is a valid OGG bitrate (i.e. between
+// 8 and 500 kbps)
 func isOGGBitrate(s string) bool {
 	var b = true
-
-	br := []int{8, 16, 24, 32, 40, 48, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320}
 
 	if re, _ := regexp.Compile(`\d{1,3}`); re.FindString(s) != s {
 		b = false
 	} else {
 		i, _ := strconv.Atoi(s)
-		b = lhlp.Contains(br, i)
+		b = (8 <= i && i <= 500)
 	}
 
 	if !b {
@@ -113,7 +110,7 @@ func (tfAll2OGG) exec(cfg *config, f string) error {
 	// only audio
 	args = append(args, "-codec:a")
 
-	// use lame
+	// use vorbis codec
 	args = append(args, "libvorbis")
 
 	// assemble options
@@ -123,7 +120,7 @@ func (tfAll2OGG) exec(cfg *config, f string) error {
 
 		switch tf[0] {
 		case abr:
-			args = append(args, "-b:a", tf[1]+"k")
+			args = append(args, "-b", tf[1]+"k")
 		case vbr:
 			args = append(args, "-q:a", tf[1][1:])
 		}
@@ -146,4 +143,6 @@ func (tfAll2OGG) exec(cfg *config, f string) error {
 		log.Errorf("Executed FFMPEG for %s: %v", f, err)
 		return err
 	}
+
+	return nil
 }

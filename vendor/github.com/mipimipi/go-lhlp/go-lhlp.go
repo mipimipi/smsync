@@ -307,12 +307,14 @@ func UserOK(s string) bool {
 
 	for {
 		fmt.Printf("\r%s (Y/n)? ", s)
-		if _, err := fmt.Scan(&input); err != nil {
-			return false
+		if _, err := fmt.Scanln(&input); err != nil {
+			if err.Error() != "unexpected newline" {
+				return false
+			}
+			input = "Y"
 		}
-		fmt.Println("Hallo")
 		switch {
-		case input == "Y" || input == "":
+		case input == "Y":
 			return true
 		case input == "n":
 			return false

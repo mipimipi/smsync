@@ -31,9 +31,9 @@ import (
 type tfAll2MP3 struct{}
 
 // isMP3Bitrate checks if the input is a valid MP3 bitrate (i.e. 8, 16,
-// 24, ..., 320)
+// 24, ..., 320 kbps)
 func isMP3Bitrate(s string) bool {
-	var b bool
+	var b = true
 
 	br := []int{8, 16, 24, 32, 40, 48, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320}
 
@@ -75,7 +75,7 @@ func isMP3VBRQuality(s string) bool {
 
 // isValid checks if s is a valid parameter string
 func (tfAll2MP3) isValid(s string) bool {
-	var b bool
+	var b = true
 
 	a := strings.Split(s, "|")
 
@@ -102,7 +102,8 @@ func (tfAll2MP3) isValid(s string) bool {
 }
 
 // exec assembles and executes the FFMPEG command. For details about the
-// parameters of FFMPEG see https://trac.ffmpeg.org/wiki/Encode/MP3
+// parameters of FFMPEG for MP3 encoding, see
+// https://trac.ffmpeg.org/wiki/Encode/MP3
 func (tfAll2MP3) exec(cfg *config, f string) error {
 	var args []string
 
@@ -112,7 +113,7 @@ func (tfAll2MP3) exec(cfg *config, f string) error {
 	// only audio
 	args = append(args, "-codec:a")
 
-	// use lame
+	// use mp3 codec
 	args = append(args, "libmp3lame")
 
 	// assemble options

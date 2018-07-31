@@ -51,8 +51,8 @@ func (tfAll2FLAC) isValid(s string) bool {
 		}
 	}
 
-	if !b {
-		log.Infof("'%s' is not a valid FLAC quality", s)
+	if b {
+		log.Infof("'%s' is a valid FLAC transformation", s)
 	} else {
 		log.Errorf("'%s' is not a valid FLAC quality", s)
 	}
@@ -61,7 +61,8 @@ func (tfAll2FLAC) isValid(s string) bool {
 }
 
 // exec assembles and executes the FFMPEG command. For details about the
-// parameters of FFMPEG see https://trac.ffmpeg.org/wiki/Encode/MP3
+// parameters of FFMPEG for FLAC encoding, see
+// http://ffmpeg.org/ffmpeg-codecs.html#flac-2
 func (tfAll2FLAC) exec(cfg *config, f string) error {
 	var args []string
 
@@ -71,7 +72,7 @@ func (tfAll2FLAC) exec(cfg *config, f string) error {
 	// only audio
 	args = append(args, "-codec:a")
 
-	// use lame
+	// use flac codec
 	args = append(args, "flac")
 
 	// assemble options

@@ -65,6 +65,7 @@ const (
 var (
 	all2FLAC tfAll2FLAC // conversion of all types to FLAC
 	all2MP3  tfAll2MP3  // conversion of all types to MP3
+	all2OGG  tfAll2OGG  // conversion of all types to OGG
 	cp       tfCopy     // copy transfromation
 
 	// validTfs maps transformation keys (i.e. pairs of source and destination
@@ -76,7 +77,13 @@ var (
 		// valid conversions to MP3
 		tfKey{"flac", "mp3"}: all2MP3,
 		tfKey{"mp3", "mp3"}:  all2MP3,
+		tfKey{"ogg", "mp3"}:  all2MP3,
 		tfKey{"wav", "mp3"}:  all2MP3,
+		// valid conversions to OGG
+		tfKey{"flac", "ogg"}: all2OGG,
+		tfKey{"mp3", "ogg"}:  all2OGG,
+		tfKey{"ogg", "ogg"}:  all2OGG,
+		tfKey{"wav", "ogg"}:  all2OGG,
 		// copy
 		tfKey{"*", "*"}: cp,
 	}
