@@ -59,9 +59,10 @@ const tfCopyStr = "copy"
 
 // constants for bit rate options
 const (
-	abr = "abr" // average bit rate
-	cbr = "cbr" // constant bit rate
-	vbr = "vbr" // variable bit rate
+	abr  = "abr"  // average bit rate
+	cbr  = "cbr"  // constant bit rate
+	hcbr = "hcbr" // hard constant bit rate
+	vbr  = "vbr"  // variable bit rate
 )
 
 // supported transformations
@@ -69,6 +70,7 @@ var (
 	all2FLAC tfAll2FLAC // conversion of all types to FLAC
 	all2MP3  tfAll2MP3  // conversion of all types to MP3
 	all2OGG  tfAll2OGG  // conversion of all types to OGG
+	all2OPUS tfAll2OPUS // conversion of all types to OPUS
 	cp       tfCopy     // copy transfromation
 
 	// validTfs maps transformation keys (i.e. pairs of source and destination
@@ -81,12 +83,20 @@ var (
 		tfKey{"flac", "mp3"}: all2MP3,
 		tfKey{"mp3", "mp3"}:  all2MP3,
 		tfKey{"ogg", "mp3"}:  all2MP3,
+		tfKey{"opus", "mp3"}: all2MP3,
 		tfKey{"wav", "mp3"}:  all2MP3,
 		// valid conversions to OGG
 		tfKey{"flac", "ogg"}: all2OGG,
 		tfKey{"mp3", "ogg"}:  all2OGG,
 		tfKey{"ogg", "ogg"}:  all2OGG,
+		tfKey{"opus", "ogg"}: all2OGG,
 		tfKey{"wav", "ogg"}:  all2OGG,
+		// valid conversions to OPUS
+		tfKey{"flac", "opus"}: all2OPUS,
+		tfKey{"mp3", "opus"}:  all2OPUS,
+		tfKey{"ogg", "opus"}:  all2OPUS,
+		tfKey{"opus", "opus"}: all2OPUS,
+		tfKey{"wav", "opus"}:  all2OPUS,
 		// copy
 		tfKey{"*", "*"}: cp,
 	}
