@@ -198,14 +198,19 @@ func getCfg() (*config, error) {
 
 		// get transformation
 		if key, err = getKey(sec, cfgKeyTransform, false); err != nil {
-			log.Errorf("No transformation in rule #%d", i)
-			return nil, fmt.Errorf("No transformation in rule #%d", i)
+			log.Infof("No transformation in rule #%d", i)
+			rl.tfStr = ""
+		} else {
+			rl.tfStr = key.Value()
 		}
-		rl.tfStr = key.Value()
 
-		// check that transformation is copy in case of suffix '*'
+		// check that transformation is copy or empty in case of suffix '*'.
+		// if the transformation is empty it is set to copy.
 		if rl.srcSuffix == suffixStar && rl.tfStr != tfCopyStr {
-			return nil, fmt.Errorf("Rule #%d: For suffix '*' only copy transformation is allowed", i)
+			if rl.tfStr != "" {
+				return nil, fmt.Errorf("Rule #%d: For suffix '*' only copy transformation is allowed", i)
+			}
+			rl.tfStr = tfCopyStr
 		}
 
 		// get destination suffix
@@ -226,9 +231,12 @@ func getCfg() (*config, error) {
 			if _, ok := validTfs[tfKey{rl.srcSuffix, rl.dstSuffix}]; !ok {
 				return nil, fmt.Errorf("Transformation of '%s' into '%s' not supported", rl.srcSuffix, rl.dstSuffix)
 			}
-			// check if transformation is valid
-			if tf := validTfs[tfKey{rl.srcSuffix, rl.dstSuffix}]; !tf.isValid(rl.tfStr) {
-				return nil, fmt.Errorf("'%s' is not a valid transformation", rl.tfStr)
+			// check if transformation is valid and fill in default values
+			{
+				tf := validTfs[tfKey{rl.srcSuffix, rl.dstSuffix}]
+				if err := tf.normParams(&rl.tfStr); err != nil {
+					return nil, fmt.Errorf("'%s' is not a valid transformation", rl.tfStr)
+				}
 			}
 		}
 

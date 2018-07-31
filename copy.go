@@ -18,14 +18,30 @@
 package main
 
 import (
+	"fmt"
+	"strings"
+
 	lhlp "github.com/mipimipi/go-lhlp"
+	log "github.com/mipimipi/logrus"
 )
 
 type tfCopy struct{}
 
-// isValid checks is s represents the copy command
-func (tfCopy) isValid(s string) bool {
-	return s == tfCopyStr
+// normParams checks if the string contains a valid set of parameters and
+// normalizes it (e.g. removes blanks and sets default values)
+func (tfCopy) normParams(s *string) error {
+	// set *s to lower case and remove blanks
+	*s = strings.Trim(strings.ToLower(*s), " ")
+
+	if *s != tfCopyStr {
+		if *s == "" {
+			*s = tfCopyStr
+		} else {
+			log.Errorf("'%s' is not a valid copy transformation", s)
+			return fmt.Errorf("'%s' is not a valid copy transformation", s)
+		}
+	}
+	return nil
 }
 
 // exec executes a file copy

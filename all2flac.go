@@ -18,6 +18,7 @@
 package main
 
 import (
+	"fmt"
 	"os/exec"
 	"path"
 	"regexp"
@@ -29,35 +30,51 @@ import (
 
 type tfAll2FLAC struct{}
 
-// isValid checks if s is a valid parameter string
-func (tfAll2FLAC) isValid(s string) bool {
-	var (
-		b   = true
-		i   int
-		err error
-	)
+// verifyTf checks if s is a valid parameter string and expands default values
+func (tfAll2FLAC) normParams(s *string) error {
+	// set *s to lower case and remove blanks
+	*s = strings.Trim(strings.ToLower(*s), " ")
 
-	// check if transformation parameter is like 'q{x}', where x is
-	// 0, 1, ..., 12
-	if re, _ := regexp.Compile(`q\d{1,2}`); re.FindString(s) != s {
-		b = false
-	} else {
-		if i, err = strconv.Atoi(s[1:]); err != nil {
-			b = false
+	// set default compression level (=5) and exit
+	if *s == "" {
+		*s = "cl:5"
+		log.Infof("Set FLAC transformation to default: cl:5", *s)
+		return nil
+	}
+
+	// handle more complex case
+	{
+		var isValid = true
+
+		// check if transformation parameter is like 'cl:X', where X is
+		// 0, 1, ..., 12
+		if re, _ := regexp.Compile(`cl:\d{1,2}`); re.FindString(*s) != *s {
+			isValid = false
 		} else {
-			if i < 0 || i > 12 {
-				b = false
+			var (
+				i   int
+				err error
+			)
+
+			if i, err = strconv.Atoi((*s)[3:]); err != nil {
+				isValid = false
+			} else {
+				if i < 0 || i > 12 {
+					isValid = false
+				}
 			}
 		}
-	}
 
-	if b {
-		log.Infof("'%s' is a valid FLAC transformation", s)
-	} else {
-		log.Errorf("'%s' is not a valid FLAC quality", s)
-	}
+		// transformation is not valid: error
+		if !isValid {
+			log.Errorf("'%s' is not a valid FLAC transformation", *s)
+			return fmt.Errorf("'%s' is not a valid FLAC transformation", *s)
+		}
 
-	return b
+		// everythings fine
+		log.Infof("'%s' is a valid FLAC transformation", *s)
+		return nil
+	}
 }
 
 // exec assembles and executes the FFMPEG command. For details about the
@@ -76,12 +93,7 @@ func (tfAll2FLAC) exec(cfg *config, f string) error {
 	args = append(args, "flac")
 
 	// assemble options
-	{
-		// split transformation string into array
-		tf := strings.Split(cfg.tfs[path.Ext(f)[1:]].tfStr, "|")
-
-		args = append(args, "-compression_level", tf[0][1:])
-	}
+	args = append(args, "-compression_level", cfg.tfs[path.Ext(f)[1:]].tfStr[3:])
 
 	// overwrite output file (in case it's existing)
 	args = append(args, "-y")

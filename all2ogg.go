@@ -18,6 +18,7 @@
 package main
 
 import (
+	"fmt"
 	"os/exec"
 	"path"
 	"regexp"
@@ -49,7 +50,7 @@ func isOGGBitrate(s string) bool {
 }
 
 // isOGGVBRQuality checks if the input is a valid OGG VBR quality
-// (i.e. s="X" with X = -1.0, ..., 10.0)
+// (i.e. X = -1.0, ..., 10.0)
 func isOGGVBRQuality(s string) bool {
 	var b = true
 
@@ -70,32 +71,46 @@ func isOGGVBRQuality(s string) bool {
 	return true
 }
 
-// isValid checks if s is a valid parameter string
-func (tfAll2OGG) isValid(s string) bool {
-	var b = true
+// normParams checks if the string contains a valid set of parameters and
+// normalizes it (e.g. removes blanks and sets default values)
+func (tfAll2OGG) normParams(s *string) error {
+	// set *s to lower case and remove blanks
+	*s = strings.Trim(strings.ToLower(*s), " ")
 
-	a := strings.Split(s, "|")
+	// set default compression level (=3.0) and exit
+	if *s == "" {
+		*s = "vbr:3.0"
+		log.Infof("Set OGG transformation to default: vbr:3.0", *s)
+		return nil
+	}
 
-	if len(a) != 2 {
-		b = false
-	} else {
-		switch a[0] {
-		case abr:
-			b = isOGGBitrate(a[1])
-		case vbr:
-			b = isOGGVBRQuality(a[1])
-		default:
-			b = false
+	// handle more complex case
+	{
+		var isValid = true
+
+		a := strings.Split(*s, ":")
+
+		if len(a) != 2 {
+			isValid = false
+		} else {
+			switch a[0] {
+			case abr:
+				isValid = isOGGBitrate(a[1])
+			case vbr:
+				isValid = isOGGVBRQuality(a[1])
+			default:
+				isValid = false
+			}
 		}
-	}
 
-	if b {
-		log.Infof("'%s' is a valid OGG transformation", s)
-	} else {
-		log.Errorf("'%s' is not a valid OGG transformation", s)
-	}
+		if !isValid {
+			log.Errorf("'%s' is not a valid OGG transformation", *s)
+			return fmt.Errorf("'%s' is not a valid OGG transformation", *s)
+		}
 
-	return b
+		log.Infof("'%s' is a valid OGG transformation", *s)
+		return nil
+	}
 }
 
 // exec assembles and executes the FFMPEG command. For details about the

@@ -18,6 +18,7 @@
 package main
 
 import (
+	"fmt"
 	"os/exec"
 	"path"
 	"regexp"
@@ -51,10 +52,10 @@ func isMP3Bitrate(s string) bool {
 	return b
 }
 
-// isMP3Quality checks if the input is a valid MP3 quality (i.e. "qX"
-// with s="X" = 0,1, ..., 9)
-func isMP3Quality(s string) bool {
-	if re, _ := regexp.Compile(`q\d{1}`); re.FindString(s) != s {
+// isMP3CompLevel checks if the input is a valid MP3 compression_level
+// (i.e. "cl:X" with X = 0,1, ..., 9)
+func isMP3CompLevel(s string) bool {
+	if re, _ := regexp.Compile(`\d{1}`); re.FindString(s) != s {
 		log.Errorf("'%s' is no a valid MP3 quality", s)
 		return false
 	}
@@ -63,9 +64,9 @@ func isMP3Quality(s string) bool {
 }
 
 // isMP3VBRQuality checks if the input is a valid MP3 VBR quality
-// (i.e. s="vX" with X =0, ..., 9.999)
+// (i.e. s = 0, ..., 9.999)
 func isMP3VBRQuality(s string) bool {
-	if re, _ := regexp.Compile(`v\d{1}(.\d{1,3})?`); re.FindString(s) != s {
+	if re, _ := regexp.Compile(`\d{1}(.\d{1,3})?`); re.FindString(s) != s {
 		log.Errorf("'%s' is no a valid MP3 VBR quality", s)
 		return false
 	}
@@ -73,32 +74,49 @@ func isMP3VBRQuality(s string) bool {
 	return true
 }
 
-// isValid checks if s is a valid parameter string
-func (tfAll2MP3) isValid(s string) bool {
-	var b = true
+// normParams checks if the string contains a valid set of parameters and
+// normalizes it (e.g. removes blanks and sets default values)
+func (tfAll2MP3) normParams(s *string) error {
+	// set *s to lower case and remove blanks
+	*s = strings.Trim(strings.ToLower(*s), " ")
 
-	a := strings.Split(s, "|")
+	var isValid = true
 
-	if len(a) < 2 || len(a) > 3 {
-		b = false
+	a := strings.Split(*s, "|")
+
+	if len(a) != 2 {
+		isValid = false
 	} else {
-		switch a[0] {
-		case abr, cbr:
-			b = isMP3Bitrate(a[1]) && (len(a) < 3 || isMP3Quality(a[2]))
-		case vbr:
-			b = isMP3VBRQuality(a[1]) && (len(a) < 3 || isMP3Quality(a[2]))
-		default:
-			b = false
+		// check bit rate stuff
+		{
+			b := strings.Split(a[0], ":")
+
+			if len(b) != 2 {
+				isValid = false
+			} else {
+				switch b[0] {
+				case abr, cbr:
+					isValid = isMP3Bitrate(b[1])
+				case vbr:
+					isValid = isMP3VBRQuality(b[1])
+				default:
+					isValid = false
+				}
+			}
+		}
+		// check compression level
+		if isValid {
+			isValid = isMP3CompLevel(a[1][3:])
 		}
 	}
 
-	if b {
-		log.Infof("'%s' is a valid transformation", s)
-	} else {
-		log.Errorf("'%s' is not a valid transformation", s)
+	if !isValid {
+		log.Errorf("'%s' is not a valid MP3 transformation", *s)
+		return fmt.Errorf("'%s' is not a valid MP3 transformation", *s)
 	}
 
-	return b
+	log.Infof("'%s' is a valid MP3 transformation", *s)
+	return nil
 }
 
 // exec assembles and executes the FFMPEG command. For details about the
@@ -118,18 +136,23 @@ func (tfAll2MP3) exec(cfg *config, f string) error {
 
 	// assemble options
 	{
-		// split transformation string into array
-		tf := strings.Split(cfg.tfs[path.Ext(f)[1:]].tfStr, "|")
+		a := strings.Split(cfg.tfs[path.Ext(f)[1:]].tfStr, "|")
 
-		switch tf[0] {
-		case abr:
-			args = append(args, "-b:a", tf[1]+"k", "-abr", "1")
-		case cbr:
-			args = append(args, "-b:a", tf[1]+"k")
-		case vbr:
-			args = append(args, "-q:a", tf[1][1:])
+		// assemble bitrate stuff
+		{
+			b := strings.Split(a[0], ":")
+
+			switch b[0] {
+			case abr:
+				args = append(args, "-b:a", b[1]+"k", "-abr", "1")
+			case cbr:
+				args = append(args, "-b:a", b[1]+"k")
+			case vbr:
+				args = append(args, "-q:a", b[1])
+			}
 		}
-		args = append(args, "-compression_level", tf[2][1:])
+		// assemble compression level
+		args = append(args, "-compression_level", a[1][3:])
 	}
 
 	// overwrite output file (in case it's existing)

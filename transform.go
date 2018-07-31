@@ -46,8 +46,11 @@ type (
 
 	// transformation interface
 	transformation interface {
-		isValid(string) bool        // checks if s represents a valid transformation
-		exec(*config, string) error // executes transformation
+		// checks if the string contains a valid set of parameters and
+		// normalizes it (e.g. removes blanks and sets default values)
+		normParams(*string) error
+		// executes transformation
+		exec(*config, string) error
 	}
 )
 
