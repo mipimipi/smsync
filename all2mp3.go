@@ -159,11 +159,11 @@ func (tfAll2MP3) exec(cfg *config, f string) error {
 	args = append(args, "-y")
 
 	// assemble output file
-	dstFile, err := assembleDstFile(cfg, f)
+	trgFile, err := assembleTrgFile(cfg, f)
 	if err != nil {
 		return err
 	}
-	args = append(args, dstFile)
+	args = append(args, trgFile)
 
 	log.Debugf("FFmpeg command: ffmpeg %s", strings.Join(args, " "))
 

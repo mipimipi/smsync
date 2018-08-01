@@ -31,64 +31,64 @@ import (
 )
 
 // deleteObsoleteFile deletes directories and files that are available in the
-// destination directory tree but not in the source directory tree. It is called
+// target directory tree but not in the source directory tree. It is called
 // for all source directories that have been changes since the last sync
 func deleteObsoleteFiles(cfg *config, srcDirPath string) error {
-	// assemble destination directory path
-	dstDirPath, err := lhlp.PathRelCopy(cfg.srcDirPath, srcDirPath, cfg.dstDirPath)
+	// assemble target directory path
+	trgDirPath, err := lhlp.PathRelCopy(cfg.srcDirPath, srcDirPath, cfg.trgDirPath)
 	if err != nil {
-		log.Errorf("Destination path cannot be assembled: %v", err)
+		log.Errorf("Target path cannot be assembled: %v", err)
 		return err
 	}
 
-	// open destination directory
-	dstDir, err := os.Open(dstDirPath)
+	// open target directory
+	trgDir, err := os.Open(trgDirPath)
 	if err != nil {
-		log.Errorf("Cannot open '%s': %v", dstDirPath, err)
+		log.Errorf("Cannot open '%s': %v", trgDirPath, err)
 		return err
 	}
-	// close destination directory (deferred)
+	// close target directory (deferred)
 	defer func() {
-		if err = dstDir.Close(); err != nil {
-			log.Errorf("%s can't be closed: %v", dstDirPath, err)
+		if err = trgDir.Close(); err != nil {
+			log.Errorf("%s can't be closed: %v", trgDirPath, err)
 		}
 	}()
 
-	// read entries of destination directory
-	dstEntrs, err := dstDir.Readdir(0)
+	// read entries of target directory
+	trgEntrs, err := trgDir.Readdir(0)
 	if err != nil {
-		log.Errorf("Cannot read directory '%s': %v", dstDir.Name(), err)
+		log.Errorf("Cannot read directory '%s': %v", trgDir.Name(), err)
 		return err
 	}
 
-	// loop over all entries of destination directory
-	for _, dstEntr := range dstEntrs {
-		if dstEntr.IsDir() {
+	// loop over all entries of target directory
+	for _, trgEntr := range trgEntrs {
+		if trgEntr.IsDir() {
 			// if entry is a directory ...
-			b, _ := lhlp.FileExists(filepath.Join(srcDirPath, dstEntr.Name()))
+			b, _ := lhlp.FileExists(filepath.Join(srcDirPath, trgEntr.Name()))
 			if err != nil {
 				log.Errorf("%v", err)
 			}
 			// ... and the counterpart on source side doesn't exists: ...
 			if !b {
 				// ... delete entry
-				if err = os.Remove(filepath.Join(dstDirPath, dstEntr.Name())); err != nil {
-					log.Errorf("Cannot remove '%s': %v", filepath.Join(dstDirPath, dstEntr.Name()), err)
+				if err = os.Remove(filepath.Join(trgDirPath, trgEntr.Name())); err != nil {
+					log.Errorf("Cannot remove '%s': %v", filepath.Join(trgDirPath, trgEntr.Name()), err)
 					return err
 				}
 			}
 		} else // if entry is a file
 		{
 			// if entry is not regular: do nothing and continue loop
-			if !dstEntr.Mode().IsRegular() {
+			if !trgEntr.Mode().IsRegular() {
 				continue
 			}
 			// if entry is a smsync file (smsync.log or SMSYNC_CONF)
-			if strings.Contains(dstEntr.Name(), logFileName) || strings.Contains(dstEntr.Name(), cfgFileName) {
+			if strings.Contains(trgEntr.Name(), logFileName) || strings.Contains(trgEntr.Name(), cfgFileName) {
 				continue
 			}
 			// check if counterpart file on source side exists
-			tr := lhlp.PathTrunk(dstEntr.Name())
+			tr := lhlp.PathTrunk(trgEntr.Name())
 			fs, err := filepath.Glob(lhlp.EscapePattern(filepath.Join(srcDirPath, tr)) + ".*")
 			if err != nil {
 				log.Errorf("Error from Glob('%s'): %v", lhlp.EscapePattern(filepath.Join(srcDirPath, tr))+".*", err)
@@ -97,8 +97,8 @@ func deleteObsoleteFiles(cfg *config, srcDirPath string) error {
 			// if counterpart does not exist: ...
 			if fs == nil {
 				// ... delete entry
-				if err = os.Remove(filepath.Join(dstDirPath, dstEntr.Name())); err != nil {
-					log.Errorf("Cannot remove '%s': %v", filepath.Join(dstDirPath, dstEntr.Name()), err)
+				if err = os.Remove(filepath.Join(trgDirPath, trgEntr.Name())); err != nil {
+					log.Errorf("Cannot remove '%s': %v", filepath.Join(trgDirPath, trgEntr.Name()), err)
 					return err
 				}
 			}
@@ -154,19 +154,19 @@ func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 
 		// if smsync has been called in add only mode, files on source side
 		// are only relevant for sync, if no counterpart is existing on
-		// destination side. That's check in the next if statement
+		// target side. That's check in the next if statement
 		if cli.addOnly {
-			// assemble destination file path
-			dstFile, err := lhlp.PathRelCopy(cfg.srcDirPath, srcFile, cfg.dstDirPath)
+			// assemble target file path
+			trgFile, err := lhlp.PathRelCopy(cfg.srcDirPath, srcFile, cfg.trgDirPath)
 			if err != nil {
-				log.Errorf("Destination path cannot be assembled: %v", err)
+				log.Errorf("Target path cannot be assembled: %v", err)
 				return false
 			}
 
 			// if source file is a directory, check it the counterpart on
-			// destination side exists
+			// target side exists
 			if fi.IsDir() {
-				exists, err := lhlp.FileExists(dstFile)
+				exists, err := lhlp.FileExists(trgFile)
 				if err != nil {
 					log.Errorf("%v", err)
 					return false
@@ -175,10 +175,10 @@ func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 			}
 
 			// otherwise (if it's a file): check if counterpart exists on
-			// destination side as well
-			fs, err := filepath.Glob(lhlp.EscapePattern(lhlp.PathTrunk(dstFile)) + ".*")
+			// target side as well
+			fs, err := filepath.Glob(lhlp.EscapePattern(lhlp.PathTrunk(trgFile)) + ".*")
 			if err != nil {
-				log.Errorf("Error from Glob('%s'): %v", lhlp.EscapePattern(lhlp.PathTrunk(dstFile))+".*", err)
+				log.Errorf("Error from Glob('%s'): %v", lhlp.EscapePattern(lhlp.PathTrunk(trgFile))+".*", err)
 				return false
 			}
 			return (fs == nil)
@@ -217,15 +217,15 @@ func processDirs(cfg *config, dirs *[]*string) (time.Duration, error) {
 	}
 
 	for _, d := range *dirs {
-		// assemble full path of new directory (source & destination)
-		dstDirPath, err := lhlp.PathRelCopy(cfg.srcDirPath, *d, cfg.dstDirPath)
+		// assemble full path of new directory (source & target)
+		trgDirPath, err := lhlp.PathRelCopy(cfg.srcDirPath, *d, cfg.trgDirPath)
 		if err != nil {
-			log.Errorf("Destination path cannot be assembled: %v", err)
+			log.Errorf("Target path cannot be assembled: %v", err)
 			return 0, err
 		}
 
 		// determine if directory exists
-		exists, err := lhlp.FileExists(dstDirPath)
+		exists, err := lhlp.FileExists(trgDirPath)
 		if err != nil {
 			log.Errorf("%v", err)
 			return 0, err
@@ -238,8 +238,8 @@ func processDirs(cfg *config, dirs *[]*string) (time.Duration, error) {
 			}
 		} else {
 			// if it doesn't exist: create it
-			if err = os.MkdirAll(dstDirPath, os.ModeDir|0755); (err != nil) && (err != os.ErrExist) {
-				log.Errorf("Error from MkdirAll('%s'): %v", dstDirPath, err)
+			if err = os.MkdirAll(trgDirPath, os.ModeDir|0755); (err != nil) && (err != os.ErrExist) {
+				log.Errorf("Error from MkdirAll('%s'): %v", trgDirPath, err)
 				return 0, err
 			}
 		}

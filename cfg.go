@@ -20,7 +20,7 @@ package main
 // cfg.go implements the logic that is needed for the configuration
 // of smsync.
 // getCfg is the main function. It reads the configuration from the
-// file SMSYNC_CONFIG (which is stored in the destination directory).
+// file SMSYNC_CONFIG (which is stored in the target directory).
 // It is in INI format.
 
 import (
@@ -46,7 +46,7 @@ const (
 	cfgKeyNumCPUs     = "num_cpus"    // id of key for #cpus to be used
 	cfgKeyNumWrkrs    = "num_wrkrs"   // id of key for #workers to be created
 	cfgKeySrc         = "source"      // id of key for source file suffix (rules)
-	cfgKeyDst         = "dest"        // id of key for destination file suffix (rules)
+	cfgKeyTrg         = "target"      // id of key for target file suffix (rules)
 	cfgKeyTransform   = "transform"   // id of key for transformation to execute (rules), a. k. a. transformation string
 )
 
@@ -55,17 +55,17 @@ const suffixStar = "*"
 // config contains the content read from the smsync config file
 type config struct {
 	srcDirPath string          // source directory
-	dstDirPath string          // destination directory
+	trgDirPath string          // target directory
 	lastSync   time.Time       // timestamp when the last sync happend
 	numCpus    int             // number of CPUs that gool is allowed to use
 	numWrkrs   int             // number of worker Go routines to be created
 	tfs        map[string]*tfm // transformation rules
 }
 
-// mapping of destination suffix to transformation string (sometimes also
+// mapping of target suffix to transformation string (sometimes also
 // called "transformation rule")
 type tfm struct {
-	dstSuffix string
+	trgSuffix string
 	tfStr     string
 }
 
@@ -99,13 +99,13 @@ func getCfgFile() (*ini.File, error) {
 	return cfgFile, nil
 }
 
-// getCfg reads the smsync configuration from the file ./SMSYNC_CONFIG and stores
+// getCfg reads the smsync configuration from the file ./SMSYNC.CONF and stores
 // the configuration values in the attributes of instance of type config.
 func getCfg() (*config, error) {
 	// structure for transformation rule
 	type rule struct {
 		srcSuffix string // suffix of source file
-		dstSuffix string // suffix of destination file
+		trgSuffix string // suffix of target file
 		tfStr     string // transformation string
 	}
 
@@ -213,35 +213,35 @@ func getCfg() (*config, error) {
 			rl.tfStr = tfCopyStr
 		}
 
-		// get destination suffix
-		if key, err = getKey(sec, cfgKeyDst, false); err != nil {
-			log.Infof("Rule %d: Since no destination suffix could be detected, destination suffix will be set to source suffix", i)
-			rl.dstSuffix = rl.srcSuffix
+		// get target suffix
+		if key, err = getKey(sec, cfgKeyTrg, false); err != nil {
+			log.Infof("Rule %d: Since no target suffix could be detected, target suffix will be set to source suffix", i)
+			rl.trgSuffix = rl.srcSuffix
 		} else {
-			rl.dstSuffix = key.Value()
+			rl.trgSuffix = key.Value()
 		}
 
-		// in case of source suffix equals destination suffix and empty transformation, the transformation is set to copy
-		if (rl.srcSuffix == rl.dstSuffix) && rl.tfStr == "" {
-			log.Infof("Rule #%d: Since source equals destination without transformation, transformation is set to copy", i)
+		// in case of source suffix equals target suffix and empty transformation, the transformation is set to copy
+		if (rl.srcSuffix == rl.trgSuffix) && rl.tfStr == "" {
+			log.Infof("Rule #%d: Since source equals target format without transformation, transformation is set to copy", i)
 			rl.tfStr = tfCopyStr
 		}
 
 		// check if either both suffices are '*' or both are not
-		if (rl.srcSuffix == suffixStar && rl.dstSuffix != suffixStar) || (rl.srcSuffix != suffixStar && rl.dstSuffix == suffixStar) {
+		if (rl.srcSuffix == suffixStar && rl.trgSuffix != suffixStar) || (rl.srcSuffix != suffixStar && rl.trgSuffix == suffixStar) {
 			log.Errorf("Rule #%d: Either both suffices need to be '*' or none", i)
 			return nil, fmt.Errorf("Rule #%d: Either both suffices need to be '*' or none", i)
 		}
 
 		if rl.tfStr != tfCopyStr {
 			// check if transformation is supported
-			if _, ok := validTfs[tfKey{rl.srcSuffix, rl.dstSuffix}]; !ok {
-				log.Errorf("Rule %d: Transformation of '%s' into '%s' not supported", i, rl.srcSuffix, rl.dstSuffix)
-				return nil, fmt.Errorf("Rule %d: Transformation of '%s' into '%s' not supported", i, rl.srcSuffix, rl.dstSuffix)
+			if _, ok := validTfs[tfKey{rl.srcSuffix, rl.trgSuffix}]; !ok {
+				log.Errorf("Rule %d: Transformation of '%s' into '%s' not supported", i, rl.srcSuffix, rl.trgSuffix)
+				return nil, fmt.Errorf("Rule %d: Transformation of '%s' into '%s' not supported", i, rl.srcSuffix, rl.trgSuffix)
 			}
 			// check if transformation is valid and fill in default values
 			{
-				tf := validTfs[tfKey{rl.srcSuffix, rl.dstSuffix}]
+				tf := validTfs[tfKey{rl.srcSuffix, rl.trgSuffix}]
 				if err := tf.normParams(&rl.tfStr); err != nil {
 					return nil, fmt.Errorf("'%s' is not a valid transformation", rl.tfStr)
 				}
@@ -262,11 +262,11 @@ func getCfg() (*config, error) {
 
 	// fill transformation map
 	for _, rl := range rls {
-		cfg.tfs[rl.srcSuffix] = &tfm{dstSuffix: rl.dstSuffix, tfStr: rl.tfStr}
+		cfg.tfs[rl.srcSuffix] = &tfm{trgSuffix: rl.trgSuffix, tfStr: rl.tfStr}
 	}
 
-	// set destination directory
-	cfg.dstDirPath, _ = os.Getwd()
+	// set target directory
+	cfg.trgDirPath, _ = os.Getwd()
 
 	return &cfg, nil
 }
@@ -311,18 +311,18 @@ func (cfg *config) summary() {
 	// assemble format string for transformation rules
 	{
 		var (
-			lenDst int
+			lenTrg int
 			lenSrc int
 		)
 		for srcSuffix, tf := range cfg.tfs {
 			if len(srcSuffix) > lenSrc {
 				lenSrc = len(srcSuffix)
 			}
-			if len(tf.dstSuffix) > lenDst {
-				lenDst = len(tf.dstSuffix)
+			if len(tf.trgSuffix) > lenTrg {
+				lenTrg = len(tf.trgSuffix)
 			}
 		}
-		fmRl = "\t\033[1m%-" + strconv.Itoa(lenSrc) + "s -> %-" + strconv.Itoa(lenDst) + "s : %s\033[0m\n"
+		fmRl = "\t\033[1m%-" + strconv.Itoa(lenSrc) + "s -> %-" + strconv.Itoa(lenTrg) + "s : %s\033[0m\n"
 	}
 
 	// headline
@@ -331,8 +331,8 @@ func (cfg *config) summary() {
 	// source directory
 	fmt.Printf(fmGen, "Source", cfg.srcDirPath)
 
-	// destination directory
-	fmt.Printf(fmGen, "Destination", cfg.dstDirPath)
+	// target directory
+	fmt.Printf(fmGen, "Destination", cfg.trgDirPath)
 
 	// last sync time
 	if cfg.lastSync.IsZero() {
@@ -352,10 +352,10 @@ func (cfg *config) summary() {
 			hasStar = true
 			continue
 		}
-		fmt.Printf(fmRl, srcSuffix, tf.dstSuffix, tf.tfStr)
+		fmt.Printf(fmRl, srcSuffix, tf.trgSuffix, tf.tfStr)
 	}
 	if hasStar {
-		fmt.Printf(fmRl, "*", cfg.tfs["*"].dstSuffix, cfg.tfs["*"].tfStr)
+		fmt.Printf(fmRl, "*", cfg.tfs["*"].trgSuffix, cfg.tfs["*"].tfStr)
 	}
 	fmt.Println()
 }

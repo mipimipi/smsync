@@ -37,8 +37,8 @@ func (tfCopy) normParams(s *string) error {
 		if *s == "" {
 			*s = tfCopyStr
 		} else {
-			log.Errorf("'%s' is not a valid copy transformation", s)
-			return fmt.Errorf("'%s' is not a valid copy transformation", s)
+			log.Errorf("'%s' is not a valid copy transformation", *s)
+			return fmt.Errorf("'%s' is not a valid copy transformation", *s)
 		}
 	}
 	return nil
@@ -46,9 +46,9 @@ func (tfCopy) normParams(s *string) error {
 
 // exec executes a file copy
 func (tfCopy) exec(cfg *config, f string) error {
-	dstFile, err := assembleDstFile(cfg, f)
+	trgFile, err := assembleTrgFile(cfg, f)
 	if err != nil {
 		return err
 	}
-	return lhlp.CopyFile(f, dstFile)
+	return lhlp.CopyFile(f, trgFile)
 }

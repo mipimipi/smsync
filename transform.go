@@ -25,11 +25,11 @@ import (
 )
 
 type (
-	// transformation needs to by unique for a pair of source suffix and
-	// destination suffix
+	// transformation needs to be unique for a pair of source suffix and
+	// target suffix
 	tfKey struct {
 		srcSuffix string
-		dstSuffix string
+		trgSuffix string
 	}
 
 	// input structure for transformation:
@@ -40,7 +40,7 @@ type (
 
 	// output structure of a transformation
 	tfOutput struct {
-		f   string // destination file
+		f   string // target file
 		err error  // error (that occurred during the transformation)
 	}
 
@@ -73,7 +73,7 @@ var (
 	all2OPUS tfAll2OPUS // conversion of all types to OPUS
 	cp       tfCopy     // copy transfromation
 
-	// validTfs maps transformation keys (i.e. pairs of source and destination
+	// validTfs maps transformation keys (i.e. pairs of source and target
 	// suffices) to the supported transformations
 	validTfs = map[tfKey]transformation{
 		// valid conversions to FLAC
@@ -102,10 +102,10 @@ var (
 	}
 )
 
-// assembleDstFile creates the destination file path from the source file path
+// assembleTrgFile creates the target file path from the source file path
 // (f) and the configuration
-func assembleDstFile(cfg *config, srcFilePath string) (string, error) {
-	var dstSuffix string
+func assembleTrgFile(cfg *config, srcFilePath string) (string, error) {
+	var trgSuffix string
 
 	// get transformation rule from config
 	tfm, exists := cfg.getTf(srcFilePath)
@@ -115,20 +115,20 @@ func assembleDstFile(cfg *config, srcFilePath string) (string, error) {
 	}
 
 	// if corresponding transformation rule is for '*' ...
-	if tfm.dstSuffix == suffixStar {
-		// ... destination suffix is same as source suffix
-		dstSuffix = lhlp.FileSuffix(srcFilePath)
+	if tfm.trgSuffix == suffixStar {
+		// ... target suffix is same as source suffix
+		trgSuffix = lhlp.FileSuffix(srcFilePath)
 	} else {
-		// ... otherwise take destination suffix from transformation rule
-		dstSuffix = tfm.dstSuffix
+		// ... otherwise take target suffix from transformation rule
+		trgSuffix = tfm.trgSuffix
 	}
 
-	dstFilePath, err := lhlp.PathRelCopy(cfg.srcDirPath, lhlp.PathTrunk(srcFilePath)+"."+dstSuffix, cfg.dstDirPath)
+	trgFilePath, err := lhlp.PathRelCopy(cfg.srcDirPath, lhlp.PathTrunk(srcFilePath)+"."+trgSuffix, cfg.trgDirPath)
 	if err != nil {
-		log.Errorf("Destination path cannot be assembled: %v", err)
+		log.Errorf("Target path cannot be assembled: %v", err)
 		return "", err
 	}
-	return dstFilePath, nil
+	return trgFilePath, nil
 }
 
 // transform executes transformation/conversion for one file
@@ -146,8 +146,8 @@ func transform(i tfInput) tfOutput {
 	if tfm.tfStr == tfCopyStr {
 		tf = cp
 	} else {
-		// determine transformation function for srcSuffix -> dstSuffix
-		tf = validTfs[tfKey{lhlp.FileSuffix(i.f), tfm.dstSuffix}]
+		// determine transformation function for srcSuffix -> trgSuffix
+		tf = validTfs[tfKey{lhlp.FileSuffix(i.f), tfm.trgSuffix}]
 	}
 
 	// call transformation function and return result
