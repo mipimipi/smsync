@@ -215,21 +215,29 @@ func getCfg() (*config, error) {
 
 		// get destination suffix
 		if key, err = getKey(sec, cfgKeyDst, false); err != nil {
-			log.Infof("Since no destination suffix in rule #%d could be detected, destination suffix will be set to source suffix", i)
+			log.Infof("Rule %d: Since no destination suffix could be detected, destination suffix will be set to source suffix", i)
 			rl.dstSuffix = rl.srcSuffix
 		} else {
 			rl.dstSuffix = key.Value()
 		}
 
+		// in case of source suffix equals destination suffix and empty transformation, the transformation is set to copy
+		if (rl.srcSuffix == rl.dstSuffix) && rl.tfStr == "" {
+			log.Infof("Rule #%d: Since source equals destination without transformation, transformation is set to copy", i)
+			rl.tfStr = tfCopyStr
+		}
+
 		// check if either both suffices are '*' or both are not
 		if (rl.srcSuffix == suffixStar && rl.dstSuffix != suffixStar) || (rl.srcSuffix != suffixStar && rl.dstSuffix == suffixStar) {
+			log.Errorf("Rule #%d: Either both suffices need to be '*' or none", i)
 			return nil, fmt.Errorf("Rule #%d: Either both suffices need to be '*' or none", i)
 		}
 
 		if rl.tfStr != tfCopyStr {
 			// check if transformation is supported
 			if _, ok := validTfs[tfKey{rl.srcSuffix, rl.dstSuffix}]; !ok {
-				return nil, fmt.Errorf("Transformation of '%s' into '%s' not supported", rl.srcSuffix, rl.dstSuffix)
+				log.Errorf("Rule %d: Transformation of '%s' into '%s' not supported", i, rl.srcSuffix, rl.dstSuffix)
+				return nil, fmt.Errorf("Rule %d: Transformation of '%s' into '%s' not supported", i, rl.srcSuffix, rl.dstSuffix)
 			}
 			// check if transformation is valid and fill in default values
 			{
