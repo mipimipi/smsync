@@ -27,11 +27,11 @@ import (
 	log "github.com/mipimipi/logrus"
 )
 
-type tfAll2OPUS struct{}
+type cvAll2OPUS struct{}
 
 // normParams checks if the string contains a valid set of parameters and
 // normalizes it (e.g. removes blanks and sets default values)
-func (tfAll2OPUS) normParams(s *string) error {
+func (cvAll2OPUS) normParams(s *string) error {
 	// set *s to lower case and remove blanks
 	*s = strings.Trim(strings.ToLower(*s), " ")
 
@@ -85,19 +85,19 @@ func (tfAll2OPUS) normParams(s *string) error {
 		}
 	}
 
+	// conversion is not valid: error
 	if !isValid {
-		log.Errorf("'%s' is not a valid OPUS transformation", *s)
-		return fmt.Errorf("'%s' is not a valid OPUS transformation", *s)
+		return fmt.Errorf("'%s' is not a valid OPUS conversion", *s)
 	}
 
-	log.Infof("'%s' is a valid MP3 transformation", *s)
+	// everything's fine
 	return nil
 }
 
 // exec assembles and executes the FFMPEG command. For details about the
 // parameters of FFMPEG for OPUS encoding, see
 // http://ffmpeg.org/ffmpeg-codecs.html#libopus-1
-func (tfAll2OPUS) exec(cfg *config, f string) error {
+func (cvAll2OPUS) exec(cfg *config, f string) error {
 	var args []string
 
 	// assemble input file
@@ -111,7 +111,7 @@ func (tfAll2OPUS) exec(cfg *config, f string) error {
 
 	// assemble options
 	{
-		a := strings.Split(cfg.tfs[path.Ext(f)[1:]].tfStr, "|")
+		a := strings.Split(cfg.cvs[path.Ext(f)[1:]].cvStr, "|")
 
 		// assemble bitrate stuff
 		{

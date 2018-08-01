@@ -22,30 +22,28 @@ import (
 	"strings"
 
 	lhlp "github.com/mipimipi/go-lhlp"
-	log "github.com/mipimipi/logrus"
 )
 
-type tfCopy struct{}
+type cvCopy struct{}
 
 // normParams checks if the string contains a valid set of parameters and
 // normalizes it (e.g. removes blanks and sets default values)
-func (tfCopy) normParams(s *string) error {
+func (cvCopy) normParams(s *string) error {
 	// set *s to lower case and remove blanks
 	*s = strings.Trim(strings.ToLower(*s), " ")
 
-	if *s != tfCopyStr {
+	if *s != cvCopyStr {
 		if *s == "" {
-			*s = tfCopyStr
+			*s = cvCopyStr
 		} else {
-			log.Errorf("'%s' is not a valid copy transformation", *s)
-			return fmt.Errorf("'%s' is not a valid copy transformation", *s)
+			return fmt.Errorf("'%s' is not a valid copy conversion", *s)
 		}
 	}
 	return nil
 }
 
 // exec executes a file copy
-func (tfCopy) exec(cfg *config, f string) error {
+func (cvCopy) exec(cfg *config, f string) error {
 	trgFile, err := assembleTrgFile(cfg, f)
 	if err != nil {
 		return err

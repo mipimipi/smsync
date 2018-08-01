@@ -47,7 +47,7 @@ const (
 	cfgKeyNumWrkrs    = "num_wrkrs"   // id of key for #workers to be created
 	cfgKeySrc         = "source"      // id of key for source file suffix (rules)
 	cfgKeyTrg         = "target"      // id of key for target file suffix (rules)
-	cfgKeyTransform   = "transform"   // id of key for transformation to execute (rules), a. k. a. transformation string
+	cfgKeyTransform   = "conversion"  // id of key for conversion to execute, a. k. a. conversion rule
 )
 
 const suffixStar = "*"
@@ -59,25 +59,25 @@ type config struct {
 	lastSync   time.Time       // timestamp when the last sync happend
 	numCpus    int             // number of CPUs that gool is allowed to use
 	numWrkrs   int             // number of worker Go routines to be created
-	tfs        map[string]*tfm // transformation rules
+	cvs        map[string]*cvm // conversion rules
 }
 
-// mapping of target suffix to transformation string (sometimes also
-// called "transformation rule")
-type tfm struct {
+// mapping of target suffix to conversion string (sometimes also
+// called "conversion rule")
+type cvm struct {
 	trgSuffix string
-	tfStr     string
+	cvStr     string
 }
 
-// getTf retrieves a tfm structure for a given file path. In case it could be
+// getCv retrieves a tfm structure for a given file path. In case it could be
 // retrieved, a pointer to the tfm structure and true is returned, otherwise
 // nil and false
-func (cfg *config) getTf(f string) (*tfm, bool) {
-	if _, ok := cfg.tfs[lhlp.FileSuffix(f)]; ok {
-		return cfg.tfs[lhlp.FileSuffix(f)], true
+func (cfg *config) getCv(f string) (*cvm, bool) {
+	if _, ok := cfg.cvs[lhlp.FileSuffix(f)]; ok {
+		return cfg.cvs[lhlp.FileSuffix(f)], true
 	}
-	if _, ok := cfg.tfs[suffixStar]; ok {
-		return cfg.tfs[suffixStar], true
+	if _, ok := cfg.cvs[suffixStar]; ok {
+		return cfg.cvs[suffixStar], true
 	}
 	return nil, false
 }
@@ -102,11 +102,11 @@ func getCfgFile() (*ini.File, error) {
 // getCfg reads the smsync configuration from the file ./SMSYNC.CONF and stores
 // the configuration values in the attributes of instance of type config.
 func getCfg() (*config, error) {
-	// structure for transformation rule
+	// structure for conversion rule
 	type rule struct {
 		srcSuffix string // suffix of source file
 		trgSuffix string // suffix of target file
-		tfStr     string // transformation string
+		cvStr     string // conversion string
 	}
 
 	var cfg config
@@ -196,35 +196,35 @@ func getCfg() (*config, error) {
 		}
 		rl.srcSuffix = key.Value()
 
-		// get transformation
+		// get conversion
 		if key, err = getKey(sec, cfgKeyTransform, false); err != nil {
-			log.Infof("No transformation in rule #%d", i)
-			rl.tfStr = ""
+			log.Infof("Rule #%d: No conversion", i)
+			rl.cvStr = ""
 		} else {
-			rl.tfStr = key.Value()
+			rl.cvStr = key.Value()
 		}
 
-		// check that transformation is copy or empty in case of suffix '*'.
-		// if the transformation is empty it is set to copy.
-		if rl.srcSuffix == suffixStar && rl.tfStr != tfCopyStr {
-			if rl.tfStr != "" {
-				return nil, fmt.Errorf("Rule #%d: For suffix '*' only copy transformation is allowed", i)
+		// check that conversion is copy or empty in case of suffix '*'.
+		// if the conversion is empty it is set to copy.
+		if rl.srcSuffix == suffixStar && rl.cvStr != cvCopyStr {
+			if rl.cvStr != "" {
+				return nil, fmt.Errorf("Rule #%d: For suffix '*' only copy conversion is allowed", i)
 			}
-			rl.tfStr = tfCopyStr
+			rl.cvStr = cvCopyStr
 		}
 
 		// get target suffix
 		if key, err = getKey(sec, cfgKeyTrg, false); err != nil {
-			log.Infof("Rule %d: Since no target suffix could be detected, target suffix will be set to source suffix", i)
+			log.Infof("Rule #%d: Since no target suffix could be detected, target suffix will be set to source suffix", i)
 			rl.trgSuffix = rl.srcSuffix
 		} else {
 			rl.trgSuffix = key.Value()
 		}
 
-		// in case of source suffix equals target suffix and empty transformation, the transformation is set to copy
-		if (rl.srcSuffix == rl.trgSuffix) && rl.tfStr == "" {
-			log.Infof("Rule #%d: Since source equals target format without transformation, transformation is set to copy", i)
-			rl.tfStr = tfCopyStr
+		// in case of source suffix equals target suffix and empty conversion, the conversion is set to copy
+		if (rl.srcSuffix == rl.trgSuffix) && rl.cvStr == "" {
+			log.Infof("Rule #%d: Since source equals target format without conversion, conversion is set to copy", i)
+			rl.cvStr = cvCopyStr
 		}
 
 		// check if either both suffices are '*' or both are not
@@ -233,18 +233,20 @@ func getCfg() (*config, error) {
 			return nil, fmt.Errorf("Rule #%d: Either both suffices need to be '*' or none", i)
 		}
 
-		if rl.tfStr != tfCopyStr {
-			// check if transformation is supported
-			if _, ok := validTfs[tfKey{rl.srcSuffix, rl.trgSuffix}]; !ok {
-				log.Errorf("Rule %d: Transformation of '%s' into '%s' not supported", i, rl.srcSuffix, rl.trgSuffix)
-				return nil, fmt.Errorf("Rule %d: Transformation of '%s' into '%s' not supported", i, rl.srcSuffix, rl.trgSuffix)
+		if rl.cvStr != cvCopyStr {
+			// check if conversion is supported
+			if _, ok := validCvs[cvKey{rl.srcSuffix, rl.trgSuffix}]; !ok {
+				log.Errorf("Rule #%d: conversion of '%s' into '%s' not supported", i, rl.srcSuffix, rl.trgSuffix)
+				return nil, fmt.Errorf("Rule #%d: conversion of '%s' into '%s' not supported", i, rl.srcSuffix, rl.trgSuffix)
 			}
-			// check if transformation is valid and fill in default values
+			// check if conversion is valid and fill in default values
 			{
-				tf := validTfs[tfKey{rl.srcSuffix, rl.trgSuffix}]
-				if err := tf.normParams(&rl.tfStr); err != nil {
-					return nil, fmt.Errorf("'%s' is not a valid transformation", rl.tfStr)
+				tf := validCvs[cvKey{rl.srcSuffix, rl.trgSuffix}]
+				if err := tf.normParams(&rl.cvStr); err != nil {
+					log.Errorf("Rule #%d: '%s' is not a valid conversion", i, rl.cvStr)
+					return nil, fmt.Errorf("Rule #%d: '%s' is not a valid conversion", i, rl.cvStr)
 				}
+				log.Infof("Rule #%d: '%s' is a valid conversion", i, rl.cvStr)
 			}
 		}
 
@@ -253,16 +255,16 @@ func getCfg() (*config, error) {
 
 	// raise error if no rules could be detected
 	if len(rls) == 0 {
-		log.Error("No transformation rules could be detected in config file")
-		return nil, fmt.Errorf("No transformation rules could be detected in config file")
+		log.Error("No conversion rules could be detected in config file")
+		return nil, fmt.Errorf("No conversion rules could be detected in config file")
 	}
 
-	// allocate transformation map in config struct
-	cfg.tfs = make(map[string]*tfm)
+	// allocate conversion map in config struct
+	cfg.cvs = make(map[string]*cvm)
 
-	// fill transformation map
+	// fill conversion map
 	for _, rl := range rls {
-		cfg.tfs[rl.srcSuffix] = &tfm{trgSuffix: rl.trgSuffix, tfStr: rl.tfStr}
+		cfg.cvs[rl.srcSuffix] = &cvm{trgSuffix: rl.trgSuffix, cvStr: rl.cvStr}
 	}
 
 	// set target directory
@@ -304,17 +306,17 @@ func getKey(sec *ini.Section, keyName string, nullOK bool) (*ini.Key, error) {
 func (cfg *config) summary() {
 	var (
 		fmGen   = "%-15s : \033[1m%s\033[0m\n" // format string for general config values
-		fmRl    string                         // format string for transformation rules
+		fmRl    string                         // format string for conversion rules
 		hasStar bool
 	)
 
-	// assemble format string for transformation rules
+	// assemble format string for conversion rules
 	{
 		var (
 			lenTrg int
 			lenSrc int
 		)
-		for srcSuffix, tf := range cfg.tfs {
+		for srcSuffix, tf := range cfg.cvs {
 			if len(srcSuffix) > lenSrc {
 				lenSrc = len(srcSuffix)
 			}
@@ -345,17 +347,17 @@ func (cfg *config) summary() {
 	fmt.Printf(fmGen, "CPUs", strconv.Itoa(cfg.numCpus))
 	fmt.Printf(fmGen, "Workers", strconv.Itoa(cfg.numWrkrs))
 
-	// transformations
-	fmt.Printf(fmGen, "Transformations", "")
-	for srcSuffix, tf := range cfg.tfs {
+	// conversions
+	fmt.Printf(fmGen, "conversions", "")
+	for srcSuffix, cv := range cfg.cvs {
 		if srcSuffix == "*" {
 			hasStar = true
 			continue
 		}
-		fmt.Printf(fmRl, srcSuffix, tf.trgSuffix, tf.tfStr)
+		fmt.Printf(fmRl, srcSuffix, cv.trgSuffix, cv.cvStr)
 	}
 	if hasStar {
-		fmt.Printf(fmRl, "*", cfg.tfs["*"].trgSuffix, cfg.tfs["*"].tfStr)
+		fmt.Printf(fmRl, "*", cfg.cvs["*"].trgSuffix, cfg.cvs["*"].cvStr)
 	}
 	fmt.Println()
 }

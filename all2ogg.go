@@ -28,7 +28,7 @@ import (
 	log "github.com/mipimipi/logrus"
 )
 
-type tfAll2OGG struct{}
+type cvAll2OGG struct{}
 
 // isOGGBitrate checks if the input is a valid OGG bitrate (i.e. between
 // 8 and 500 kbps)
@@ -73,14 +73,14 @@ func isOGGVBRQuality(s string) bool {
 
 // normParams checks if the string contains a valid set of parameters and
 // normalizes it (e.g. removes blanks and sets default values)
-func (tfAll2OGG) normParams(s *string) error {
+func (cvAll2OGG) normParams(s *string) error {
 	// set *s to lower case and remove blanks
 	*s = strings.Trim(strings.ToLower(*s), " ")
 
 	// set default compression level (=3.0) and exit
 	if *s == "" {
 		*s = "vbr:3.0"
-		log.Infof("Set OGG transformation to default: vbr:3.0", *s)
+		log.Infof("Set OGG conversion to default: vbr:3.0", *s)
 		return nil
 	}
 
@@ -103,12 +103,12 @@ func (tfAll2OGG) normParams(s *string) error {
 			}
 		}
 
+		// conversion is not valid: error
 		if !isValid {
-			log.Errorf("'%s' is not a valid OGG transformation", *s)
-			return fmt.Errorf("'%s' is not a valid OGG transformation", *s)
+			return fmt.Errorf("'%s' is not a valid OGG conversion", *s)
 		}
 
-		log.Infof("'%s' is a valid OGG transformation", *s)
+		// everything's fine
 		return nil
 	}
 }
@@ -116,7 +116,7 @@ func (tfAll2OGG) normParams(s *string) error {
 // exec assembles and executes the FFMPEG command. For details about the
 // parameters of FFMPEG for OGG/VORBIS encoding, see
 // http://ffmpeg.org/ffmpeg-codecs.html#libvorbis
-func (tfAll2OGG) exec(cfg *config, f string) error {
+func (cvAll2OGG) exec(cfg *config, f string) error {
 	var args []string
 
 	// assemble input file
@@ -130,14 +130,14 @@ func (tfAll2OGG) exec(cfg *config, f string) error {
 
 	// assemble options
 	{
-		// split transformation string into array
-		tf := strings.Split(cfg.tfs[path.Ext(f)[1:]].tfStr, "|")
+		// split conversion string into array
+		cv := strings.Split(cfg.cvs[path.Ext(f)[1:]].cvStr, "|")
 
-		switch tf[0] {
+		switch cv[0] {
 		case abr:
-			args = append(args, "-b", tf[1]+"k")
+			args = append(args, "-b", cv[1]+"k")
 		case vbr:
-			args = append(args, "-q:a", tf[1][1:])
+			args = append(args, "-q:a", cv[1][1:])
 		}
 	}
 

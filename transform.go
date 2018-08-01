@@ -25,37 +25,37 @@ import (
 )
 
 type (
-	// transformation needs to be unique for a pair of source suffix and
+	// conversion needs to be unique for a pair of source suffix and
 	// target suffix
-	tfKey struct {
+	cvKey struct {
 		srcSuffix string
 		trgSuffix string
 	}
 
-	// input structure for transformation:
-	tfInput struct {
+	// input structure for conversion:
+	cvInput struct {
 		cfg *config // configuration
 		f   string  // source file
 	}
 
-	// output structure of a transformation
-	tfOutput struct {
+	// output structure of a conversion
+	cvOutput struct {
 		f   string // target file
-		err error  // error (that occurred during the transformation)
+		err error  // error (that occurred during the conversion)
 	}
 
-	// transformation interface
-	transformation interface {
+	// conversion interface
+	conversion interface {
 		// checks if the string contains a valid set of parameters and
 		// normalizes it (e.g. removes blanks and sets default values)
 		normParams(*string) error
-		// executes transformation
+		// executes conversion
 		exec(*config, string) error
 	}
 )
 
 // Constants for copy
-const tfCopyStr = "copy"
+const cvCopyStr = "copy"
 
 // constants for bit rate options
 const (
@@ -65,40 +65,40 @@ const (
 	vbr  = "vbr"  // variable bit rate
 )
 
-// supported transformations
+// supported conversions
 var (
-	all2FLAC tfAll2FLAC // conversion of all types to FLAC
-	all2MP3  tfAll2MP3  // conversion of all types to MP3
-	all2OGG  tfAll2OGG  // conversion of all types to OGG
-	all2OPUS tfAll2OPUS // conversion of all types to OPUS
-	cp       tfCopy     // copy transfromation
+	all2FLAC cvAll2FLAC // conversion of all types to FLAC
+	all2MP3  cvAll2MP3  // conversion of all types to MP3
+	all2OGG  cvAll2OGG  // conversion of all types to OGG
+	all2OPUS cvAll2OPUS // conversion of all types to OPUS
+	cp       cvCopy     // copy conversionn
 
-	// validTfs maps transformation keys (i.e. pairs of source and target
-	// suffices) to the supported transformations
-	validTfs = map[tfKey]transformation{
+	// validCvs maps conversion keys (i.e. pairs of source and target
+	// suffices) to the supported conversions
+	validCvs = map[cvKey]conversion{
 		// valid conversions to FLAC
-		tfKey{"flac", "flac"}: all2FLAC,
-		tfKey{"wav", "flac"}:  all2FLAC,
+		cvKey{"flac", "flac"}: all2FLAC,
+		cvKey{"wav", "flac"}:  all2FLAC,
 		// valid conversions to MP3
-		tfKey{"flac", "mp3"}: all2MP3,
-		tfKey{"mp3", "mp3"}:  all2MP3,
-		tfKey{"ogg", "mp3"}:  all2MP3,
-		tfKey{"opus", "mp3"}: all2MP3,
-		tfKey{"wav", "mp3"}:  all2MP3,
+		cvKey{"flac", "mp3"}: all2MP3,
+		cvKey{"mp3", "mp3"}:  all2MP3,
+		cvKey{"ogg", "mp3"}:  all2MP3,
+		cvKey{"opus", "mp3"}: all2MP3,
+		cvKey{"wav", "mp3"}:  all2MP3,
 		// valid conversions to OGG
-		tfKey{"flac", "ogg"}: all2OGG,
-		tfKey{"mp3", "ogg"}:  all2OGG,
-		tfKey{"ogg", "ogg"}:  all2OGG,
-		tfKey{"opus", "ogg"}: all2OGG,
-		tfKey{"wav", "ogg"}:  all2OGG,
+		cvKey{"flac", "ogg"}: all2OGG,
+		cvKey{"mp3", "ogg"}:  all2OGG,
+		cvKey{"ogg", "ogg"}:  all2OGG,
+		cvKey{"opus", "ogg"}: all2OGG,
+		cvKey{"wav", "ogg"}:  all2OGG,
 		// valid conversions to OPUS
-		tfKey{"flac", "opus"}: all2OPUS,
-		tfKey{"mp3", "opus"}:  all2OPUS,
-		tfKey{"ogg", "opus"}:  all2OPUS,
-		tfKey{"opus", "opus"}: all2OPUS,
-		tfKey{"wav", "opus"}:  all2OPUS,
+		cvKey{"flac", "opus"}: all2OPUS,
+		cvKey{"mp3", "opus"}:  all2OPUS,
+		cvKey{"ogg", "opus"}:  all2OPUS,
+		cvKey{"opus", "opus"}: all2OPUS,
+		cvKey{"wav", "opus"}:  all2OPUS,
 		// copy
-		tfKey{"*", "*"}: cp,
+		cvKey{"*", "*"}: cp,
 	}
 )
 
@@ -107,20 +107,20 @@ var (
 func assembleTrgFile(cfg *config, srcFilePath string) (string, error) {
 	var trgSuffix string
 
-	// get transformation rule from config
-	tfm, exists := cfg.getTf(srcFilePath)
+	// get conversion rule from config
+	cvm, exists := cfg.getCv(srcFilePath)
 	if !exists {
-		log.Errorf("No transformation rule for '%s'", srcFilePath)
-		return "", fmt.Errorf("No transformation rule for '%s'", srcFilePath)
+		log.Errorf("No conversion rule for '%s'", srcFilePath)
+		return "", fmt.Errorf("No conversion rule for '%s'", srcFilePath)
 	}
 
-	// if corresponding transformation rule is for '*' ...
-	if tfm.trgSuffix == suffixStar {
+	// if corresponding conversion rule is for '*' ...
+	if cvm.trgSuffix == suffixStar {
 		// ... target suffix is same as source suffix
 		trgSuffix = lhlp.FileSuffix(srcFilePath)
 	} else {
-		// ... otherwise take target suffix from transformation rule
-		trgSuffix = tfm.trgSuffix
+		// ... otherwise take target suffix from conversion rule
+		trgSuffix = cvm.trgSuffix
 	}
 
 	trgFilePath, err := lhlp.PathRelCopy(cfg.srcDirPath, lhlp.PathTrunk(srcFilePath)+"."+trgSuffix, cfg.trgDirPath)
@@ -131,25 +131,25 @@ func assembleTrgFile(cfg *config, srcFilePath string) (string, error) {
 	return trgFilePath, nil
 }
 
-// transform executes transformation/conversion for one file
-func transform(i tfInput) tfOutput {
-	var tf transformation
+// convert executes conversion for one file
+func convert(i cvInput) cvOutput {
+	var tf conversion
 
-	// get transformation string for f from config
-	tfm, ok := i.cfg.getTf(i.f)
+	// get conversion string for f from config
+	cvm, ok := i.cfg.getCv(i.f)
 	// if no string found: exit
 	if !ok {
-		return tfOutput{"", nil}
+		return cvOutput{"", nil}
 	}
 
-	// set transformation function
-	if tfm.tfStr == tfCopyStr {
+	// set conversion function
+	if cvm.cvStr == cvCopyStr {
 		tf = cp
 	} else {
-		// determine transformation function for srcSuffix -> trgSuffix
-		tf = validTfs[tfKey{lhlp.FileSuffix(i.f), tfm.trgSuffix}]
+		// determine conversion function for srcSuffix -> trgSuffix
+		tf = validCvs[cvKey{lhlp.FileSuffix(i.f), cvm.trgSuffix}]
 	}
 
-	// call transformation function and return result
-	return tfOutput{i.f, tf.exec(i.cfg, i.f)}
+	// call conversion function and return result
+	return cvOutput{i.f, tf.exec(i.cfg, i.f)}
 }

@@ -122,7 +122,7 @@ func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 		// check if file is relevant for smsync (i.e. its suffix is contained
 		// in the symsync config). If not: Return false
 		if !fi.IsDir() {
-			_, ok := cfg.getTf(srcFile)
+			_, ok := cfg.getCv(srcFile)
 			if !ok {
 				return false
 			}
@@ -203,8 +203,8 @@ func processDirs(cfg *config, dirs *[]*string) (time.Duration, error) {
 	// variables needed to display progress
 	var (
 		numDone int           // number of processed files
-		start   = time.Now()  // start time of transformation
-		elapsed time.Duration // elapsed time of transformation
+		start   = time.Now()  // start time of conversion
+		elapsed time.Duration // elapsed time of conversion
 		err     error
 	)
 
@@ -258,7 +258,7 @@ func processDirs(cfg *config, dirs *[]*string) (time.Duration, error) {
 	return elapsed, nil
 }
 
-// processFiles calls the transformation for all new or changes files. Files
+// processFiles calls the conversion for all new or changes files. Files
 // are processes in parallel using the package github.com/mipimipi/go-worker.
 // processFiles displays the progress on the command line and returns the
 // overall time that has been needed
@@ -272,12 +272,12 @@ func processFiles(cfg *config, files *[]*string) (time.Duration, error) {
 	fmt.Println("\n\033[1m\033[34m# Transform files\033[22m\033[39m")
 
 	// setup worker Go routine and get worklist and result channels
-	wl, res := worker.Setup(func(i interface{}) interface{} { return transform(i.(tfInput)) }, cfg.numWrkrs)
+	wl, res := worker.Setup(func(i interface{}) interface{} { return convert(i.(cvInput)) }, cfg.numWrkrs)
 
 	// fill worklist with files and close worklist channel
 	go func() {
 		for _, f := range *files {
-			wl <- tfInput{cfg, *f}
+			wl <- cvInput{cfg, *f}
 		}
 		close(wl)
 	}()
@@ -291,8 +291,8 @@ func processFiles(cfg *config, files *[]*string) (time.Duration, error) {
 	var (
 		numErr  int                           // number of errors
 		numDone int                           // number of transformed files
-		start   = time.Now()                  // start time of transformation
-		elapsed time.Duration                 // elapsed time of transformation
+		start   = time.Now()                  // start time of conversion
+		elapsed time.Duration                 // elapsed time of conversion
 		ticker  = time.NewTicker(time.Second) // ticker to update progress on screen every second
 		done    bool                          // indicator to leave the for loop
 	)
@@ -319,7 +319,7 @@ func processFiles(cfg *config, files *[]*string) (time.Duration, error) {
 			// increase number of transformed files
 			numDone++
 			// increase number of errors
-			if r.(tfOutput).err != nil {
+			if r.(cvOutput).err != nil {
 				numErr++
 			}
 			// determine elapsed time

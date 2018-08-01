@@ -28,17 +28,17 @@ import (
 	log "github.com/mipimipi/logrus"
 )
 
-type tfAll2FLAC struct{}
+type cvAll2FLAC struct{}
 
 // verifyTf checks if s is a valid parameter string and expands default values
-func (tfAll2FLAC) normParams(s *string) error {
+func (cvAll2FLAC) normParams(s *string) error {
 	// set *s to lower case and remove blanks
 	*s = strings.Trim(strings.ToLower(*s), " ")
 
 	// set default compression level (=5) and exit
 	if *s == "" {
 		*s = "cl:5"
-		log.Infof("Set FLAC transformation to default: cl:5", *s)
+		log.Infof("Set FLAC conversion to default: cl:5", *s)
 		return nil
 	}
 
@@ -46,7 +46,7 @@ func (tfAll2FLAC) normParams(s *string) error {
 	{
 		var isValid = true
 
-		// check if transformation parameter is like 'cl:X', where X is
+		// check if conversion parameter is like 'cl:X', where X is
 		// 0, 1, ..., 12
 		if re, _ := regexp.Compile(`cl:\d{1,2}`); re.FindString(*s) != *s {
 			isValid = false
@@ -65,14 +65,12 @@ func (tfAll2FLAC) normParams(s *string) error {
 			}
 		}
 
-		// transformation is not valid: error
+		// conversion is not valid: error
 		if !isValid {
-			log.Errorf("'%s' is not a valid FLAC transformation", *s)
-			return fmt.Errorf("'%s' is not a valid FLAC transformation", *s)
+			return fmt.Errorf("'%s' is not a valid FLAC conversion", *s)
 		}
 
 		// everythings fine
-		log.Infof("'%s' is a valid FLAC transformation", *s)
 		return nil
 	}
 }
@@ -80,7 +78,7 @@ func (tfAll2FLAC) normParams(s *string) error {
 // exec assembles and executes the FFMPEG command. For details about the
 // parameters of FFMPEG for FLAC encoding, see
 // http://ffmpeg.org/ffmpeg-codecs.html#flac-2
-func (tfAll2FLAC) exec(cfg *config, f string) error {
+func (cvAll2FLAC) exec(cfg *config, f string) error {
 	var args []string
 
 	// assemble input file
@@ -93,7 +91,7 @@ func (tfAll2FLAC) exec(cfg *config, f string) error {
 	args = append(args, "flac")
 
 	// assemble options
-	args = append(args, "-compression_level", cfg.tfs[path.Ext(f)[1:]].tfStr[3:])
+	args = append(args, "-compression_level", cfg.cvs[path.Ext(f)[1:]].cvStr[3:])
 
 	// overwrite output file (in case it's existing)
 	args = append(args, "-y")
