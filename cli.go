@@ -35,7 +35,7 @@ var helpTemplate = preamble + `
 
 {{end}}{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
 
-// root command 'gool'
+// root command
 var rootCmd = &cobra.Command{
 	Use:                   "smsync [options]",
 	Version:               Version,

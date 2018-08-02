@@ -28,26 +28,8 @@ import (
 	log "github.com/mipimipi/logrus"
 )
 
+// implementation of of interface "conversion" for conversions to OGG (Vorbis)
 type cvAll2OGG struct{}
-
-// isOGGBitrate checks if the input is a valid OGG bitrate (i.e. between
-// 8 and 500 kbps)
-func isOGGBitrate(s string) bool {
-	var b = true
-
-	if re, _ := regexp.Compile(`\d{1,3}`); re.FindString(s) != s {
-		b = false
-	} else {
-		i, _ := strconv.Atoi(s)
-		b = (8 <= i && i <= 500)
-	}
-
-	if !b {
-		log.Errorf("'%s' is no a valid OGG bitrate", s)
-	}
-
-	return b
-}
 
 // isOGGVBRQuality checks if the input is a valid OGG VBR quality
 // (i.e. X = -1.0, ..., 10.0)
@@ -71,13 +53,13 @@ func isOGGVBRQuality(s string) bool {
 	return true
 }
 
-// normParams checks if the string contains a valid set of parameters and
+// normParams checks if the string contains valid conversion Params and
 // normalizes it (e.g. removes blanks and sets default values)
 func (cvAll2OGG) normParams(s *string) error {
 	// set *s to lower case and remove blanks
 	*s = strings.Trim(strings.ToLower(*s), " ")
 
-	// set default compression level (=3.0) and exit
+	// if params string is empty, set default compression level (=3.0) and exit
 	if *s == "" {
 		*s = "vbr:3.0"
 		log.Infof("Set OGG conversion to default: vbr:3.0", *s)
@@ -95,9 +77,29 @@ func (cvAll2OGG) normParams(s *string) error {
 		} else {
 			switch a[0] {
 			case abr:
-				isValid = isOGGBitrate(a[1])
+				//check if a[1] is a valid OGG bit rate
+				if re, _ := regexp.Compile(`\d{1,3}`); re.FindString(a[1]) != a[1] {
+					isValid = false
+				} else {
+					i, _ := strconv.Atoi(a[1])
+					isValid = (8 <= i && i <= 500)
+				}
+				if !isValid {
+					log.Errorf("'%s' is not a valid OGG bitrate", a[1])
+				}
 			case vbr:
-				isValid = isOGGVBRQuality(a[1])
+				// check if a[1] is a valid OGG VBR quality
+				if re, _ := regexp.Compile(`[-+]?\d{1,2}.\d{1}?`); re.FindString(a[1]) != a[1] {
+					isValid = false
+				} else {
+					f, _ := strconv.ParseFloat(a[1], 64)
+					if f < -1.0 || f > 10.0 {
+						isValid = false
+					}
+				}
+				if !isValid {
+					log.Errorf("'%s' is not a valid OGG VBR quality", s)
+				}
 			default:
 				isValid = false
 			}

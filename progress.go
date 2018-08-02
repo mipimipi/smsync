@@ -25,7 +25,7 @@ import (
 	lhlp "github.com/mipimipi/go-lhlp"
 )
 
-// mode constans for progressTable
+// mode constants for progressTable
 const (
 	progModeDirs  = "d" // processing of directories
 	progModeFiles = "f" // processing of files
@@ -74,7 +74,7 @@ func progressStr(act string, interval time.Duration) chan<- struct{} {
 	return stop
 }
 
-// progressTable prints diverse data about the progress on stdout
+// progressTable prints diverse data about the progress to stdout
 func progressTable(done int, total int, elapsed time.Duration, numErr int, init bool, mode string) error {
 	var (
 		formatStr string

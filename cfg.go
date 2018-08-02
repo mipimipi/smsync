@@ -62,15 +62,15 @@ type config struct {
 	cvs        map[string]*cvm // conversion rules
 }
 
-// mapping of target suffix to conversion string (sometimes also
-// called "conversion rule")
+// mapping of target suffix to conversion parameter string
 type cvm struct {
 	trgSuffix string
 	cvStr     string
 }
 
-// getCv retrieves a tfm structure for a given file path. In case it could be
-// retrieved, a pointer to the tfm structure and true is returned, otherwise
+// getCv checks if the smsync conf contains a conversion rule for a given file.
+// It does so by retrieving a cvm structure for that file path. In case it could be
+// retrieved, a pointer to the cvm structure and true is returned, otherwise
 // nil and false
 func (cfg *config) getCv(f string) (*cvm, bool) {
 	if _, ok := cfg.cvs[lhlp.FileSuffix(f)]; ok {
@@ -82,7 +82,7 @@ func (cfg *config) getCv(f string) (*cvm, bool) {
 	return nil, false
 }
 
-// getCfgFile opens configuration file and return handle
+// getCfgFile opens the configuration file and returns a handle
 func getCfgFile() (*ini.File, error) {
 	cfgFile, err := ini.InsensitiveLoad(filepath.Join(".", cfgFileName))
 	if err != nil {
@@ -100,7 +100,7 @@ func getCfgFile() (*ini.File, error) {
 }
 
 // getCfg reads the smsync configuration from the file ./SMSYNC.CONF and stores
-// the configuration values in the attributes of instance of type config.
+// the configuration values in the structure *config.
 func getCfg() (*config, error) {
 	// structure for conversion rule
 	type rule struct {
@@ -241,8 +241,8 @@ func getCfg() (*config, error) {
 			}
 			// check if conversion is valid and fill in default values
 			{
-				tf := validCvs[cvKey{rl.srcSuffix, rl.trgSuffix}]
-				if err := tf.normParams(&rl.cvStr); err != nil {
+				cv := validCvs[cvKey{rl.srcSuffix, rl.trgSuffix}]
+				if err := cv.normParams(&rl.cvStr); err != nil {
 					log.Errorf("Rule #%d: '%s' is not a valid conversion", i, rl.cvStr)
 					return nil, fmt.Errorf("Rule #%d: '%s' is not a valid conversion", i, rl.cvStr)
 				}
@@ -273,7 +273,7 @@ func getCfg() (*config, error) {
 	return &cfg, nil
 }
 
-// getGeneralSection return a handle to the section 'GENERAL' of te config file
+// getGeneralSection returns a handle to the section 'GENERAL' of the config file
 func getGeneralSection(cfgFile *ini.File) (*ini.Section, error) {
 	// Get section "GENERAL"
 	sec, err := cfgFile.GetSection(cfgSectionGeneral)
@@ -285,7 +285,7 @@ func getGeneralSection(cfgFile *ini.File) (*ini.Section, error) {
 	return sec, nil
 }
 
-// getKey checks if a key exists in ini file. If it exists, it'll be returned.
+// getKey checks if a key exists in the config file. If it exists, it'll be returned.
 func getKey(sec *ini.Section, keyName string, nullOK bool) (*ini.Key, error) {
 	// Get key for source directory
 	if !sec.HasKey(keyName) {
@@ -302,7 +302,7 @@ func getKey(sec *ini.Section, keyName string, nullOK bool) (*ini.Key, error) {
 	return sec.Key(keyName), nil
 }
 
-// summary prints a summary of the configuration to stdout
+// summary prints a summary of the configuration that has been read to stdout
 func (cfg *config) summary() {
 	var (
 		fmGen   = "%-15s : \033[1m%s\033[0m\n" // format string for general config values
@@ -363,7 +363,7 @@ func (cfg *config) summary() {
 }
 
 // updateLastSync updates the last sync time in the configuration file.
-// It's called after smsync has been run successfully
+// It's called after smsync has been running successfully
 func (cfg *config) updateLastSync() error {
 	// get configuration file handle
 	cfgFile, err := getCfgFile()

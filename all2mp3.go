@@ -25,56 +25,13 @@ import (
 	"strconv"
 	"strings"
 
-	lhlp "github.com/mipimipi/go-lhlp"
 	log "github.com/mipimipi/logrus"
 )
 
+// implementation of of interface "conversion" for conversions to MP3
 type cvAll2MP3 struct{}
 
-// isMP3Bitrate checks if the input is a valid MP3 bitrate (i.e. 8, 16,
-// 24, ..., 320 kbps)
-func isMP3Bitrate(s string) bool {
-	var b = true
-
-	br := []int{8, 16, 24, 32, 40, 48, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320}
-
-	if re, _ := regexp.Compile(`\d{1,3}`); re.FindString(s) != s {
-		b = false
-	} else {
-		i, _ := strconv.Atoi(s)
-		b = lhlp.Contains(br, i)
-	}
-
-	if !b {
-		log.Errorf("'%s' is no a valid MP3 bitrate", s)
-	}
-
-	return b
-}
-
-// isMP3CompLevel checks if the input is a valid MP3 compression_level
-// (i.e. "cl:X" with X = 0,1, ..., 9)
-func isMP3CompLevel(s string) bool {
-	if re, _ := regexp.Compile(`\d{1}`); re.FindString(s) != s {
-		log.Errorf("'%s' is no a valid MP3 quality", s)
-		return false
-	}
-
-	return true
-}
-
-// isMP3VBRQuality checks if the input is a valid MP3 VBR quality
-// (i.e. s = 0, ..., 9.999)
-func isMP3VBRQuality(s string) bool {
-	if re, _ := regexp.Compile(`\d{1}(.\d{1,3})?`); re.FindString(s) != s {
-		log.Errorf("'%s' is no a valid MP3 VBR quality", s)
-		return false
-	}
-
-	return true
-}
-
-// normParams checks if the string contains a valid set of parameters and
+// normParams checks if the string contains valid conversion params and
 // normalizes it (e.g. removes blanks and sets default values)
 func (cvAll2MP3) normParams(s *string) error {
 	// set *s to lower case and remove blanks
@@ -96,17 +53,33 @@ func (cvAll2MP3) normParams(s *string) error {
 			} else {
 				switch b[0] {
 				case abr, cbr:
-					isValid = isMP3Bitrate(b[1])
+					//check if b[1] is a valid MP3 bit rate
+					if re, _ := regexp.Compile(`\d{1,3}`); re.FindString(b[1]) != b[1] {
+						isValid = false
+					} else {
+						i, _ := strconv.Atoi(b[1])
+						isValid = (8 <= i && i <= 500)
+					}
+					if !isValid {
+						log.Errorf("'%s' is not a valid MP3 bitrate", b[1])
+					}
 				case vbr:
-					isValid = isMP3VBRQuality(b[1])
+					// check if b[1] is a valid MP3 VBR quality
+					if re, _ := regexp.Compile(`\d{1}(.\d{1,3})?`); re.FindString(b[1]) != b[1] {
+						log.Errorf("'%s' is not a valid MP3 VBR quality", b[1])
+						isValid = false
+					}
 				default:
 					isValid = false
 				}
 			}
 		}
-		// check compression level
+		// check if a[1] is a valid compression level
 		if isValid {
-			isValid = isMP3CompLevel(a[1][3:])
+			if re, _ := regexp.Compile(`cl:\d{1}`); re.FindString(a[1]) != a[1] {
+				log.Errorf("'%s' is not a valid MP3 quality", a[1])
+				isValid = false
+			}
 		}
 	}
 

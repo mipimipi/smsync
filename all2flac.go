@@ -28,21 +28,23 @@ import (
 	log "github.com/mipimipi/logrus"
 )
 
+// implementation of of interface "conversion" for conversions to FLAC
 type cvAll2FLAC struct{}
 
-// verifyTf checks if s is a valid parameter string and expands default values
+// normParams checks if the string contains valid conversion params and
+// normalizes it (e.g. removes blanks and sets default values)
 func (cvAll2FLAC) normParams(s *string) error {
 	// set *s to lower case and remove blanks
 	*s = strings.Trim(strings.ToLower(*s), " ")
 
-	// set default compression level (=5) and exit
+	// if params string is empty, set default compression level (=5) and exit
 	if *s == "" {
 		*s = "cl:5"
 		log.Infof("Set FLAC conversion to default: cl:5", *s)
 		return nil
 	}
 
-	// handle more complex case
+	// handle more complex cases
 	{
 		var isValid = true
 

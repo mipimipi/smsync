@@ -26,7 +26,7 @@ import (
 
 type cvCopy struct{}
 
-// normParams checks if the string contains a valid set of parameters and
+// normParams checks if the string contains valid conversion params and
 // normalizes it (e.g. removes blanks and sets default values)
 func (cvCopy) normParams(s *string) error {
 	// set *s to lower case and remove blanks

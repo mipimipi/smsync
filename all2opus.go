@@ -27,9 +27,10 @@ import (
 	log "github.com/mipimipi/logrus"
 )
 
+// implementation of of interface "conversion" for conversions to OPUS
 type cvAll2OPUS struct{}
 
-// normParams checks if the string contains a valid set of parameters and
+// normParams checks if the string contains valid conversion params and
 // normalizes it (e.g. removes blanks and sets default values)
 func (cvAll2OPUS) normParams(s *string) error {
 	// set *s to lower case and remove blanks
@@ -39,47 +40,50 @@ func (cvAll2OPUS) normParams(s *string) error {
 
 	a := strings.Split(*s, "|")
 
+	// there must either be one or tow parameters
 	if len(a) == 0 || len(a) > 2 {
 		isValid = false
 	} else {
-		if len(a) == 1 {
-			*s += "|cl:10"
-		}
 		// check bit rate stuff
-		{
-			b := strings.Split(a[0], ":")
+		b := strings.Split(a[0], ":")
 
-			if len(b) != 2 {
-				isValid = false
-			} else {
-				isValid = b[0] == "abr" || b[0] == "cbr" || b[0] == "hcbr"
+		if len(b) != 2 {
+			isValid = false
+		} else {
+			isValid = b[0] == "abr" || b[0] == "cbr" || b[0] == "hcbr"
 
-				if isValid {
-					var (
-						i   int
-						err error
-					)
-					if i, err = strconv.Atoi(b[1]); err != nil {
+			if isValid {
+				var (
+					i   int
+					err error
+				)
+				if i, err = strconv.Atoi(b[1]); err != nil {
+					isValid = false
+				} else {
+					if i < 6 || i > 510 {
 						isValid = false
-					} else {
-						if i < 6 || i > 510 {
-							isValid = false
-						}
 					}
 				}
 			}
 		}
-		// check compression level
-		if isValid && len(a) == 2 {
-			var (
-				i   int
-				err error
-			)
-			if i, err = strconv.Atoi(a[1][3:]); err != nil {
-				isValid = false
+
+		// check compression level stuff
+		if isValid {
+			// if params string doesn't contain compression level:
+			// set level to default
+			if len(a) == 1 {
+				*s += "|cl:10"
 			} else {
-				if i < 0 || i > 10 {
+				var (
+					i   int
+					err error
+				)
+				if i, err = strconv.Atoi(a[1][3:]); err != nil {
 					isValid = false
+				} else {
+					if i < 0 || i > 10 {
+						isValid = false
+					}
 				}
 			}
 		}

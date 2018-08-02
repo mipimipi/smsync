@@ -92,7 +92,7 @@ smsync interprets the configuration file. According to the general section in th
 
 The rules sections tell smsync what to do with the files stored in the folder structure on the master. The sections have to be named `[rule{x}]` with x = 0, 1, ... .
 
-In the example, `[rule0]` tells smsync to convert FLAC files (i.e. files with the extension '.flac') to MP3, using the conversion `vbr:5|cl:3`. These conversions rules are strings that consist of different parts which are separated by '|'. The supported content of conversion rules depends on the target format - see detailed explanation below.
+In the example, `[rule0]` tells smsync to convert FLAC files (i.e. files with the extension '.flac') to MP3, using the conversion `vbr:5|cl:3`. These conversions parameters are strings that consist of different parts which are separated by '|'. The supported content of a conversion parameter string depends on the target format - see detailed explanation below.
 
 `[rule1]` of the example tells smsync to simply copy MP3 files. If files are copied, `target` doesn't have to be specified in the rule. Another possibility was to convert MP3 to MP3 by reducing the bit rate. This can be achieved by defining a dedicated conversion rule as explained above (instead of `copy`).
 
@@ -100,7 +100,7 @@ In the example, `[rule0]` tells smsync to convert FLAC files (i.e. files with th
 
 #### Format-dependent conversion parameters
 
-Basically,to things can be determined with a conversion string:
+Basically,to things can be determined with a conversion parameter string:
 
 1. The target bit rate.
 

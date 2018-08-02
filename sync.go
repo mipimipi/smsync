@@ -30,7 +30,7 @@ import (
 	log "github.com/mipimipi/logrus"
 )
 
-// deleteObsoleteFile deletes directories and files that are available in the
+// deleteObsoleteFiles deletes directories and files that are available in the
 // target directory tree but not in the source directory tree. It is called
 // for all source directories that have been changes since the last sync
 func deleteObsoleteFiles(cfg *config, srcDirPath string) error {
@@ -83,7 +83,7 @@ func deleteObsoleteFiles(cfg *config, srcDirPath string) error {
 			if !trgEntr.Mode().IsRegular() {
 				continue
 			}
-			// if entry is a smsync file (smsync.log or SMSYNC_CONF)
+			// if entry is a smsync file (smsync.log or SMSYNC.CONF): do nothing and continue loop
 			if strings.Contains(trgEntr.Name(), logFileName) || strings.Contains(trgEntr.Name(), cfgFileName) {
 				continue
 			}
@@ -108,7 +108,7 @@ func deleteObsoleteFiles(cfg *config, srcDirPath string) error {
 	return nil
 }
 
-// getSyncFiles determines which directory and files need to be synched
+// getSyncFiles determines which directories and files need to be synched
 func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 
 	// filter function needed for FindFiles
@@ -140,8 +140,8 @@ func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 			// modification time is not updated during download). That's the
 			// case if an entire album is downloaded as zip file, for instance.
 			// Therefore, in addition, it is checked whether the modification
-			// time of directory of the file has changed since last sync. If
-			// that's the case, the file is relevant for the synchronization
+			// time of the directory of the file has changed since last sync.
+			// If that's the case, the file is relevant for the synchronization.
 			fiDir, err := os.Stat(filepath.Dir(srcFile))
 			if err != nil {
 				log.Errorf("Error from os.Stat('%s'): %v", filepath.Dir(srcFile), err)
@@ -152,9 +152,9 @@ func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 			}
 		}
 
-		// if smsync has been called in add only mode, files on source side
+		// if smsync has been called in add-only mode, files on source side
 		// are only relevant for sync, if no counterpart is existing on
-		// target side. That's check in the next if statement
+		// target side. That's checked in the next if statement
 		if cli.addOnly {
 			// assemble target file path
 			trgFile, err := lhlp.PathRelCopy(cfg.srcDirPath, srcFile, cfg.trgDirPath)
@@ -191,7 +191,7 @@ func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 	return lhlp.FindFiles([]string{cfg.srcDirPath}, filter, 20)
 }
 
-// processDirs creates new and deletes obsolets directories. processDirs
+// processDirs creates new and deletes obsolete directories. processDirs
 // displays the progress on the command line and returns the overall time that
 // has been needed
 func processDirs(cfg *config, dirs *[]*string) (time.Duration, error) {
@@ -259,9 +259,9 @@ func processDirs(cfg *config, dirs *[]*string) (time.Duration, error) {
 }
 
 // processFiles calls the conversion for all new or changes files. Files
-// are processes in parallel using the package github.com/mipimipi/go-worker.
-// processFiles displays the progress on the command line and returns the
-// overall time that has been needed
+// are processed in parallel using the package github.com/mipimipi/go-worker.
+// It displays the progress on the command line and returns the overall time
+// that was needed
 func processFiles(cfg *config, files *[]*string) (time.Duration, error) {
 	// nothing to do in case of empty files array
 	if len(*files) == 0 {

@@ -32,7 +32,7 @@ type (
 		trgSuffix string
 	}
 
-	// input structure for conversion:
+	// input structure of a conversion:
 	cvInput struct {
 		cfg *config // configuration
 		f   string  // source file
@@ -46,7 +46,7 @@ type (
 
 	// conversion interface
 	conversion interface {
-		// checks if the string contains a valid set of parameters and
+		// checks if the string contains valid conversion params and
 		// normalizes it (e.g. removes blanks and sets default values)
 		normParams(*string) error
 		// executes conversion
@@ -133,7 +133,7 @@ func assembleTrgFile(cfg *config, srcFilePath string) (string, error) {
 
 // convert executes conversion for one file
 func convert(i cvInput) cvOutput {
-	var tf conversion
+	var cv conversion
 
 	// get conversion string for f from config
 	cvm, ok := i.cfg.getCv(i.f)
@@ -144,12 +144,12 @@ func convert(i cvInput) cvOutput {
 
 	// set conversion function
 	if cvm.cvStr == cvCopyStr {
-		tf = cp
+		cv = cp
 	} else {
 		// determine conversion function for srcSuffix -> trgSuffix
-		tf = validCvs[cvKey{lhlp.FileSuffix(i.f), cvm.trgSuffix}]
+		cv = validCvs[cvKey{lhlp.FileSuffix(i.f), cvm.trgSuffix}]
 	}
 
 	// call conversion function and return result
-	return cvOutput{i.f, tf.exec(i.cfg, i.f)}
+	return cvOutput{i.f, cv.exec(i.cfg, i.f)}
 }
