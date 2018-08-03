@@ -254,7 +254,7 @@ func getCfg() (*config, error) {
 				)
 
 				// convert parameter string to FFMpeg parameters
-				if params, normCvStr, err = validCvs[cvKey{rl.srcSuffix, rl.trgSuffix}].getParams(rl.cvStr); err != nil {
+				if params, normCvStr, err = validCvs[cvKey{rl.srcSuffix, rl.trgSuffix}].translateParams(rl.cvStr); err != nil {
 					log.Errorf("Rule #%d: '%s' is not a valid conversion", i, rl.cvStr)
 					return nil, fmt.Errorf("Rule #%d: '%s' is not a valid conversion", i, rl.cvStr)
 				}
