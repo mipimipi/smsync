@@ -29,6 +29,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-ini/ini"
@@ -65,7 +66,8 @@ type config struct {
 // mapping of target suffix to conversion parameter string
 type cvm struct {
 	trgSuffix string
-	cvStr     string
+	normCvStr string    // normalized conversion string (e.g. defaults are added)
+	params    *[]string // conversion parameters (for FFMpeg)
 }
 
 // getCv checks if the smsync conf contains a conversion rule for a given file.
@@ -177,94 +179,97 @@ func getCfg() (*config, error) {
 	}
 
 	// get rules
-	var rls []rule
-	for i := 0; ; i++ {
-		// assemble section name for the i-th rule
-		rlStr := cfgSectionRule + strconv.Itoa(i)
+	{
+		var hasRule = false             // determine if there's at least one rule
+		cfg.cvs = make(map[string]*cvm) // allocate conversion map in config struct
 
-		// get section of i-th rule. If it's not existing: leave loop
-		if sec, err = cfgFile.GetSection(rlStr); err != nil {
-			break
-		}
+		for i := 0; ; i++ {
+			// assemble section name for the i-th rule
+			rlStr := cfgSectionRule + strconv.Itoa(i)
 
-		var rl rule
-
-		// get source suffix
-		if key, err = getKey(sec, cfgKeySrc, false); err != nil {
-			log.Errorf("No source suffix in rule #%d", i)
-			return nil, fmt.Errorf("No source suffix in rule #%d", i)
-		}
-		rl.srcSuffix = key.Value()
-
-		// get conversion
-		if key, err = getKey(sec, cfgKeyTransform, false); err != nil {
-			log.Infof("Rule #%d: No conversion", i)
-			rl.cvStr = ""
-		} else {
-			rl.cvStr = key.Value()
-		}
-
-		// check that conversion is copy or empty in case of suffix '*'.
-		// if the conversion is empty it is set to copy.
-		if rl.srcSuffix == suffixStar && rl.cvStr != cvCopyStr {
-			if rl.cvStr != "" {
-				return nil, fmt.Errorf("Rule #%d: For suffix '*' only copy conversion is allowed", i)
+			// get section of i-th rule. If it's not existing: leave loop
+			if sec, err = cfgFile.GetSection(rlStr); err != nil {
+				break
 			}
-			rl.cvStr = cvCopyStr
-		}
 
-		// get target suffix
-		if key, err = getKey(sec, cfgKeyTrg, false); err != nil {
-			log.Infof("Rule #%d: Since no target suffix could be detected, target suffix will be set to source suffix", i)
-			rl.trgSuffix = rl.srcSuffix
-		} else {
-			rl.trgSuffix = key.Value()
-		}
+			var rl rule
 
-		// in case of source suffix equals target suffix and empty conversion, the conversion is set to copy
-		if (rl.srcSuffix == rl.trgSuffix) && rl.cvStr == "" {
-			log.Infof("Rule #%d: Since source equals target format without conversion, conversion is set to copy", i)
-			rl.cvStr = cvCopyStr
-		}
+			// get source suffix
+			if key, err = getKey(sec, cfgKeySrc, false); err != nil {
+				log.Errorf("No source suffix in rule #%d", i)
+				return nil, fmt.Errorf("No source suffix in rule #%d", i)
+			}
+			rl.srcSuffix = key.Value()
 
-		// check if either both suffices are '*' or both are not
-		if (rl.srcSuffix == suffixStar && rl.trgSuffix != suffixStar) || (rl.srcSuffix != suffixStar && rl.trgSuffix == suffixStar) {
-			log.Errorf("Rule #%d: Either both suffices need to be '*' or none", i)
-			return nil, fmt.Errorf("Rule #%d: Either both suffices need to be '*' or none", i)
-		}
+			// get conversion
+			if key, err = getKey(sec, cfgKeyTransform, false); err != nil {
+				log.Infof("Rule #%d: No conversion", i)
+				rl.cvStr = ""
+			} else {
+				rl.cvStr = key.Value()
+			}
 
-		if rl.cvStr != cvCopyStr {
+			// check that conversion is copy or empty in case of suffix '*'.
+			// if the conversion is empty it is set to copy.
+			if rl.srcSuffix == suffixStar && rl.cvStr != cvCopyStr {
+				if rl.cvStr != "" {
+					return nil, fmt.Errorf("Rule #%d: For suffix '*' only copy conversion is allowed", i)
+				}
+				rl.cvStr = cvCopyStr
+			}
+
+			// get target suffix
+			if key, err = getKey(sec, cfgKeyTrg, false); err != nil {
+				log.Infof("Rule #%d: Since no target suffix could be detected, target suffix will be set to source suffix", i)
+				rl.trgSuffix = rl.srcSuffix
+			} else {
+				rl.trgSuffix = key.Value()
+			}
+
+			// in case of source suffix equals target suffix and empty conversion, the conversion is set to copy
+			if (rl.srcSuffix == rl.trgSuffix) && rl.cvStr == "" {
+				log.Infof("Rule #%d: Since source equals target format without conversion, conversion is set to copy", i)
+				rl.cvStr = cvCopyStr
+			}
+
+			// check if either both suffices are '*' or both are not
+			if (rl.srcSuffix == suffixStar && rl.trgSuffix != suffixStar) || (rl.srcSuffix != suffixStar && rl.trgSuffix == suffixStar) {
+				log.Errorf("Rule #%d: Either both suffices need to be '*' or none", i)
+				return nil, fmt.Errorf("Rule #%d: Either both suffices need to be '*' or none", i)
+			}
+
 			// check if conversion is supported
-			if _, ok := validCvs[cvKey{rl.srcSuffix, rl.trgSuffix}]; !ok {
-				log.Errorf("Rule #%d: conversion of '%s' into '%s' not supported", i, rl.srcSuffix, rl.trgSuffix)
-				return nil, fmt.Errorf("Rule #%d: conversion of '%s' into '%s' not supported", i, rl.srcSuffix, rl.trgSuffix)
+			if rl.cvStr != cvCopyStr {
+				if _, ok := validCvs[cvKey{rl.srcSuffix, rl.trgSuffix}]; !ok {
+					log.Errorf("Rule #%d: conversion of '%s' into '%s' not supported", i, rl.srcSuffix, rl.trgSuffix)
+					return nil, fmt.Errorf("Rule #%d: conversion of '%s' into '%s' not supported", i, rl.srcSuffix, rl.trgSuffix)
+				}
 			}
-			// check if conversion is valid and fill in default values
+
+			// determine (FFMpeg) parameters from conversion string
 			{
-				cv := validCvs[cvKey{rl.srcSuffix, rl.trgSuffix}]
-				if err := cv.normParams(&rl.cvStr); err != nil {
+				var (
+					params    *[]string
+					normCvStr string
+				)
+
+				// convert parameter string to FFMpeg parameters
+				if params, normCvStr, err = validCvs[cvKey{rl.srcSuffix, rl.trgSuffix}].getParams(rl.cvStr); err != nil {
 					log.Errorf("Rule #%d: '%s' is not a valid conversion", i, rl.cvStr)
 					return nil, fmt.Errorf("Rule #%d: '%s' is not a valid conversion", i, rl.cvStr)
 				}
 				log.Infof("Rule #%d: '%s' is a valid conversion", i, rl.cvStr)
+				log.Infof("Rule #%d: Resulting conversion parameters='%s'", i, strings.Join(*params, " "))
+				cfg.cvs[rl.srcSuffix] = &cvm{trgSuffix: rl.trgSuffix, params: params, normCvStr: normCvStr}
 			}
+			hasRule = true
 		}
 
-		rls = append(rls, rl)
-	}
-
-	// raise error if no rules could be detected
-	if len(rls) == 0 {
-		log.Error("No conversion rules could be detected in config file")
-		return nil, fmt.Errorf("No conversion rules could be detected in config file")
-	}
-
-	// allocate conversion map in config struct
-	cfg.cvs = make(map[string]*cvm)
-
-	// fill conversion map
-	for _, rl := range rls {
-		cfg.cvs[rl.srcSuffix] = &cvm{trgSuffix: rl.trgSuffix, cvStr: rl.cvStr}
+		// raise error if no rules could be detected
+		if !hasRule {
+			log.Error("No conversion rules could be detected in config file")
+			return nil, fmt.Errorf("No conversion rules could be detected in config file")
+		}
 	}
 
 	// set target directory
@@ -354,10 +359,10 @@ func (cfg *config) summary() {
 			hasStar = true
 			continue
 		}
-		fmt.Printf(fmRl, srcSuffix, cv.trgSuffix, cv.cvStr)
+		fmt.Printf(fmRl, srcSuffix, cv.trgSuffix, cv.normCvStr)
 	}
 	if hasStar {
-		fmt.Printf(fmRl, "*", cfg.cvs["*"].trgSuffix, cfg.cvs["*"].cvStr)
+		fmt.Printf(fmRl, "*", cfg.cvs["*"].trgSuffix, cfg.cvs["*"].normCvStr)
 	}
 	fmt.Println()
 }
