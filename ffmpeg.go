@@ -17,6 +17,9 @@
 
 package main
 
+// ffmpeg.go contains coding that is specific to the command line tool ffmpeg,
+// esp. the call to ffmpeg
+
 import (
 	"os/exec"
 	"strings"
@@ -24,6 +27,8 @@ import (
 	log "github.com/mipimipi/logrus"
 )
 
+// execFFMPEG calls ffmpeg to convert srcFile to trgFile using the
+// conversion-specific parameters *params
 func execFFMPEG(srcFile string, trgFile string, params *[]string) error {
 	var args []string
 

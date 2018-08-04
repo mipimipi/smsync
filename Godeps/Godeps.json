@@ -15,8 +15,8 @@
 		},
 		{
 			"ImportPath": "github.com/mipimipi/go-lhlp",
-			"Comment": "1.2-5-gce93e8f",
-			"Rev": "ce93e8f09698336072e059f8af34f5308ba63a1c"
+			"Comment": "1.2-7-gbec76d7",
+			"Rev": "bec76d71611347246a4582977c532512f7625514"
 		},
 		{
 			"ImportPath": "github.com/mipimipi/go-worker",

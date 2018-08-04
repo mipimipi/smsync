@@ -20,7 +20,7 @@ package main
 // cfg.go implements the logic that is needed for the configuration
 // of smsync.
 // getCfg is the main function. It reads the configuration from the
-// file SMSYNC_CONFIG (which is stored in the target directory).
+// file SMSYNC.CONFIG (which is stored in the target directory).
 // It is in INI format.
 
 import (
@@ -29,7 +29,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/go-ini/ini"
@@ -66,8 +65,7 @@ type config struct {
 // mapping of target suffix to conversion parameter string
 type cvm struct {
 	trgSuffix string
-	normCvStr string    // normalized conversion string (e.g. defaults are added)
-	params    *[]string // conversion parameters (for FFMpeg)
+	normCvStr string // normalized conversion string (e.g. defaults are added)
 }
 
 // getCv checks if the smsync conf contains a conversion rule for a given file.
@@ -246,21 +244,18 @@ func getCfg() (*config, error) {
 				}
 			}
 
-			// determine (FFMpeg) parameters from conversion string
+			// validate and normalize conversion string
 			{
-				var (
-					params    *[]string
-					normCvStr string
-				)
+				var normCvStr string
 
 				// convert parameter string to FFMpeg parameters
-				if params, normCvStr, err = validCvs[cvKey{rl.srcSuffix, rl.trgSuffix}].translateParams(rl.cvStr); err != nil {
+				if normCvStr, err = validCvs[cvKey{rl.srcSuffix, rl.trgSuffix}].normCvStr(rl.cvStr); err != nil {
 					log.Errorf("Rule #%d: '%s' is not a valid conversion", i, rl.cvStr)
 					return nil, fmt.Errorf("Rule #%d: '%s' is not a valid conversion", i, rl.cvStr)
 				}
 				log.Infof("Rule #%d: '%s' is a valid conversion", i, rl.cvStr)
-				log.Infof("Rule #%d: Resulting conversion parameters='%s'", i, strings.Join(*params, " "))
-				cfg.cvs[rl.srcSuffix] = &cvm{trgSuffix: rl.trgSuffix, params: params, normCvStr: normCvStr}
+				log.Infof("Rule #%d: Conversion string normalized to '%s'", i, normCvStr)
+				cfg.cvs[rl.srcSuffix] = &cvm{trgSuffix: rl.trgSuffix, normCvStr: normCvStr}
 			}
 			hasRule = true
 		}

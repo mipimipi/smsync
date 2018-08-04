@@ -28,14 +28,14 @@ import (
 type cvCopy struct{}
 
 // exec executes simple file copy
-func (cvCopy) exec(srcFile string, trgFile string, params *[]string) error {
+func (cvCopy) exec(srcFile string, trgFile string, cvStr string) error {
 	return lhlp.CopyFile(srcFile, trgFile)
 }
 
-// translateParams checks if the parameters string from config file is either empty
-// or equals "copy". If that's the case, the resulting array is ["copy"].
-// Otherwise an error is returned.
-func (cvCopy) translateParams(s string) (*[]string, string, error) {
+// normCvStr checks if the parameters string from config file is either empty
+// or equals "copy". If that's the case, "copy" is returned. Otherwise an error
+// is returned.
+func (cvCopy) normCvStr(s string) (string, error) {
 	// set s to lower case and remove blanks
 	s = strings.Trim(strings.ToLower(s), " ")
 
@@ -43,8 +43,8 @@ func (cvCopy) translateParams(s string) (*[]string, string, error) {
 		if s == "" {
 			s = cvCopyStr
 		} else {
-			return nil, "", fmt.Errorf("'%s' is not a valid copy conversion", s)
+			return "", fmt.Errorf("'%s' is not a valid copy conversion", s)
 		}
 	}
-	return &([]string{cvCopyStr}), cvCopyStr, nil
+	return cvCopyStr, nil
 }

@@ -19,6 +19,8 @@ package main
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 
 	lhlp "github.com/mipimipi/go-lhlp"
 	log "github.com/mipimipi/logrus"
@@ -47,16 +49,10 @@ type (
 	// conversion interface
 	conversion interface {
 		// execute conversion
-		exec(string, string, *[]string) error
+		exec(string, string, string) error
 
-		// translates the parameters string from config file into an array of
-		// parameters that is needed by the function that is used for the file
-		// conversion (that's in most cases FFMPEG). Default values are applied.
-		// In case the parameter string contains an invalid set of parameter,
-		// an error is returned.
-		// In addition, a normalized (=enriched by default values) conversion
-		// string is returned
-		translateParams(string) (*[]string, string, error)
+		// normalize the conversion string
+		normCvStr(string) (string, error)
 	}
 )
 
@@ -164,5 +160,21 @@ func convert(i cvInput) cvOutput {
 	}
 
 	// call transformation function and return result
-	return cvOutput{trgFile, cv.exec(i.f, trgFile, cvm.params)}
+	return cvOutput{trgFile, cv.exec(i.f, trgFile, cvm.normCvStr)}
+}
+
+// isValidBitrate determines if s represents a valid bit rate. I.e. it needs
+// be a 1-3-digit number, which is greate or equal than min and smaller or
+// equal than max
+func isValidBitrate(s string, min, max int) bool {
+	var isValid bool
+
+	if re, _ := regexp.Compile(`\d{1,3}`); re.FindString(s) != s {
+		isValid = false
+	} else {
+		i, _ := strconv.Atoi(s)
+		isValid = (min <= i && i <= max)
+	}
+
+	return isValid
 }

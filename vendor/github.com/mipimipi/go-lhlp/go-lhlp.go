@@ -252,7 +252,7 @@ func FindFiles(roots []string, filter func(string) bool, numWorkers int) (*[]*st
 }
 
 // PathRelCopy determines first a relative path that is lexically equivalent to
-// path when joined to srcBasepath with an intervening separator. If this is
+// path when joined to srcBase with an intervening separator. If this is
 // successful, it returns a path joined from dstBase, a separator and the
 // relative path from the previous step.
 func PathRelCopy(srcBase, path, dstBase string) (string, error) {
@@ -282,7 +282,7 @@ func PathTrunk(p string) string {
 	return p[0 : len(p)-len(path.Ext(p))]
 }
 
-// SplitDuration disaggregates a duration and return is splitted into hours,
+// SplitDuration disaggregates a duration and returns it splitted into hours,
 // minutes, seconds and nanoseconds
 func SplitDuration(d time.Duration) map[time.Duration]time.Duration {
 	var (
@@ -296,6 +296,46 @@ func SplitDuration(d time.Duration) map[time.Duration]time.Duration {
 	}
 
 	return out
+}
+
+// SplitMulti slices s into all substrings separated by any character of sep
+// and returns a slice of the substrings between those separators.
+// If s does not contain any character of sep and sep is not empty, SplitMulti
+// returns a slice of length 1 whose only element is s.
+// If sep is empty, SplitMulti splits after each UTF-8 sequence. If both s and
+// sep are empty, SplitMulti returns an empty slice.
+func SplitMulti(s string, sep string) []string {
+	var a []string
+
+	// handle special cases: if sep is empty ...
+	if len(sep) == 0 {
+		//... and s is empty: return an empty slice
+		if len(s) == 0 {
+			return a
+		}
+		// ... else split after each character
+		return strings.Split(s, "")
+	}
+
+	// split s by the characters of sep
+	for i, j := -1, 0; j <= len(s); j++ {
+		if j == len(s) || strings.Contains(sep, string(s[j])) {
+			if i+1 > j-1 {
+				a = append(a, "")
+			} else {
+				a = append(a, s[i+1:j])
+			}
+			i = j
+		}
+	}
+
+	// if s does not contain any charachter of sep: return a slice that only
+	// contains s
+	if len(a) == 0 {
+		a = append(a, s)
+	}
+
+	return a
 }
 
 // UserOK print the message s followed by " (Y/n)?" on stdout and askes the

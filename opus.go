@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 
+	lhlp "github.com/mipimipi/go-lhlp"
 	log "github.com/mipimipi/logrus"
 )
 
@@ -29,26 +30,42 @@ import (
 type cvAll2OPUS struct{}
 
 // exec executes the conversion to OPUS
-func (cvAll2OPUS) exec(srcFile string, trgFile string, params *[]string) error {
-	return execFFMPEG(srcFile, trgFile, params)
-}
-
-// translateParams converts the parameters string from config file into an array
-// of ffmpeg parameters. Default values are applied. In case the parameter
-// string contains an invalid set of parameter, an error is returned.
-// In addition, a normalized (=enriched by default values) conversion string
-// is returned
-func (cvAll2OPUS) translateParams(s string) (*[]string, string, error) {
-	// set ss to lower case and remove blanks
-	s = strings.Trim(strings.ToLower(s), " ")
-
-	var (
-		isValid = true
-		params  []string
-	)
+func (cv cvAll2OPUS) exec(srcFile string, trgFile string, cvStr string) error {
+	var params []string
 
 	// set OPUS codec
 	params = append(params, "-codec:a", "libopus")
+
+	a := lhlp.SplitMulti(cvStr, "|:")
+
+	// set bit rate
+	params = append(params, "-b:a", a[1]+"k")
+
+	// set vbr type
+	switch a[0] {
+	case abr:
+		params = append(params, "-vbr", "on")
+	case cbr:
+		params = append(params, "-vbr", "off")
+	case hcbr:
+		params = append(params, "-vbr", "constrained")
+	}
+
+	// set compression level
+	params = append(params, "-compression_level", a[3])
+
+	// execute ffmpeg
+	return execFFMPEG(srcFile, trgFile, &params)
+}
+
+// normCvStr normalizes the conversion string: Blanks are removed and default
+// values are applied. In case the conversion string contains an invalid set
+// of parameters, an error is returned.
+func (cvAll2OPUS) normCvStr(s string) (string, error) {
+	// set ss to lower case and remove blanks
+	s = strings.Trim(strings.ToLower(s), " ")
+
+	var isValid = true
 
 	a := strings.Split(s, "|")
 
@@ -65,33 +82,11 @@ func (cvAll2OPUS) translateParams(s string) (*[]string, string, error) {
 			isValid = b[0] == "abr" || b[0] == "cbr" || b[0] == "hcbr"
 
 			if isValid {
-				var (
-					i   int
-					err error
-				)
-				if i, err = strconv.Atoi(b[1]); err != nil {
+				if !isValidBitrate(b[1], 6, 510) {
+					log.Errorf("'%s' is not a valid OPUS bit rate", b[1])
 					isValid = false
-				} else {
-					if i < 6 || i > 510 {
-						isValid = false
-					}
 				}
 
-				if isValid {
-					// set bit rate
-					params = append(params, "-b:a", b[1]+"k")
-
-					// set vbr type
-					switch b[0] {
-					case abr:
-						params = append(params, "-vbr", "on")
-					case cbr:
-						params = append(params, "-vbr", "off")
-					case hcbr:
-						params = append(params, "-vbr", "constrained")
-					}
-
-				}
 			}
 		}
 
@@ -103,7 +98,6 @@ func (cvAll2OPUS) translateParams(s string) (*[]string, string, error) {
 				// set default compression level
 				log.Infof("Set OPUS compression level to default: cl:10")
 				s += "|cl:10"
-				params = append(params, "-compression_level", "10")
 			} else {
 				var (
 					i   int
@@ -116,19 +110,15 @@ func (cvAll2OPUS) translateParams(s string) (*[]string, string, error) {
 						isValid = false
 					}
 				}
-				if isValid {
-					// set compression level
-					params = append(params, "-compression_level", a[1][3:])
-				}
 			}
 		}
 	}
 
 	// conversion is not valid: error
 	if !isValid {
-		return nil, "", fmt.Errorf("'%s' is not a valid OPUS conversion", s)
+		return "", fmt.Errorf("'%s' is not a valid OPUS conversion", s)
 	}
 
 	// everything's fine
-	return &params, s, nil
+	return s, nil
 }

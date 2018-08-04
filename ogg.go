@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"strings"
 
+	lhlp "github.com/mipimipi/go-lhlp"
 	log "github.com/mipimipi/logrus"
 )
 
@@ -30,29 +31,36 @@ import (
 type cvAll2OGG struct{}
 
 // exec executes the conversion to OGG
-func (cvAll2OGG) exec(srcFile string, trgFile string, params *[]string) error {
-	return execFFMPEG(srcFile, trgFile, params)
-}
-
-// translateParams converts the parameters string from config file into an array
-// of ffmpeg parameters. Default values are applied. In case the parameter
-// string contains an invalid set of parameter, an error is returned.
-// In addition, a normalized (=enriched by default values) conversion string
-// is returned
-func (cvAll2OGG) translateParams(s string) (*[]string, string, error) {
+func (cv cvAll2OGG) exec(srcFile string, trgFile string, cvStr string) error {
 	var params []string
-
-	// set s to lower case and remove blanks
-	s = strings.Trim(strings.ToLower(s), " ")
 
 	// set vorbis codec
 	params = append(params, "-codec:a", "libvorbis")
 
+	a := lhlp.SplitMulti(cvStr, "|:")
+
+	switch a[0] {
+	case abr:
+		params = append(params, "-b", a[1]+"k")
+	case vbr:
+		params = append(params, "-q:a", a[1])
+	}
+
+	//execute ffmpeg
+	return execFFMPEG(srcFile, trgFile, &params)
+}
+
+// normCvStr normalizes the conversion string: Blanks are removed and default
+// values are applied. In case the conversion string contains an invalid set
+// of parameters, an error is returned.
+func (cvAll2OGG) normCvStr(s string) (string, error) {
+	// set s to lower case and remove blanks
+	s = strings.Trim(strings.ToLower(s), " ")
+
 	// if params string is empty, set default compression level (=3.0) and exit
 	if s == "" {
 		log.Infof("Set OGG conversion to default: vbr:3.0", s)
-		params = append(params, "-q:a", "3.0")
-		return &params, "vbr:3.0", nil
+		return "vbr:3.0", nil
 	}
 
 	// handle more complex case
@@ -66,17 +74,9 @@ func (cvAll2OGG) translateParams(s string) (*[]string, string, error) {
 		} else {
 			switch a[0] {
 			case abr:
-				//check if a[1] is a valid OGG bit rate
-				if re, _ := regexp.Compile(`\d{1,3}`); re.FindString(a[1]) != a[1] {
-					isValid = false
-				} else {
-					i, _ := strconv.Atoi(a[1])
-					isValid = (8 <= i && i <= 500)
-				}
-				if !isValid {
+				if !isValidBitrate(a[1], 8, 500) {
 					log.Errorf("'%s' is not a valid OGG bitrate", a[1])
-				} else {
-					params = append(params, "-b", a[1]+"k")
+					isValid = false
 				}
 
 			case vbr:
@@ -91,8 +91,6 @@ func (cvAll2OGG) translateParams(s string) (*[]string, string, error) {
 				}
 				if !isValid {
 					log.Errorf("'%s' is not a valid OGG VBR quality", s)
-				} else {
-					params = append(params, "-q:a", a[1])
 				}
 			default:
 				isValid = false
@@ -101,10 +99,10 @@ func (cvAll2OGG) translateParams(s string) (*[]string, string, error) {
 
 		// conversion is not valid: error
 		if !isValid {
-			return nil, "", fmt.Errorf("'%s' is not a valid OGG conversion", s)
+			return "", fmt.Errorf("'%s' is not a valid OGG conversion", s)
 		}
 
 		// everything's fine
-		return &params, s, nil
+		return s, nil
 	}
 }

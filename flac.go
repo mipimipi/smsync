@@ -23,6 +23,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mipimipi/go-lhlp"
+
 	log "github.com/mipimipi/logrus"
 )
 
@@ -30,29 +32,30 @@ import (
 type cvAll2FLAC struct{}
 
 // exec executes the conversion to FLAC
-func (cvAll2FLAC) exec(srcFile string, trgFile string, params *[]string) error {
-	return execFFMPEG(srcFile, trgFile, params)
-}
-
-// translateParams converts the parameters string from config file into an array
-// of ffmpeg parameters. Default values are applied. In case the parameter
-// string contains an invalid set of parameter, an error is returned.
-// In addition, a normalized (=enriched by default values) conversion string
-// is returned
-func (cvAll2FLAC) translateParams(s string) (*[]string, string, error) {
+func (cvAll2FLAC) exec(srcFile string, trgFile string, cvStr string) error {
 	var params []string
-
-	// set s to lower case and remove blanks
-	s = strings.Trim(strings.ToLower(s), " ")
 
 	// set FLAC codec
 	params = append(params, "-codec:a", "flac")
 
+	// set compression level
+	params = append(params, "-compression_level", lhlp.SplitMulti(cvStr, "|:")[1])
+
+	// execute ffmpeg
+	return execFFMPEG(srcFile, trgFile, &params)
+}
+
+// normCvStr normalizes the conversion string: Blanks are removed and default
+// values are applied. In case the conversion string contains an invalid set
+// of parameters, an error is returned.
+func (cvAll2FLAC) normCvStr(s string) (string, error) {
+	// set s to lower case and remove blanks
+	s = strings.Trim(strings.ToLower(s), " ")
+
 	// if params string is empty, set default compression level (=5) and exit
 	if s == "" {
-		log.Infof("Set FLAC conversion to default: cl:5", s)
-		params = append(params, "-compression_level", "5")
-		return &params, "cl:5", nil
+		log.Infof("Set FLAC conversion to default: cl:5")
+		return "cl:5", nil
 	}
 
 	// handle more complex cases
@@ -80,11 +83,10 @@ func (cvAll2FLAC) translateParams(s string) (*[]string, string, error) {
 
 		// conversion is not valid: error
 		if !isValid {
-			return nil, "", fmt.Errorf("'%s' is not a valid FLAC conversion", s)
+			return "", fmt.Errorf("'%s' is not a valid FLAC conversion", s)
 		}
 
 		// everythings fine
-		params = append(params, "-compression_level", s[3:])
-		return &params, s, nil
+		return s, nil
 	}
 }
