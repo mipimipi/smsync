@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mipimipi/go-lhlp"
+	lhlp "github.com/mipimipi/go-lhlp"
 
 	log "github.com/mipimipi/logrus"
 )
