@@ -166,7 +166,8 @@ func getSyncFiles(cfg *config) (*[]*string, *[]*string) {
 			// if source file is a directory, check it the counterpart on
 			// target side exists
 			if fi.IsDir() {
-				exists, err := lhlp.FileExists(trgFile)
+				var exists bool
+				exists, err = lhlp.FileExists(trgFile)
 				if err != nil {
 					log.Errorf("%v", err)
 					return false

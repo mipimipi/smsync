@@ -39,12 +39,8 @@ func (cvCopy) normCvStr(s string) (string, error) {
 	// set s to lower case and remove blanks
 	s = strings.Trim(strings.ToLower(s), " ")
 
-	if s != cvCopyStr {
-		if s == "" {
-			s = cvCopyStr
-		} else {
-			return "", fmt.Errorf("'%s' is not a valid copy conversion", s)
-		}
+	if s != cvCopyStr && s != "" {
+		return "", fmt.Errorf("'%s' is not a valid copy conversion", s)
 	}
 	return cvCopyStr, nil
 }

@@ -65,7 +65,7 @@ func (cvAll2OPUS) normCvStr(s string) (string, error) {
 	// set ss to lower case and remove blanks
 	s = strings.Trim(strings.ToLower(s), " ")
 
-	var isValid = true
+	var isValid bool
 
 	a := strings.Split(s, "|")
 
