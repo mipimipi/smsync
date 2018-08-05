@@ -1,4 +1,4 @@
-[!Travis Build(https://travis-ci.org/mipimipi/smsync.svg?branch=master)](https://travis-ci.org/mipimipi/smsync.svg?branch=master)
+[![Travis](https://travis-ci.org/mipimipi/smsync.svg?branch=master)](https://travis-ci.org/mipimipi/smsync.svg?branch=master)
 
 # Smart Music Sync (smsync)
 
