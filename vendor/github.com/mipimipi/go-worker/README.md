@@ -8,8 +8,6 @@ Implements worker Go routines that can execute tasks concurrently. This worker a
 
 This is the case, for instance, if you want to convert a big number of music files or pictures from one format to another.
 
-[![GoDoc](https://godoc.org/github.com/mipimipi/go-worker?status.svg)](https://godoc.org/github.com/mipimipi/go-worker)
-
 ## Usage
 
 The package consists of only one function (`Setup`). It's called with
@@ -68,9 +66,3 @@ Calculation of the first 100 Fibonacci numbers with 10 worker routines.
             fmt.Printf("%3d-th Fibonacci Number = %d\n", r.(fibN).n, r.(fibN).fib)
         }
     }
-
-## Installation
-
-To install go-worker, use the `go` tool and simply execute
-
-    go get github.com/mipimipi/go-worker

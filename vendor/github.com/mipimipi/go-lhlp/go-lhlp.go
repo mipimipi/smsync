@@ -27,6 +27,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -125,6 +126,38 @@ func CopyFile(srcFn, dstFn string) error {
 
 	// flush dest file
 	return dst.Sync()
+}
+
+// DurToHms converts a duration into a string that shows hours, minutes and
+// seconds. The concrete format of the returned string is determined by
+// the format string. Since DurToHms retrieves hours, minutes abd seconds
+// from the duration as integers, the format string needs to contain %d's.
+// DurToHms replaces the first %d by hours, the second by minutes and the
+// last by seconds
+func DurToHms(d time.Duration, format string) (string, error) {
+	// a is an aray of length 2: a[0] is time in full seconds, a[1] contains
+	// the sub second time
+	a := strings.Split(strconv.FormatFloat(d.Seconds(), 'f', 6, 64), ".")
+
+	// i is time in full seconds as integer
+	i, err := strconv.Atoi(a[0])
+	if err != nil {
+		return "", fmt.Errorf("Duration couldn't be converted to string: %v", err)
+	}
+
+	// hours
+	h := i / 3600
+
+	// decrease i by full hours
+	i -= h * 3600
+
+	// minutes
+	m := i / 60
+
+	// seconds
+	s := i - m*60
+
+	return fmt.Sprintf(format, h, m, s), nil
 }
 
 // EscapePattern escapes special characters in pattern strings for usage in
@@ -252,7 +285,7 @@ func FindFiles(roots []string, filter func(string) bool, numWorkers int) (*[]*st
 }
 
 // PathRelCopy determines first a relative path that is lexically equivalent to
-// path when joined to srcBase with an intervening separator. If this is
+// path when joined to srcBasepath with an intervening separator. If this is
 // successful, it returns a path joined from dstBase, a separator and the
 // relative path from the previous step.
 func PathRelCopy(srcBase, path, dstBase string) (string, error) {
@@ -282,76 +315,15 @@ func PathTrunk(p string) string {
 	return p[0 : len(p)-len(path.Ext(p))]
 }
 
-// SplitDuration disaggregates a duration and returns it splitted into hours,
-// minutes, seconds and nanoseconds
-func SplitDuration(d time.Duration) map[time.Duration]time.Duration {
-	var (
-		out  = make(map[time.Duration]time.Duration)
-		cmps = []time.Duration{time.Hour, time.Minute, time.Second, time.Nanosecond}
-	)
-
-	for _, cmp := range cmps {
-		out[cmp] = d / cmp
-		d -= out[cmp] * cmp
-	}
-
-	return out
-}
-
-// SplitMulti slices s into all substrings separated by any character of sep
-// and returns a slice of the substrings between those separators.
-// If s does not contain any character of sep and sep is not empty, SplitMulti
-// returns a slice of length 1 whose only element is s.
-// If sep is empty, SplitMulti splits after each UTF-8 sequence. If both s and
-// sep are empty, SplitMulti returns an empty slice.
-func SplitMulti(s string, sep string) []string {
-	var a []string
-
-	// handle special cases: if sep is empty ...
-	if len(sep) == 0 {
-		//... and s is empty: return an empty slice
-		if len(s) == 0 {
-			return a
-		}
-		// ... else split after each character
-		return strings.Split(s, "")
-	}
-
-	// split s by the characters of sep
-	for i, j := -1, 0; j <= len(s); j++ {
-		if j == len(s) || strings.Contains(sep, string(s[j])) {
-			if i+1 > j-1 {
-				a = append(a, "")
-			} else {
-				a = append(a, s[i+1:j])
-			}
-			i = j
-		}
-	}
-
-	// if s does not contain any charachter of sep: return a slice that only
-	// contains s
-	if len(a) == 0 {
-		a = append(a, s)
-	}
-
-	return a
-}
-
 // UserOK print the message s followed by " (Y/n)?" on stdout and askes the
-// user to press either Y (to continue) or n (to stop). Y is treated as
-// default. I.e. if the user only presses return, that's interpreted as if
-// he has pressed Y.
+// user to press either Y (to continue) or n (to stop)
 func UserOK(s string) bool {
 	var input string
 
 	for {
 		fmt.Printf("\r%s (Y/n)? ", s)
-		if _, err := fmt.Scanln(&input); err != nil {
-			if err.Error() != "unexpected newline" {
-				return false
-			}
-			input = "Y"
+		if _, err := fmt.Scan(&input); err != nil {
+			return false
 		}
 		switch {
 		case input == "Y":
