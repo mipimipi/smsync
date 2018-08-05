@@ -1,3 +1,5 @@
+[![Travis Build(https://travis-ci.org/mipimipi/smsync.svg?branch=master)](https://travis-ci.org/mipimipi/smsync.svg?branch=master)
+
 # Smart Music Sync (smsync)
 
 keeps huge music collections in sync and is taking care of conversions between different formats. It an easy-to-use command line application for Linux. 
