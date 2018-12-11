@@ -161,9 +161,11 @@ func synchronize(level log.Level) error {
 
 	// print summary and ask user for OK
 	printCfgSummary(cfg)
-	if !lhlp.UserOK(":: Start synchronization") {
-		log.Infof("Synchronization not started due to user input")
-		return nil
+	if !cli.noConfirm {
+		if !lhlp.UserOK(":: Start synchronization") {
+			log.Infof("Synchronization not started due to user input")
+			return nil
+		}
 	}
 
 	// set number of cpus to be used by smsync
@@ -187,9 +189,11 @@ func synchronize(level log.Level) error {
 	}
 
 	// print summary and ask user for OK to continue
-	if !lhlp.UserOK(fmt.Sprintf(":: %d directories and %d files to synchronize. Continue", len(*dirs), len(*files))) {
-		log.Infof("Synchronization not started due to user input")
-		return nil
+	if !cli.noConfirm {
+		if !lhlp.UserOK(fmt.Sprintf(":: %d directories and %d files to synchronize. Continue", len(*dirs), len(*files))) {
+			log.Infof("Synchronization not started due to user input")
+			return nil
+		}
 	}
 
 	// process directories

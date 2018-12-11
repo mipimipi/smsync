@@ -65,8 +65,9 @@ var rootCmd = &cobra.Command{
 
 // variables to store command line flags
 var cli struct {
-	doLog   bool // do logging
-	addOnly bool // only add files and directories
+	doLog     bool // do logging
+	addOnly   bool // only add files and directories
+	noConfirm bool // don't ask for confirmation
 }
 
 func init() {
@@ -78,6 +79,9 @@ func init() {
 
 	// define flag for add only
 	rootCmd.Flags().BoolVarP(&cli.addOnly, "add-only", "a", false, "only add files")
+
+	// define flag for no confirmation
+	rootCmd.Flags().BoolVarP(&cli.noConfirm, "yes", "y", false, "don't ask for confirmation")
 }
 
 // Execute executes the root command
