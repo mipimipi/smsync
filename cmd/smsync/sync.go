@@ -25,8 +25,8 @@ import (
 	"time"
 
 	lhlp "github.com/mipimipi/go-lhlp"
-	log "github.com/mipimipi/logrus"
-	"gitlab.com/mipimipi/smsync/internal/smsync"
+	"github.com/mipimipi/smsync/internal/smsync"
+	log "github.com/sirupsen/logrus"
 )
 
 func printCfgSummary(cfg *smsync.Config) {
