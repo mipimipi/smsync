@@ -53,7 +53,7 @@ func printCfgSummary(cfg *smsync.Config) {
 		fmRl = "       %-" + strconv.Itoa(lenSrc) + "s -> %-" + strconv.Itoa(lenTrg) + "s = %s\n"
 	}
 
-	// headline
+	// configuration headline
 	fmt.Println("\n:: Configuration")
 
 	// source directory
@@ -66,7 +66,11 @@ func printCfgSummary(cfg *smsync.Config) {
 	if cfg.LastSync.IsZero() {
 		fmt.Printf(fmGen, "Last Sync", "Not set, initial sync")
 	} else {
-		fmt.Printf(fmGen, "Last Sync", cfg.LastSync.Local())
+		if cli.init {
+			fmt.Printf(fmGen, "Last Sync", "Set, but initial sync will be done per cli option")
+		} else {
+			fmt.Printf(fmGen, "Last Sync", cfg.LastSync.Local())
+		}
 	}
 
 	// number of CPU's & workers
@@ -154,7 +158,7 @@ func synchronize(level log.Level) error {
 	fmt.Println(preamble)
 
 	// read configuration
-	cfg, err := smsync.GetCfg()
+	cfg, err := smsync.GetCfg(cli.init)
 	if err != nil {
 		return err
 	}
@@ -193,6 +197,14 @@ func synchronize(level log.Level) error {
 		if !lhlp.UserOK(fmt.Sprintf(":: %d directories and %d files to synchronize. Continue", len(*dirs), len(*files))) {
 			log.Infof("Synchronization not started due to user input")
 			return nil
+		}
+	}
+
+	// delete all entries of the target directory per cli option
+	if cli.init {
+		log.Info("Delete all entries of the target directory per cli option")
+		if err := smsync.DeleteTrg(cfg); err != nil {
+			return err
 		}
 	}
 

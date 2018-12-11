@@ -98,7 +98,7 @@ func deleteObsoleteFiles(cfg *Config, srcDirPath string) error {
 			if !trgEntr.Mode().IsRegular() {
 				continue
 			}
-			// if entry is a smsync file (smsync.log or SMSYNC.CONF): do nothing and continue loop
+			// don't delete smsync files (smsync.log or SMSYNC.yaml)
 			if strings.Contains(trgEntr.Name(), logFileName) || strings.Contains(trgEntr.Name(), cfgFileName) {
 				continue
 			}
@@ -117,6 +117,43 @@ func deleteObsoleteFiles(cfg *Config, srcDirPath string) error {
 					return err
 				}
 			}
+		}
+	}
+
+	return nil
+}
+
+// DeleteTrg deletes all entries of the target directory
+func DeleteTrg(cfg *Config) error {
+	// open target directory
+	trgDir, err := os.Open(cfg.TrgDirPath)
+	if err != nil {
+		log.Errorf("Cannot open '%s': %v", cfg.TrgDirPath, err)
+		return err
+	}
+	// close target directory (deferred)
+	defer func() {
+		if err = trgDir.Close(); err != nil {
+			log.Errorf("%s can't be closed: %v", cfg.TrgDirPath, err)
+		}
+	}()
+	// read entries of target directory
+	trgEntrs, err := trgDir.Readdir(0)
+	if err != nil {
+		log.Errorf("Cannot read directory '%s': %v", trgDir.Name(), err)
+		return err
+	}
+
+	// loop over all entries of target directory
+	for _, trgEntr := range trgEntrs {
+		// don't delete smsync files (smsync.log or SMSYNC.yaml)
+		if !trgEntr.IsDir() && (strings.Contains(trgEntr.Name(), logFileName) || strings.Contains(trgEntr.Name(), cfgFileName)) {
+			continue
+		}
+		// delete entry
+		if err = os.RemoveAll(filepath.Join(cfg.TrgDirPath, trgEntr.Name())); err != nil {
+			log.Errorf("Cannot remove '%s': %v", filepath.Join(cfg.TrgDirPath, trgEntr.Name()), err)
+			return err
 		}
 	}
 

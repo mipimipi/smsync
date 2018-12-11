@@ -66,6 +66,7 @@ var rootCmd = &cobra.Command{
 // variables to store command line flags
 var cli struct {
 	doLog     bool // do logging
+	init      bool // initialize
 	addOnly   bool // only add files and directories
 	noConfirm bool // don't ask for confirmation
 }
@@ -74,13 +75,14 @@ func init() {
 	// set custom help template
 	rootCmd.SetHelpTemplate(helpTemplate)
 
-	// define flag for logging
+	// define flag ...
+	// - logging
 	rootCmd.Flags().BoolVarP(&cli.doLog, "log", "l", false, "switch on logging")
-
-	// define flag for add only
+	// - initialize
+	rootCmd.Flags().BoolVarP(&cli.init, "initialize", "i", false, "delete content of target directory and do initial sync")
+	// - add only
 	rootCmd.Flags().BoolVarP(&cli.addOnly, "add-only", "a", false, "only add files")
-
-	// define flag for no confirmation
+	// - no confirmation
 	rootCmd.Flags().BoolVarP(&cli.noConfirm, "yes", "y", false, "don't ask for confirmation")
 }
 

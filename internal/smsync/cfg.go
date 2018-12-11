@@ -74,9 +74,9 @@ type cvm struct {
 	NormCvStr string // normalized conversion string (e.g. defaults are added)
 }
 
-// GetCfg reads the smsync configuration from the file ./SMSYNC.CONF and stores
+// GetCfg reads the smsync configuration from the file ./SMSYNC.yaml and stores
 // the configuration values in the structure *config.
-func GetCfg() (*Config, error) {
+func GetCfg(init bool) (*Config, error) {
 	var (
 		cfgY *cfgYml
 		cfg  Config
@@ -112,9 +112,12 @@ func GetCfg() (*Config, error) {
 		cfg.NumWrkrs = cfgY.NumWrkrs
 	}
 
-	// get last sync time
-	if cfg.LastSync, err = getLastSync(cfgY.LastSync); err != nil {
-		return nil, err
+	// get last sync time. If an initial sync was requested by the user (i.e.
+	// init = true), nothing needs to be done)
+	if !init {
+		if cfg.LastSync, err = getLastSync(cfgY.LastSync); err != nil {
+			return nil, err
+		}
 	}
 
 	// get rules
