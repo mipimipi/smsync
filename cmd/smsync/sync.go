@@ -20,6 +20,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"time"
@@ -28,6 +29,34 @@ import (
 	"github.com/mipimipi/smsync/internal/smsync"
 	log "github.com/sirupsen/logrus"
 )
+
+// prog contains attributes that are used to communicate the progress of the
+// conversion
+type prog struct {
+	done    int           // number of files / dirs that have been processed
+	total   int           // total number of files / dirs
+	errors  int           // number of errors
+	elapsed time.Duration // elapsed time
+}
+
+// print calculates the elapsed time (based on the start time and the current
+// time), the remaining time and the expected end time. The results are printed
+// in a specific format
+func (prog *prog) print(start time.Time) {
+	var remaining time.Duration // remaining time
+
+	// calculate the elapsed time
+	prog.elapsed = time.Since(start)
+
+	// calculate the remaining time
+	if prog.done > 0 {
+		remaining = time.Duration(int64(prog.elapsed) / int64(prog.done) * int64(prog.total-prog.done))
+	}
+
+	// print progress
+	split := lhlp.SplitDuration(remaining)
+	fmt.Printf("\r   To do: %0"+strconv.Itoa(len(strconv.Itoa(prog.total)))+"d | Rem time: %02d:%02d:%02d | Est end: %s", prog.total-prog.done, split[time.Hour], split[time.Minute], split[time.Second], time.Now().Add(remaining).Local().Format("15:04:05"))
+}
 
 func printCfgSummary(cfg *smsync.Config) {
 	var (
@@ -89,56 +118,65 @@ func printCfgSummary(cfg *smsync.Config) {
 	if hasStar {
 		fmt.Printf(fmRl, "*", cfg.Cvs["*"].TrgSuffix, cfg.Cvs["*"].NormCvStr)
 	}
-	fmt.Println()
 }
 
-// printProgress displays the current progress on the command line
-func printProgress(prog *smsync.Prog) {
-	split := lhlp.SplitDuration(prog.Remaining())
-	fmt.Printf("\r   To do: %0"+strconv.Itoa(len(strconv.Itoa(prog.Total)))+"d | Rem time: %02d:%02d:%02d | Est end: %s", prog.Total-prog.Done, split[time.Hour], split[time.Minute], split[time.Second], time.Now().Add(prog.Remaining()).Local().Format("15:04:05"))
+func printCurrentFile(cfg *smsync.Config, f string) {
+	s, err := filepath.Rel(cfg.SrcDirPath, f)
+	if err != nil {
+		log.Error(err)
+	}
+	fmt.Printf("%s DONE\n", s)
 }
 
 // process is a wrapper around the specific functions for processing dirs or files.
 // These functions are passed to process in the function parameter.
-func process(cfg *smsync.Config, wl *[]*string, f func(*smsync.Config, *[]*string) (<-chan smsync.Prog, error)) (time.Duration, error) {
+func process(cfg *smsync.Config, wl *[]*string, f func(*smsync.Config, *[]*string) <-chan smsync.ProcRes, verbose bool) (time.Duration, error) {
 	var (
-		prog     smsync.Prog
-		elapsed  time.Duration
-		progress <-chan smsync.Prog
-		ticker   = time.NewTicker(time.Second) // ticker to update progress on screen every second
-		ticked   = false
-		ok       = true
-		err      error
+		prog    prog
+		pRes    smsync.ProcRes
+		procRes <-chan smsync.ProcRes
+		start   = time.Now()
+		ticker  = time.NewTicker(time.Second) // ticker to update progress on screen every second
+		ticked  = false
+		ok      = true
 	)
 
-	if progress, err = f(cfg, wl); err != nil {
-		return 0, err
-	}
+	procRes = f(cfg, wl)
+
+	prog.total = len(*wl)
 
 	// retrieve results and ticks
 	for ok {
 		select {
 		case <-ticker.C:
 			ticked = true
-			printProgress(&prog)
-		case prog, ok = <-progress:
+			if !verbose {
+				prog.print(start)
+			}
+		case pRes, ok = <-procRes:
 			if ok {
 				// if ticker hasn't ticked so far: print progress
-				if !ticked {
-					printProgress(&prog)
+				if !ticked && !verbose {
+					prog.print(start)
 				}
-				// store elapsed to be able to return a proper elapsed time.
-				// Storing the elapsed value is necessary since prog.Elapsed
-				// contains 0 after prog channel has been closed
-				elapsed = prog.Elapsed
+				prog.done++
+
+				if verbose {
+					printCurrentFile(cfg, pRes.SrcFile)
+				}
 			} else {
+				if !verbose {
+					prog.print(start)
+					fmt.Println()
+				}
+
 				// if all files have been transformed: stop trigger
 				ticker.Stop()
 			}
 		}
 	}
 
-	return elapsed, nil
+	return prog.elapsed, nil
 }
 
 // synchronize is the main function of smsync. It triggers the entire sync
@@ -146,7 +184,7 @@ func process(cfg *smsync.Config, wl *[]*string, f func(*smsync.Config, *[]*strin
 // (1) read configuration
 // (2) determine directories and files to be synched
 // (3) start processing of these directories and files
-func synchronize(level log.Level) error {
+func synchronize(level log.Level, verbose bool) error {
 	if err := smsync.CreateLogger(level); err != nil {
 		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
 			return e
@@ -166,7 +204,7 @@ func synchronize(level log.Level) error {
 	// print summary and ask user for OK
 	printCfgSummary(cfg)
 	if !cli.noConfirm {
-		if !lhlp.UserOK(":: Start synchronization") {
+		if !lhlp.UserOK("\n:: Start synchronization") {
 			log.Infof("Synchronization not started due to user input")
 			return nil
 		}
@@ -210,20 +248,20 @@ func synchronize(level log.Level) error {
 
 	// process directories
 	fmt.Println("\n:: Process directories")
-	durDirs, err := process(cfg, dirs, smsync.ProcessDirs)
+	durDirs, err := process(cfg, dirs, smsync.ProcessDirs, verbose)
 	if err != nil {
 		return err
 	}
 
 	// process files
 	fmt.Println("\n:: Process files")
-	durFiles, err := process(cfg, files, smsync.ProcessFiles)
+	durFiles, err := process(cfg, files, smsync.ProcessFiles, verbose)
 	if err != nil {
 		return err
 	}
 
 	// print headline
-	fmt.Println("\n\n:: Done :)")
+	fmt.Println("\n:: Done :)")
 	// print total duration into a string
 	split := lhlp.SplitDuration(durDirs + durFiles)
 	totalStr := fmt.Sprintf("%dh %02dmin %02ds", split[time.Hour], split[time.Minute], split[time.Second])

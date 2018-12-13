@@ -59,7 +59,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// call synchronization (which contains the main logic of smsync)
-		return synchronize(level)
+		return synchronize(level, cli.verbose)
 	},
 }
 
@@ -69,6 +69,7 @@ var cli struct {
 	init      bool // initialize
 	addOnly   bool // only add files and directories
 	noConfirm bool // don't ask for confirmation
+	verbose   bool // print detailed progress
 }
 
 func init() {
@@ -76,12 +77,14 @@ func init() {
 	rootCmd.SetHelpTemplate(helpTemplate)
 
 	// define flag ...
-	// - logging
-	rootCmd.Flags().BoolVarP(&cli.doLog, "log", "l", false, "switch on logging")
-	// - initialize
-	rootCmd.Flags().BoolVarP(&cli.init, "initialize", "i", false, "delete content of target directory and do initial sync")
 	// - add only
 	rootCmd.Flags().BoolVarP(&cli.addOnly, "add-only", "a", false, "only add files")
+	// - initialize
+	rootCmd.Flags().BoolVarP(&cli.init, "initialize", "i", false, "delete content of target directory and do initial sync")
+	// - logging
+	rootCmd.Flags().BoolVarP(&cli.doLog, "log", "l", false, "switch on logging")
+	// - print detailed progress
+	rootCmd.Flags().BoolVarP(&cli.verbose, "verbose", "v", false, "print detailed progress")
 	// - no confirmation
 	rootCmd.Flags().BoolVarP(&cli.noConfirm, "yes", "y", false, "don't ask for confirmation")
 }

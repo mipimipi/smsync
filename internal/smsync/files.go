@@ -21,28 +21,16 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	lhlp "github.com/mipimipi/go-lhlp"
 	worker "github.com/mipimipi/go-worker"
 	log "github.com/sirupsen/logrus"
 )
 
-// Prog contains attributes that are used to communicate the progress of the
-// conversion between (Go) routins
-type Prog struct {
-	Done    int           // number of files / dirs that have been processed
-	Total   int           // total number of files / dirs
-	Errors  int           // number of errors
-	Elapsed time.Duration // elapsed time
-}
-
-// Remaining calculates the remaining time of a conversion
-func (prog *Prog) Remaining() time.Duration {
-	if prog.Done > 0 {
-		return time.Duration(int64(prog.Elapsed) / int64(prog.Done) * int64(prog.Total-prog.Done))
-	}
-	return 0
+// ProcRes is the result structure for directory or file processing
+type ProcRes struct {
+	SrcFile string // source file or directory
+	Err     error  // error (that occurred during processing)
 }
 
 // deleteObsoleteFiles deletes directories and files that are available in the
@@ -162,7 +150,6 @@ func DeleteTrg(cfg *Config) error {
 
 // GetSyncFiles determines which directories and files need to be synched
 func GetSyncFiles(cfg *Config) (*[]*string, *[]*string) {
-
 	// filter function needed for FindFiles
 	filter := func(srcFile string) bool {
 		fi, err := os.Stat(srcFile)
@@ -203,6 +190,7 @@ func GetSyncFiles(cfg *Config) (*[]*string, *[]*string) {
 				return false
 			}
 		}
+
 		/*
 			// if smsync has been called in add-only mode, files on source side
 			// are only relevant for sync, if no counterpart is existing on
@@ -237,7 +225,6 @@ func GetSyncFiles(cfg *Config) (*[]*string, *[]*string) {
 				return (fs == nil)
 			}
 		*/
-
 		return true
 	}
 
@@ -246,25 +233,21 @@ func GetSyncFiles(cfg *Config) (*[]*string, *[]*string) {
 }
 
 // ProcessDirs creates new and deletes obsolete directories. processDirs
-// displays the progress on the command line and returns the overall time that
-// has been needed
-func ProcessDirs(cfg *Config, dirs *[]*string) (<-chan Prog, error) {
-	var (
-		start    = time.Now() // start time of conversion
-		prog     = Prog{Done: 0, Total: len(*dirs), Errors: 0, Elapsed: 0}
-		progress = make(chan Prog)
-		err      error
-	)
+// returns a channel that it uses to return the processing status/result
+// continuously after a directory has been processed.
+func ProcessDirs(cfg *Config, dirs *[]*string) <-chan ProcRes {
+	var procRes = make(chan ProcRes)
 
 	// nothing to do in case of empty directory array
 	if len(*dirs) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	go func() {
 		var (
 			trgDirPath string
 			exists     bool
+			err        error
 		)
 
 		for _, d := range *dirs {
@@ -295,35 +278,26 @@ func ProcessDirs(cfg *Config, dirs *[]*string) (<-chan Prog, error) {
 				}
 			}
 
-			// increase counter
-			prog.Done++
-			// determine elapsed time
-			prog.Elapsed = time.Since(start)
-
-			progress <- prog
+			procRes <- ProcRes{*d, err}
 		}
 
-		close(progress)
+		close(procRes)
 	}()
 
-	return progress, nil
+	return procRes
 }
 
 // ProcessFiles calls the conversion for all new or changes files. Files
 // are processed in parallel using the package github.com/mipimipi/go-worker.
-// It displays the progress on the command line and returns the overall time
-// that was needed
-func ProcessFiles(cfg *Config, files *[]*string) (<-chan Prog, error) {
+// It returns a channel that it uses to return the processing status/result
+// continuously after a file has been processed.
+func ProcessFiles(cfg *Config, files *[]*string) <-chan ProcRes {
 	// variables needed to measure progress
-	var (
-		start    = time.Now() // start time of conversion
-		prog     = Prog{Done: 0, Total: len(*files), Elapsed: 0}
-		progress = make(chan Prog)
-	)
+	var procRes = make(chan ProcRes)
 
 	// nothing to do in case of empty files array
 	if len(*files) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	// setup worker Go routine and get worklist and result channels
@@ -340,20 +314,16 @@ func ProcessFiles(cfg *Config, files *[]*string) (<-chan Prog, error) {
 	// retrieve worker results
 	go func() {
 		for r := range res {
-			// increase number of transformed files
-			prog.Done++
 			// increase number of errors
 			if r.(cvOutput).err != nil {
-				prog.Errors++
+				// TODO				prog.Errors++
 			}
-			// determine elapsed time
-			prog.Elapsed = time.Since(start)
 			// send current progress
-			progress <- prog
+			procRes <- ProcRes{r.(cvOutput).srcFile, r.(cvOutput).err}
 		}
 
-		close(progress)
+		close(procRes)
 	}()
 
-	return progress, nil
+	return procRes
 }

@@ -36,14 +36,15 @@ type (
 
 	// input structure of a conversion:
 	cvInput struct {
-		cfg *Config // configuration
-		f   string  // source file
+		cfg     *Config // configuration
+		srcFile string  // source file
 	}
 
 	// output structure of a conversion
 	cvOutput struct {
-		f   string // target file
-		err error  // error (that occurred during the conversion)
+		srcFile string // source file
+		trgFile string // target file
+		err     error  // error (that occurred during the conversion)
 	}
 
 	// conversion interface
@@ -136,17 +137,17 @@ func assembleTrgFile(cfg *Config, srcFilePath string) (string, error) {
 // convert executes conversion for one file
 func convert(i cvInput) cvOutput {
 	// get conversion string for f from config
-	cvm, ok := i.cfg.getCv(i.f)
+	cvm, ok := i.cfg.getCv(i.srcFile)
 
 	// if no string found: exit
 	if !ok {
-		return cvOutput{"", nil}
+		return cvOutput{"", "", nil}
 	}
 
 	// assemble output file
-	trgFile, err := assembleTrgFile(i.cfg, i.f)
+	trgFile, err := assembleTrgFile(i.cfg, i.srcFile)
 	if err != nil {
-		return cvOutput{"", err}
+		return cvOutput{"", "", err}
 	}
 
 	var cv conversion
@@ -156,11 +157,11 @@ func convert(i cvInput) cvOutput {
 		cv = cp
 	} else {
 		// determine transformation function for srcSuffix -> trgSuffix
-		cv = validCvs[cvKey{lhlp.FileSuffix(i.f), cvm.TrgSuffix}]
+		cv = validCvs[cvKey{lhlp.FileSuffix(i.srcFile), cvm.TrgSuffix}]
 	}
 
 	// call transformation function and return result
-	return cvOutput{trgFile, cv.exec(i.f, trgFile, cvm.NormCvStr)}
+	return cvOutput{i.srcFile, trgFile, cv.exec(i.srcFile, trgFile, cvm.NormCvStr)}
 }
 
 // isValidBitrate determines if s represents a valid bit rate. I.e. it needs
