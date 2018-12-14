@@ -40,6 +40,7 @@ import (
 const (
 	cfgFileName = "SMSYNC.yaml" // file name of config file
 	suffixStar  = "*"
+	procStatWIP = "wip"
 )
 
 // structure for conversion rule
@@ -51,15 +52,17 @@ type rule struct {
 
 // cfgYml is used to read from and write to the config yaml file
 type cfgYml struct {
-	SourceDir string `yaml:"source_dir"`          // source directory
-	LastSync  string `yaml:"last_sync,omitempty"` // timestamp when the last sync happend
-	NumCPUs   uint   `yaml:"num_cpus,omitempty"`  // number of CPUs that gool is allowed to use
-	NumWrkrs  uint   `yaml:"num_wrkrs,omitempty"` // number of worker Go routines to be created
-	Rules     []rule `yaml:"rules"`               // conversion rules
+	ProcStat  string `yaml:"processing_status,omitempty"` // work in progress flag
+	SourceDir string `yaml:"source_dir"`                  // source directory
+	LastSync  string `yaml:"last_sync,omitempty"`         // timestamp when the last sync happend
+	NumCPUs   uint   `yaml:"num_cpus,omitempty"`          // number of CPUs that gool is allowed to use
+	NumWrkrs  uint   `yaml:"num_wrkrs,omitempty"`         // number of worker Go routines to be created
+	Rules     []rule `yaml:"rules"`                       // conversion rules
 }
 
 // Config contains the enriched data that has been read from the config file
 type Config struct {
+	WIP        bool            // work in progress flag
 	SrcDirPath string          // source directory
 	TrgDirPath string          // target directory
 	LastSync   time.Time       // timestamp when the last sync happend
@@ -78,7 +81,7 @@ type cvm struct {
 // the configuration values in the structure *config.
 func GetCfg(init bool) (*Config, error) {
 	var (
-		cfgY *cfgYml
+		cfgY cfgYml
 		cfg  Config
 		err  error
 	)
@@ -86,8 +89,13 @@ func GetCfg(init bool) (*Config, error) {
 	log.Info("Config from file ...")
 
 	// read config from file
-	if cfgY, err = readCfg(); err != nil {
+	if err = cfgY.read(); err != nil {
 		return nil, err
+	}
+
+	// set processing status
+	if cfgY.ProcStat == procStatWIP {
+		cfg.WIP = true
 	}
 
 	// check if the configured source dir exists and is a directory
@@ -284,10 +292,8 @@ func getRule(r *rule, i int) (*cvm, error) {
 	return &cvm{TrgSuffix: r.Target, NormCvStr: normCvStr}, nil
 }
 
-// readCfg read the configuration from the file SMSYNC.yaml in the current directory
-func readCfg() (*cfgYml, error) {
-	var cfgY cfgYml
-
+// readCfg read the configuration from the file smsync.yaml in the current directory
+func (cfgY *cfgYml) read() error {
 	// read config file
 	cfgFile, err := ioutil.ReadFile(filepath.Join(".", cfgFileName))
 	if err != nil {
@@ -295,35 +301,81 @@ func readCfg() (*cfgYml, error) {
 		wd, err0 := os.Getwd()
 		if err0 != nil {
 			log.Errorf("Cannot determine working directory: %v", err0)
-			return nil, fmt.Errorf("Cannot determine working directory: %v", err0)
+			return fmt.Errorf("Cannot determine working directory: %v", err0)
 		}
 		log.Errorf("No configuration file found in '%s'", wd)
-		return nil, fmt.Errorf("No configuration file found in '%s'", wd)
+		return fmt.Errorf("No configuration file found in '%s'", wd)
 	}
 	if err = yaml.Unmarshal(cfgFile, &cfgY); err != nil {
 		log.Errorf("Error during unmarshaling of config file: %v", err)
-		return nil, fmt.Errorf("Error during unmarshaling of config file: %v", err)
+		return fmt.Errorf("Error during unmarshaling of config file: %v", err)
 	}
 
-	return &cfgY, nil
+	return nil
+}
+
+// SetProcStatWIP sets the processing status in the file smsync.yaml to
+// "wip" (= work is progress). This status is valid as long as smsync is
+// processing / converting files
+func (cfg *Config) SetProcStatWIP() error {
+	var (
+		cfgY cfgYml
+		err  error
+	)
+
+	// read config from file
+	if err = cfgY.read(); err != nil {
+		return err
+	}
+
+	// adjust back processing status
+	cfgY.ProcStat = procStatWIP
+
+	// write config to file
+	if err = cfgY.write(); err != nil {
+		return err
+	}
+
+	log.Debug("Config has been saved")
+
+	return nil
 }
 
 // UpdateLastSync updates the last sync time in the configuration file.
 // It's called after smsync has been running successfully
 func (cfg *Config) UpdateLastSync() error {
 	var (
-		cfgY *cfgYml
+		cfgY cfgYml
 		err  error
-		out  []byte
 	)
 
 	// read config from file
-	if cfgY, err = readCfg(); err != nil {
+	if err = cfgY.read(); err != nil {
 		return err
 	}
 
 	// set last sync time to current time in UTC
 	cfgY.LastSync = time.Now().UTC().Format(time.RFC3339)
+
+	// adjust back processing status
+	cfgY.ProcStat = ""
+
+	// write config to file
+	if err = cfgY.write(); err != nil {
+		return err
+	}
+
+	log.Debug("Config has been saved")
+
+	return nil
+}
+
+// write writes the configuration to the file smsync.yaml in the current directory
+func (cfgY *cfgYml) write() error {
+	var (
+		out []byte
+		err error
+	)
 
 	// turn config struct into a byte array
 	if out, err = yaml.Marshal(&cfgY); err != nil {
@@ -335,8 +387,6 @@ func (cfg *Config) UpdateLastSync() error {
 		log.Errorf("Configuration file '%s' cannot be updated: %v", filepath.Join(".", cfgFileName), err)
 		return fmt.Errorf("Configuration file '%s' cannot be updated: %v", filepath.Join(".", cfgFileName), err)
 	}
-
-	log.Debug("Config has been saved")
 
 	return nil
 }

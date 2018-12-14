@@ -238,6 +238,11 @@ func synchronize(level log.Level, verbose bool) error {
 		}
 	}
 
+	// set processing status to "work in progress" in smsync.yaml
+	if err := cfg.SetProcStatWIP(); err != nil {
+		return err
+	}
+
 	// delete all entries of the target directory per cli option
 	if cli.init {
 		log.Info("Delete all entries of the target directory per cli option")

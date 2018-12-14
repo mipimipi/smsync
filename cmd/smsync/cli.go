@@ -67,7 +67,6 @@ var rootCmd = &cobra.Command{
 var cli struct {
 	doLog     bool // do logging
 	init      bool // initialize
-	addOnly   bool // only add files and directories
 	noConfirm bool // don't ask for confirmation
 	verbose   bool // print detailed progress
 }
@@ -77,8 +76,6 @@ func init() {
 	rootCmd.SetHelpTemplate(helpTemplate)
 
 	// define flag ...
-	// - add only
-	rootCmd.Flags().BoolVarP(&cli.addOnly, "add-only", "a", false, "only add files")
 	// - initialize
 	rootCmd.Flags().BoolVarP(&cli.init, "initialize", "i", false, "delete content of target directory and do initial sync")
 	// - logging

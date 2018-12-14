@@ -191,40 +191,39 @@ func GetSyncFiles(cfg *Config) (*[]*string, *[]*string) {
 			}
 		}
 
-		/*
-			// if smsync has been called in add-only mode, files on source side
-			// are only relevant for sync, if no counterpart is existing on
-			// target side. That's checked in the next if statement
-			if cli.addOnly {
-				// assemble target file path
-				trgFile, err := lhlp.PathRelCopy(cfg.srcDirPath, srcFile, cfg.trgDirPath)
-				if err != nil {
-					log.Errorf("Target path cannot be assembled: %v", err)
-					return false
-				}
-
-				// if source file is a directory, check it the counterpart on
-				// target side exists
-				if fi.IsDir() {
-					var exists bool
-					exists, err = lhlp.FileExists(trgFile)
-					if err != nil {
-						log.Errorf("%v", err)
-						return false
-					}
-					return !exists
-				}
-
-				// otherwise (if it's a file): check if counterpart exists on
-				// target side as well
-				fs, err := filepath.Glob(lhlp.EscapePattern(lhlp.PathTrunk(trgFile)) + ".*")
-				if err != nil {
-					log.Errorf("Error from Glob('%s'): %v", lhlp.EscapePattern(lhlp.PathTrunk(trgFile))+".*", err)
-					return false
-				}
-				return (fs == nil)
+		// if the last call smsync has been interrupted ("work in progress,
+		// WIP). files on source side are only relevant for sync, if no
+		// counterpart is existing on target side. That's checked in the next
+		// if statement
+		if cfg.WIP {
+			// assemble target file path
+			trgFile, err := lhlp.PathRelCopy(cfg.SrcDirPath, srcFile, cfg.TrgDirPath)
+			if err != nil {
+				log.Errorf("Target path cannot be assembled: %v", err)
+				return false
 			}
-		*/
+
+			// if source file is a directory, check it the counterpart on
+			// target side exists
+			if fi.IsDir() {
+				var exists bool
+				exists, err = lhlp.FileExists(trgFile)
+				if err != nil {
+					log.Errorf("%v", err)
+					return false
+				}
+				return !exists
+			}
+
+			// otherwise (if it's a file): check if counterpart exists on
+			// target side as well
+			fs, err := filepath.Glob(lhlp.EscapePattern(lhlp.PathTrunk(trgFile)) + ".*")
+			if err != nil {
+				log.Errorf("Error from Glob('%s'): %v", lhlp.EscapePattern(lhlp.PathTrunk(trgFile))+".*", err)
+				return false
+			}
+			return (fs == nil)
+		}
 		return true
 	}
 
