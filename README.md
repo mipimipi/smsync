@@ -2,7 +2,7 @@
 
 # Smart Music Sync (smsync)
 
-keeps huge music collections in sync and is taking care of conversions between different formats. It an easy-to-use command line application for Linux. 
+keeps huge music collections in sync and is taking care of conversions between different formats. It's an easy-to-use command line application for Linux. 
 
 smsync is made for use cases where you have a folder structure for your high quality lossless or lossy but high bit rate music that acts as a "master". From this master you replicate your music to "slaves", such as a smartphone or an SD card / hard drive for your car etc. On a smartphone or in the car you either don't have or you don't want to spend that much storage capacity that you might have for you master music storage. Thus, the replication step from the master to the slaves is not a simple copy, it's in fact a conversion step. For instance, music that is stored on the master in the lossless [FLAC format](https://xiph.org/flac/) shall be converted to [MP3](https://en.wikipedia.org/wiki/MP3) while being replicated to a slave.
 Normally, you want to keep the folder structure during replication. I.e. a certain music file on the slave shall have the same relative folder path as its counterpart has on the master. New music is typically added to the master only. If that happened you want to update the slaves accordingly with minimal effort. If you deleted files or folders on the master for whatever reason, these deletions shall be propagated to the slaves as well. And, last not least, as we are talking about huge music collections (several thousands or ten thousands of music files), the whole synchronization and replication process must happen in a highly automated and performant way.
@@ -72,14 +72,14 @@ Example:
     num_cpus: 4
     num_wrkrs: 4
     rules:
-    - source: flag
+    - source: flac
       target: mp3
       conversion: vbr:5|cl:3
     - source: mp3
       conversion: copy
-    - source: "*"
+    - source: '*'
 
-In former releases a configuration file in [INI format](https://en.wikipedia.org/wiki/INI_file) was required (`SMSYNC.CONF`). This was changed in smsync 3.0. If no `smsync.yaml`exists, smsync is converting a possibly existing `SMSYNC.CONF` into a YAML file. After that, the old configuration file is obsolete and can be deleted. 
+In former releases a configuration file in [INI format](https://en.wikipedia.org/wiki/INI_file) was required (`SMSYNC.CONF`) instead of the YAML file which was introduced with smsync 3.0. If no `smsync.yaml`exists, smsync is converting a possibly existing `SMSYNC.CONF` into a YAML file. After that, the old configuration file is obsolete and can be deleted. 
 
 #### General Configuration
 
@@ -95,7 +95,13 @@ The second rule of the example tells smsync to simply copy MP3 files. If files a
 
 The third rule tells smsync to copy als other files, e.g. cover pictures. Without this rule, files that do neither have the extension '.flac' nor '.mp3' would have been ignored in this example.
 
-A copy conversion can either be specified explicitely with `conversion: copy` (like in the second rule) or implicitely without any conversion line (like in the third rule)
+Basically, a rule consists of a source suffix, a target suffix and a conversion. In some cases, it's not necessary to configure all of these:
+
+* A source suffix is always necessary
+
+* The target suffix can be omitted, if it's identical to the source suffix
+
+* The conversion can be omitted if it's `copy`. I.e. a copy conversion can either be specified explicitely with `conversion: copy` (like in the second rule) or implicitely without any conversion line (like in the third rule)
 
 #### Format-dependent conversion parameters
 
@@ -123,13 +129,13 @@ See also: [FFMpeg Codec Documentation](http://ffmpeg.org/ffmpeg-codecs.html#libm
 
 ##### FLAC
 
-FLAC only supports a compression level (parameter `cl`). Possible values are: 0, ..., 12 where 0 means the highest quality. 5 is the default. Thus, for a conversion to FLAC, if no conversion rule is specified in `SMSYNC.CONF`, `cl:5` is assumed. 
+FLAC only supports a compression level (parameter `cl`). Possible values are: 0, ..., 12 where 0 means the highest quality. 5 is the default. Thus, for a conversion to FLAC, if no conversion rule is specified in `smsync.yaml`, `cl:5` is assumed. 
 
 See also: [FFMpeg Codec Documentation](http://ffmpeg.org/ffmpeg-codecs.html#flac-2)
 
 ##### OGG (Vorbis)
 
-This format supports conversions with average and variable bit rate. For AVR, bit rates from 8 to 500 kbps are supported. For VBR, possible values are -1.0, ..., 10.0 where 10.0 means the best quality. VBR with quality 3.0 is the default. Thus, for a conversion to OGG (Vorbis), if no conversion rule is specified in `SMSYNC.CONF`, `vbr:3.0` is assumed. OGG (Vorbis) doesn't support compression levels.
+This format supports conversions with average and variable bit rate. For AVR, bit rates from 8 to 500 kbps are supported. For VBR, possible values are -1.0, ..., 10.0 where 10.0 means the best quality. VBR with quality 3.0 is the default. Thus, for a conversion to OGG (Vorbis), if no conversion rule is specified in `smsync.yaml`, `vbr:3.0` is assumed. OGG (Vorbis) doesn't support compression levels.
 
 See also: [FFMpeg Codec Documentation](http://ffmpeg.org/ffmpeg-codecs.html#libvorbis)
 
@@ -141,7 +147,7 @@ See also: [FFMpeg Codec Documentation](http://ffmpeg.org/ffmpeg-codecs.html#libo
 
 ### Synchronization Process
 
-Coming back to the example above. Let's assume the config file `SMSYNC.CONF` is stored in `/home/musiclover/Music/SLAVE`. To execute smsync for the slave open a terminal and enter
+Coming back to the example above. Let's assume the config file `smsync.yaml` is stored in `/home/musiclover/Music/SLAVE`. To execute smsync for the slave open a terminal and enter
 
     $ cd /home/musiclover/Music/SLAVE
     $ smsync
@@ -162,7 +168,7 @@ The synchronization process is executed in the following steps:
     To do: 10 | Rem time: 00:00:11 | Est end: 16:19:12
     ```
 
-    With the command line opion `--verbose` the progress is displayed in more detail, i.e. each file is displayed after it has been converted.  
+    With the command line option `--verbose` the progress is displayed in more detail, i.e. each file is displayed after it has been converted.  
 
 1. After the synchronization is done, the current time is stored as `last_sync` in the configuration file.
 
