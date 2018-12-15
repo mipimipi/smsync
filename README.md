@@ -154,13 +154,13 @@ The synchronization process is executed in the following steps:
 
 1. The replication / conversion of files and directories is executed. smsync shows the progress and an estimation of the remaining time and the end time:
 
-    '''
+    ```
     :: Process directories
     To do: 0 | Rem time: 00:00:00 | Est end: 16:18:53
 
     :: Process files
     To do: 10 | Rem time: 00:00:11 | Est end: 16:19:12
-    '''
+    ```
 
     With the command line opion `--verbose` the progress is displayed in more detail, i.e. each file is displayed after it has been converted.  
 
