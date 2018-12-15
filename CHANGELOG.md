@@ -1,0 +1,20 @@
+# Release 3.0.1 (2018-12-24)
+
+## Added
+
+* Non-interactive mode ([#2](https://github.com/mipimipi/smsync/issues/2))
+* Display name of file that is currently worked on ([#4](https://github.com/mipimipi/smsync/issues/4))
+* Progress display simplified
+
+## Changed
+
+* Configuration file has been changed from INI (`SMSYNC.CONF`) to YAML format (`symsync.yaml`) and renamed.
+
+## Removed
+
+* Command line option `--addonly` / `-a`. This option is obsolete, since now the processing status "work in progress" is used to trigger that system behavior.
+
+## Fixed
+
+* Conversion Mode Copy is invalid ([#1](https://github.com/mipimipi/smsync/issues/1))
+* Docu error ([#5](https://github.com/mipimipi/smsync/issues/5))

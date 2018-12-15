@@ -64,41 +64,38 @@ For Arch Linux (and other Linux distros, that can install packages from the Arch
 
 ### Configuration File
 
-A slave has to have a configuration file with the name `SMSYNC.CONF` in its root folder. This file contains the configuration for that slave in [INI format](https://en.wikipedia.org/wiki/INI_file).
+A slave has to have a configuration file with the name `smsync.yaml` in its root folder. This file contains the configuration for that slave in [YAML format](https://en.wikipedia.org/wiki/YAML).
 
 Example:
 
-    [general]
-    source_dir = /home/musiclover/Music/MASTER
-    num_cpus   = 4
-    num_wrkrs  = 4
+    source_dir: /home/musiclover/Music/MASTER
+    num_cpus: 4
+    num_wrkrs: 4
+    rules:
+    - source: flag
+      target: mp3
+      conversion: vbr:5|cl:3
+    - source: mp3
+      conversion: copy
+    - source: "*"
 
-    [rule0]
-    source = flac
-    target = mp3
-    conversion = abr:192|cl:3
-
-    [rule1]
-    source = mp3
-    conversion = copy
-
-    [rule2]
-    source = *
-    conversion = copy
+In former releases a configuration file in [INI format](https://en.wikipedia.org/wiki/INI_file) was required (`SMSYNC.CONF`). This was changed in smsync 3.0. If no `smsync.yaml`exists, smsync is converting a possibly existing `SMSYNC.CONF` into a YAML file. After that, the old configuration file is obsolete and can be deleted. 
 
 #### General Configuration
 
-smsync interprets the configuration file. According to the general section in the example, the root folder of the master is `/home/musiclover/Music/MASTER`. The next two entries are optional. They tell smsync to use 4 cpus and start 4 worker processes for the conversion. Per default smsync uses all available cpus and starts #cpus worker processes.
+smsync interprets the configuration file. In the example, the root folder of the master is `/home/musiclover/Music/MASTER`. The next two entries are optional. They tell smsync to use 4 cpus and start 4 worker processes for the conversion. Per default, smsync uses all available cpus and starts #cpus worker processes.
 
 #### Conversion Rules
 
-The rules sections tell smsync what to do with the files stored in the folder structure on the master. The sections have to be named `[rule{x}]` with x = 0, 1, ... .
+The rules tell smsync what to do with the files stored in the folder structure on the master.
 
-In the example, `[rule0]` tells smsync to convert FLAC files (i.e. files with the extension '.flac') to MP3, using the conversion `vbr:5|cl:3`. These conversions parameters are strings that consist of different parts which are separated by '|'. The supported content of a conversion parameter string depends on the target format - see detailed explanation below.
+In the example, ther first rule tells smsync to convert FLAC files (i.e. files with the extension '.flac') to MP3, using the conversion `vbr:5|cl:3`. These conversions parameters are strings that consist of different parts which are separated by '|'. The supported content of a conversion parameter string depends on the target format - see detailed explanation below.
 
-`[rule1]` of the example tells smsync to simply copy MP3 files. If files are copied, `target` doesn't have to be specified in the rule. Another possibility was to convert MP3 to MP3 by reducing the bit rate. This can be achieved by defining a dedicated conversion rule as explained above (instead of `copy`).
+The second rule of the example tells smsync to simply copy MP3 files. If files are copied, `target` doesn't have to be specified in the rule. Another possibility was to convert MP3 to MP3 by reducing the bit rate. This can be achieved by defining a dedicated conversion rule as explained above (instead of `copy`).
 
-`[rule2]` tells smsync to copy als other files, e.g. cover pictures. Without `[rule2]`, files that do neither have the extension '.flac' nor '.mp3' would have been ignored in this example.
+The third rule tells smsync to copy als other files, e.g. cover pictures. Without this rule, files that do neither have the extension '.flac' nor '.mp3' would have been ignored in this example.
+
+A copy conversion can either be specified explicitely with `conversion: copy` (like in the second rule) or implicitely without any conversion line (like in the third rule)
 
 #### Format-dependent conversion parameters
 
@@ -155,7 +152,17 @@ The synchronization process is executed in the following steps:
 
 1. smsync determines all files and directories of the master, that have changed since the last synchronization. In our example, there was no synchronization before (as otherwise the configuration file would have an entry `last_sync` that contained the time stamp of the last synchronization). Depending on the number of files, this could take a few minutes. smsync displays how many directories and files need to be synchronized and again, the user is asked for confirmation.
 
-1. The replication / conversion of files and directories is executed. smsync shows the progress and an estimation of the remaining time.
+1. The replication / conversion of files and directories is executed. smsync shows the progress and an estimation of the remaining time and the end time:
+
+    '''
+    :: Process directories
+    To do: 0 | Rem time: 00:00:00 | Est end: 16:18:53
+
+    :: Process files
+    To do: 10 | Rem time: 00:00:11 | Est end: 16:19:12
+    '''
+
+    With the command line opion `--verbose` the progress is displayed in more detail, i.e. each file is displayed after it has been converted.  
 
 1. After the synchronization is done, the current time is stored as `last_sync` in the configuration file.
 
@@ -205,10 +212,16 @@ to such a slave folder structure:
 
 smsync has only a few options:
 
+* `--initialise` / `-i`
+  Do initial sync:
+  - Existing files and directories in the target folder are deleted (except the smsync files `smsync.yaml` and - if existing - `smsync.log`)
+  - If possibly exsiting `last_sync` in the config file is ignored. I.e. files and folders in the source directory are taken into account independet from their change time
+
 * `--log` / `-l`
   Write a log file. The file `smsync.log` is stored in the root folder of the slave. A log file is always written in case of an error.
 
-* `--add-only` / `-a`
-  Files and directories will only be *added* on slave side, existing files and directories will not be deleted or overwritten. This option can be used if a synchronization has been stopped before it was completely done.
+* `--verbose` / `-v`
+  Print detailed progress. Instead of the normal output, where only the aggregated progress in displayed, this option triggers the output of detailed progress. Each file and directory is displayed immediately after it has been converted or copied.
 
-To start a new initial synchronization, just remove the `last_sync` line from the configuration file.
+* `--yes` / `-y`
+  Don't ask for confirmation. smsync starts directly without asking for user confirmations. With this option, it's possible to run smsync automatically via cron job.
