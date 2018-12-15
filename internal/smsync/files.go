@@ -86,7 +86,7 @@ func deleteObsoleteFiles(cfg *Config, srcDirPath string) error {
 			if !trgEntr.Mode().IsRegular() {
 				continue
 			}
-			// don't delete smsync files (smsync.log or SMSYNC.yaml)
+			// don't delete smsync files (smsync.log or smsync.yaml)
 			if strings.Contains(trgEntr.Name(), logFileName) || strings.Contains(trgEntr.Name(), cfgFileName) {
 				continue
 			}

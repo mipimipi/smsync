@@ -19,9 +19,8 @@ package smsync
 
 // cfg.go implements the logic that is needed for the configuration
 // of smsync.
-// getCfg is the main function. It reads the configuration from the
-// file SMSYNC.CONFIG (which is stored in the target directory).
-// It is in INI format.
+// Get is the main function. It reads the configuration from the
+// file smsync.yaml (which is stored in the target directory).
 
 import (
 	"fmt"
@@ -38,9 +37,9 @@ import (
 
 // Constants for smsync configuration
 const (
-	cfgFileName = "SMSYNC.yaml" // file name of config file
-	suffixStar  = "*"
-	procStatWIP = "wip"
+	cfgFileName = "smsync.yaml" // file name of config file
+	suffixStar  = "*"           // wildcard for music file suffix
+	procStatWIP = "wip"         // work in progress
 )
 
 // structure for conversion rule
@@ -77,20 +76,24 @@ type cvm struct {
 	NormCvStr string // normalized conversion string (e.g. defaults are added)
 }
 
-// GetCfg reads the smsync configuration from the file ./SMSYNC.yaml and stores
+// Get reads the smsync configuration from the file ./SMSYNC.yaml and stores
 // the configuration values in the structure *config.
-func GetCfg(init bool) (*Config, error) {
+func (cfg *Config) Get(init bool) error {
 	var (
 		cfgY cfgYml
-		cfg  Config
 		err  error
 	)
 
-	log.Info("Config from file ...")
+	log.Info("Read config from file ...")
 
 	// read config from file
 	if err = cfgY.read(); err != nil {
-		return nil, err
+		// if config file in yaml for at exists, try to convert an old
+		// potentially existing ini file into a yaml file and try again
+		ini2yaml()
+		if err = cfgY.read(); err != nil {
+			return err
+		}
 	}
 
 	// set processing status
@@ -100,7 +103,7 @@ func GetCfg(init bool) (*Config, error) {
 
 	// check if the configured source dir exists and is a directory
 	if err = checkDir(cfgY.SourceDir); err != nil {
-		return nil, err
+		return err
 	}
 	cfg.SrcDirPath = cfgY.SourceDir
 
@@ -124,7 +127,7 @@ func GetCfg(init bool) (*Config, error) {
 	// init = true), nothing needs to be done)
 	if !init {
 		if cfg.LastSync, err = getLastSync(cfgY.LastSync); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
@@ -136,7 +139,7 @@ func GetCfg(init bool) (*Config, error) {
 
 		c, err = getRule(&r, i)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		cfg.Cvs[r.Source] = c
 		hasRule = true
@@ -145,16 +148,16 @@ func GetCfg(init bool) (*Config, error) {
 	// raise error if no rules could be detected
 	if !hasRule {
 		log.Error("No conversion rules could be detected in config file")
-		return nil, fmt.Errorf("No conversion rules could be detected in config file")
+		return fmt.Errorf("No conversion rules could be detected in config file")
 	}
 
 	// set target directory
 	if cfg.TrgDirPath, err = os.Getwd(); err != nil {
 		log.Errorf("Cannot determine working directory: %v", err)
-		return nil, fmt.Errorf("Cannot determine working directory: %v", err)
+		return fmt.Errorf("Cannot determine working directory: %v", err)
 	}
 
-	return &cfg, nil
+	return nil
 }
 
 // getCv checks if the smsync conf contains a conversion rule for a given file.

@@ -185,6 +185,8 @@ func process(cfg *smsync.Config, wl *[]*string, f func(*smsync.Config, *[]*strin
 // (2) determine directories and files to be synched
 // (3) start processing of these directories and files
 func synchronize(level log.Level, verbose bool) error {
+	var cfg smsync.Config
+
 	if err := smsync.CreateLogger(level); err != nil {
 		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
 			return e
@@ -196,13 +198,12 @@ func synchronize(level log.Level, verbose bool) error {
 	fmt.Println(preamble)
 
 	// read configuration
-	cfg, err := smsync.GetCfg(cli.init)
-	if err != nil {
+	if err := cfg.Get(cli.init); err != nil {
 		return err
 	}
 
 	// print summary and ask user for OK
-	printCfgSummary(cfg)
+	printCfgSummary(&cfg)
 	if !cli.noConfirm {
 		if !lhlp.UserOK("\n:: Start synchronization") {
 			log.Infof("Synchronization not started due to user input")
@@ -217,7 +218,7 @@ func synchronize(level log.Level, verbose bool) error {
 	stop := lhlp.ProgressStr(":: Find differences (this can take a few minutes)", 1000)
 
 	// get list of directories and files for sync
-	dirs, files := smsync.GetSyncFiles(cfg)
+	dirs, files := smsync.GetSyncFiles(&cfg)
 
 	// stop progress string
 	stop <- struct{}{}
@@ -246,21 +247,21 @@ func synchronize(level log.Level, verbose bool) error {
 	// delete all entries of the target directory per cli option
 	if cli.init {
 		log.Info("Delete all entries of the target directory per cli option")
-		if err := smsync.DeleteTrg(cfg); err != nil {
+		if err := smsync.DeleteTrg(&cfg); err != nil {
 			return err
 		}
 	}
 
 	// process directories
 	fmt.Println("\n:: Process directories")
-	durDirs, err := process(cfg, dirs, smsync.ProcessDirs, verbose)
+	durDirs, err := process(&cfg, dirs, smsync.ProcessDirs, verbose)
 	if err != nil {
 		return err
 	}
 
 	// process files
 	fmt.Println("\n:: Process files")
-	durFiles, err := process(cfg, files, smsync.ProcessFiles, verbose)
+	durFiles, err := process(&cfg, files, smsync.ProcessFiles, verbose)
 	if err != nil {
 		return err
 	}
