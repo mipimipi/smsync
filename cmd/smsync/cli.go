@@ -40,6 +40,7 @@ var rootCmd = &cobra.Command{
 	Use:                   "smsync [options]",
 	Version:               Version,
 	DisableFlagsInUseLine: true,
+	SilenceErrors:         true,
 	Args:                  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// retrieve flags

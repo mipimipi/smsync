@@ -132,7 +132,7 @@ func printCurrentFile(cfg *smsync.Config, f string) {
 // These functions are passed to process in the function parameter.
 func process(cfg *smsync.Config, wl *[]*string, f func(*smsync.Config, *[]*string) <-chan smsync.ProcRes, verbose bool) (time.Duration, error) {
 	var (
-		prog    prog
+		p       prog
 		pRes    smsync.ProcRes
 		procRes <-chan smsync.ProcRes
 		start   = time.Now()
@@ -143,7 +143,7 @@ func process(cfg *smsync.Config, wl *[]*string, f func(*smsync.Config, *[]*strin
 
 	procRes = f(cfg, wl)
 
-	prog.total = len(*wl)
+	p.total = len(*wl)
 
 	// retrieve results and ticks
 	for ok {
@@ -151,22 +151,22 @@ func process(cfg *smsync.Config, wl *[]*string, f func(*smsync.Config, *[]*strin
 		case <-ticker.C:
 			ticked = true
 			if !verbose {
-				prog.print(start)
+				p.print(start)
 			}
 		case pRes, ok = <-procRes:
 			if ok {
 				// if ticker hasn't ticked so far: print progress
 				if !ticked && !verbose {
-					prog.print(start)
+					p.print(start)
 				}
-				prog.done++
+				p.done++
 
 				if verbose {
 					printCurrentFile(cfg, pRes.SrcFile)
 				}
 			} else {
 				if !verbose {
-					prog.print(start)
+					p.print(start)
 					fmt.Println()
 				}
 
@@ -176,7 +176,7 @@ func process(cfg *smsync.Config, wl *[]*string, f func(*smsync.Config, *[]*strin
 		}
 	}
 
-	return prog.elapsed, nil
+	return p.elapsed, nil
 }
 
 // synchronize is the main function of smsync. It triggers the entire sync
@@ -215,14 +215,17 @@ func synchronize(level log.Level, verbose bool) error {
 	_ = runtime.GOMAXPROCS(int(cfg.NumCpus))
 
 	// start automatic progress string which increments every second
-	stop := lhlp.ProgressStr(":: Find differences (this can take a few minutes)", 1000)
+	stop, confirm := lhlp.ProgressStr(":: Find differences (this can take a few minutes)", 1000)
 
 	// get list of directories and files for sync
 	dirs, files := smsync.GetSyncFiles(&cfg)
 
-	// stop progress string
+	// stop progress string ...
 	stop <- struct{}{}
 	close(stop)
+	// .. and receive stop confirmation. The confirmation is necessary to not
+	// scramble the command line output
+	_ = <-confirm
 
 	// if no directories and no files need to be synchec: exit
 	if len(*dirs) == 0 && len(*files) == 0 {
@@ -233,7 +236,7 @@ func synchronize(level log.Level, verbose bool) error {
 
 	// print summary and ask user for OK to continue
 	if !cli.noConfirm {
-		if !lhlp.UserOK(fmt.Sprintf(":: %d directories and %d files to synchronize. Continue", len(*dirs), len(*files))) {
+		if !lhlp.UserOK(fmt.Sprintf("\n:: %d directories and %d files to synchronize. Continue", len(*dirs), len(*files))) {
 			log.Infof("Synchronization not started due to user input")
 			return nil
 		}
