@@ -20,7 +20,7 @@ PROJECT=github.com/mipimipi/smsync
 
 # set project VERSION if VERSION hasn't been passed from command line
 ifndef $(VERSION)
-	VERSION=3.0.1
+	VERSION=3.0.2
 endif
 
 # use bash
