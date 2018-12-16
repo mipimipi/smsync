@@ -1,4 +1,4 @@
-# Release 3.0.1 (2018-12-16)
+# [Release 3.0.1](https://github.com/mipimipi/smsync/releases/tag/3.0.1) (2018-12-16)
 
 ## Added
 
