@@ -10,11 +10,32 @@ Normally, you want to keep the folder structure during replication. I.e. a certa
 
 New music is typically added to the master only. If that happened you want to update the slaves accordingly with minimal effort. If you deleted files or folders on the master for whatever reason, these deletions shall be propagated to the slaves as well. And, last not least, as we are talking about huge music collections (several thousands or ten thousands of music files), the whole synchronization and replication process must happen in a highly automated and performant way.
 
-## Features
+## Contents
+
+* [Features](#features)
+    * [Conversion](#conversion)
+    * [Synchronization](#synchonization)
+    * [Parallel Processing](#parallel)
+* [Installation](#installation)
+    * [Manual Installation](#manual)
+    * [Installation with Package Managers](#pacman)
+* [Usage](#usage)
+    * [Configuration File](#config)
+        * [General Configuration](#general)
+        * [Conversion Rules](#rules)
+        * [Format-dependent conversion parameters](#format)
+            * [FLAC](#flac)
+            * [MP3](#mp3)
+            * [OGG (Vorbis)](#ogg)
+            * [OPUS](#opus)
+    * [Synchronization Process](#syncproc)
+    * [Command Line Options](#command)
+
+## <a name="features"></a>Features
 
 smsync takes care of all this:
 
-### Conversion
+### <a name="conversion"></a>Conversion
 
 Conversions can be configurated per slave and file type (i.e. for each file extension/suffix) separately. Currently, smsync supports:
 
@@ -28,19 +49,19 @@ Conversions can be configurated per slave and file type (i.e. for each file exte
 
 For all these conversions, [ffmpeg](https://ffmpeg.org/) is used. In addition, a simple file copy without any format conversion is supported as well.
 
-### Synchronization
+### <a name="synchonization"></a>Synchronization
 
 The synchronization between master and slave is done based on timestamps. If new music has been added to the master since the last synchronization, smsync only replicates / converts the added files. If you have deleted files or folders on the master since the last synchronization, smsync deletes its counterparts on the slave.
 
 The synchronization can be done stepwise. That's practical if a huge number of files has to be synchronized. In this case, the synchronization can be interrupted (with e.g. CTRL-C) and continued at a later point in time.
 
-### Parallel Processing
+### <a name="parallel">Parallel Processing
 
 To make the synchronization as efficient as possible, the determination of changes since the last synchronization and the replication / conversion of files are done in parallel processes. The number of CPUs that is used for this as well as the number of parallel processes can be configured.
 
-## Installation
+## <a name="installation">Installation
 
-### Manual Installation
+### <a name="manual">Manual Installation
 
 smsync is written in [Golang](https://golang.org/) and thus requires the installation of [Go](https://golang.org/project/). Make sure that you've set the environment variable `GOPATH` accordingly, and make also sure that [git](https://git-scm.com/) is installed.
 
@@ -59,11 +80,11 @@ Finally, execute
 
 as `root` to copy the smsync binary to `/usr/bin`.
 
-### Installation with Package Managers
+### <a name="pacman">Installation with Package Managers
 
 For Arch Linux (and other Linux distros, that can install packages from the Arch User Repository) there's a [smsync package in AUR](https://aur.archlinux.org/packages/smsync-git/).
 
-## Usage
+## <a name="usage">Usage
 
 ### <a name="config"></a>Configuration File
 
@@ -84,11 +105,11 @@ Example:
 
 In former releases (< smsync 3.0) a configuration file in [INI format](https://en.wikipedia.org/wiki/INI_file) was required (`SMSYNC.CONF`) instead of a YAML file. If no `smsync.yaml`exists, smsync is taking a potentially  existing `SMSYNC.CONF` and converts it into a YAML file `smsync.yaml`. After that, the old configuration file is obsolete and can be deleted. 
 
-#### General Configuration
+#### <a name="general"></a>General Configuration
 
 smsync interprets the configuration file. In the example, the root folder of the master is `/home/musiclover/Music/MASTER`. The next two entries are optional. They tell smsync to use 4 cpus and start 4 worker processes for the conversion. Per default, smsync uses all available cpus and starts #cpus worker processes.
 
-#### Conversion Rules
+#### <a name="rules"></a>Conversion Rules
 
 The rules tell smsync what to do with the files stored in the folder structure of the master.
 
@@ -124,31 +145,31 @@ Basically, two things can be determined with a conversion parameter string:
 
 The available or supported conversion parameters depend on the target format. The following sections describe the different possibilities.
 
-##### FLAC
+##### <a name="flac">FLAC
 
 FLAC only supports a compression level (parameter `cl`). Possible values are: 0, ..., 12 where 0 means the highest quality. 5 is the default. Thus, for a conversion to FLAC, if no conversion rule is specified in `smsync.yaml`, `cl:5` is assumed. 
 
 See also: [FFMpeg Codec Documentation](http://ffmpeg.org/ffmpeg-codecs.html#flac-2)
 
-##### MP3
+##### <a name="mp3">MP3
 
 MP3 supports ABR, CBR, both with bit rates from 8 to 500 kbps (kilo bit per second), and VBR with a quality from 0 to 9 (where 0 means highest quality). In addition, MP3 supports a compression level (parameter `cl`), which can have values 0, ..., 9 where 0 means the highest quality. Thus, the conversion `abr:192|cl:3` in the example above specifies an average bit rate of 192 kbps and a compression level of 3.
 
 See also: [FFMpeg Codec Documentation](http://ffmpeg.org/ffmpeg-codecs.html#libmp3lame-1)
 
-##### OGG (Vorbis)
+##### <a name="ogg">OGG (Vorbis)
 
 This format supports conversions with average and variable bit rate. For AVR, bit rates from 8 to 500 kbps are supported. For VBR, possible values are -1.0, ..., 10.0 where 10.0 means the best quality. VBR with quality 3.0 is the default. Thus, for a conversion to OGG (Vorbis), if no conversion rule is specified in `smsync.yaml`, `vbr:3.0` is assumed. OGG (Vorbis) doesn't support compression levels.
 
 See also: [FFMpeg Codec Documentation](http://ffmpeg.org/ffmpeg-codecs.html#libvorbis)
 
-##### OPUS
+##### <a name="opus">OPUS
 
 OPUS supports conversions with average, constant and hard constant bit rate. The latter guarantees that all frames have the same size. Allowed values are 6 to 510 kbps. In addition, OPUS supports a compression level that ranges from 0 to 10, where 10 is the highest quality. If no compression level is specified, `cl:10`is assumed.
 
 See also: [FFMpeg Codec Documentation](http://ffmpeg.org/ffmpeg-codecs.html#libopus-1)
 
-### Synchronization Process
+### <a name="syncproc">Synchronization Process
 
 Coming back to the [example above](#config). Let's assume the config file `smsync.yaml` is stored in `/home/musiclover/Music/SLAVE`. To execute smsync for the slave, open a terminal and enter
 
@@ -217,7 +238,7 @@ to such a slave folder structure:
                   |- ...
                   |- folder.png
 
-### Command Line Options
+### <a name="command">Command Line Options
 
 smsync has only a few options:
 
