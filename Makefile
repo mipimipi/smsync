@@ -16,11 +16,11 @@
 # along with smsync. If not, see <http://www.gnu.org/licenses/>.
 
 # project directory
-PROJECT=gitlab.com/mipimipi/smsync
+PROJECT=github.com/mipimipi/smsync
 
 # set project VERSION if VERSION hasn't been passed from command line
 ifndef $(VERSION)
-	VERSION=3.0
+	VERSION=3.0.1
 endif
 
 # use bash
