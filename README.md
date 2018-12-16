@@ -82,7 +82,9 @@ as `root` to copy the smsync binary to `/usr/bin`.
 
 ### <a name="pacman">Installation with Package Managers
 
-For Arch Linux (and other Linux distros, that can install packages from the Arch User Repository) there's a [smsync package in AUR](https://aur.archlinux.org/packages/smsync-git/).
+~~For Arch Linux (and other Linux distros, that can install packages from the Arch User Repository) there's a [smsync package in AUR](https://aur.archlinux.org/packages/smsync-git/).~~
+
+Building an AUR package is still in progress (see issue [#6](https://github.com/mipimipi/smsync/issues/6)).
 
 ## <a name="usage">Usage
 
