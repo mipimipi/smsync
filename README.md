@@ -244,7 +244,7 @@ to such a slave folder structure:
 
 smsync has only a few options:
 
-* `--initialise` / `-i`
+* `--initialize` / `-i`
   Do initial sync:
   - Existing files and directories in the target folder are deleted (except the smsync files `smsync.yaml` and - if existing - `smsync.log`).
   - A possibly existing `last_sync` in the config file is ignored. I.e. files and folders in the source directory are taken into account independent from their change time.
