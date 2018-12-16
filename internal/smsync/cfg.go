@@ -137,7 +137,7 @@ func (cfg *Config) Get(init bool) error {
 	for i, r := range cfgY.Rules {
 		var c *cvm
 
-		c, err = getRule(&r, i)
+		c, err = cfg.getRule(&r, i+1)
 		if err != nil {
 			return err
 		}
@@ -174,34 +174,18 @@ func (cfg *Config) getCv(f string) (*cvm, bool) {
 	return nil, false
 }
 
-func checkDir(srcDir string) error {
-	// get source directory and check if it exists and if it's a directory
-	if len(srcDir) == 0 {
-		log.Errorf("No source directory specified in config file")
-		return fmt.Errorf("No source directory specified in config file")
-	}
-	fi, err := os.Stat(srcDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			log.Errorf("Source directory '%s' doesn't exist", srcDir)
-			return fmt.Errorf("Source directory '%s' doesn't exist", srcDir)
-		}
-		log.Errorf("Error regarding source directory '%s': %v", srcDir, err)
-		return fmt.Errorf("Error regarding source directory '%s': %v", srcDir, err)
-	}
-	if !fi.IsDir() {
-		log.Errorf("Source '%s' is no directory", srcDir)
-		return fmt.Errorf("Source '%s' is no directory", srcDir)
-	}
+// getRule verifies that r represents a valid rule and create the
+// corresponding mapping structure cvm
+func (cfg *Config) getRule(r *rule, i int) (*cvm, error) {
+	var (
+		normCvStr string
+		err       error
+	)
 
-	return nil
-}
-
-func checkRule(r *rule, i int) error {
 	// check source suffix
 	if len(r.Source) == 0 {
 		log.Errorf("No source suffix in rule #%d", i)
-		return fmt.Errorf("No source suffix in rule #%d", i)
+		return nil, fmt.Errorf("No source suffix in rule #%d", i)
 	}
 
 	// get target suffix
@@ -219,7 +203,7 @@ func checkRule(r *rule, i int) error {
 	// if the conversion is empty it is set to copy.
 	if r.Source == suffixStar && r.Conversion != cvCopyStr {
 		if r.Conversion != "" {
-			return fmt.Errorf("Rule #%d: For suffix '*' only copy conversion is allowed", i)
+			return nil, fmt.Errorf("Rule #%d: For suffix '*' only copy conversion is allowed", i)
 		}
 		r.Conversion = cvCopyStr
 	}
@@ -233,41 +217,7 @@ func checkRule(r *rule, i int) error {
 	// check if either both suffices are '*' or both are not
 	if (r.Source == suffixStar && r.Target != suffixStar) || (r.Source != suffixStar && r.Target == suffixStar) {
 		log.Errorf("Rule #%d: Either both suffices need to be '*' or none", i)
-		return fmt.Errorf("Rule #%d: Either both suffices need to be '*' or none", i)
-	}
-
-	return nil
-}
-
-// getLastSync determines the time of the last synchronization
-func getLastSync(s string) (time.Time, error) {
-	var (
-		t   time.Time
-		err error
-	)
-
-	if len(s) == 0 {
-		log.Infof("No last sync time could be detected")
-		return time.Time{}, nil
-	}
-	if t, err = time.Parse(time.RFC3339, s); err == nil {
-		return t, nil
-	}
-	log.Errorf("Last sync time '%s' could not be parsed: %v", s, err)
-	return time.Time{}, fmt.Errorf("Last sync time '%s' could not be parsed: %v", s, err)
-}
-
-// getRule verifies that r represents a valid rule and create the
-// corresponding mapping structure cvm
-func getRule(r *rule, i int) (*cvm, error) {
-	var (
-		normCvStr string
-		err       error
-	)
-
-	// validate rule
-	if err = checkRule(r, i); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Rule #%d: Either both suffices need to be '*' or none", i)
 	}
 
 	// check if conversion is supported
@@ -290,29 +240,43 @@ func getRule(r *rule, i int) (*cvm, error) {
 		return nil, fmt.Errorf("Rule #%d: '%s' is not a valid conversion", i, r.Conversion)
 	}
 
+	// validate that there's only one rule per source suffix
+	if _, ok := cfg.Cvs[r.Source]; ok {
+		log.Errorf("Rule #%d: There's already a rule for source suffix '%s'", i, r.Source)
+		return nil, fmt.Errorf("Rule #%d: There's already a rule for source suffix '%s'", i, r.Source)
+	}
+
 	log.Infof("Rule #%d: '%s' is a valid conversion", i, r.Conversion)
 	log.Infof("Rule #%d: Conversion string normalized to '%s'", i, normCvStr)
 	return &cvm{TrgSuffix: r.Target, NormCvStr: normCvStr}, nil
 }
 
-// readCfg read the configuration from the file smsync.yaml in the current directory
-func (cfgY *cfgYml) read() error {
-	// read config file
-	cfgFile, err := ioutil.ReadFile(filepath.Join(".", cfgFileName))
-	if err != nil {
-		// determine working directory for error message
-		wd, err0 := os.Getwd()
-		if err0 != nil {
-			log.Errorf("Cannot determine working directory: %v", err0)
-			return fmt.Errorf("Cannot determine working directory: %v", err0)
-		}
-		log.Errorf("No configuration file found in '%s'", wd)
-		return fmt.Errorf("No configuration file found in '%s'", wd)
+// SetProcEnd updates the file smsync.yaml after the conversions have ended
+// successfully. It sets the last sync time and removes the "wip" (work in
+// progress).
+func (cfg *Config) SetProcEnd() error {
+	var (
+		cfgY cfgYml
+		err  error
+	)
+
+	// read config from file
+	if err = cfgY.read(); err != nil {
+		return err
 	}
-	if err = yaml.Unmarshal(cfgFile, &cfgY); err != nil {
-		log.Errorf("Error during unmarshaling of config file: %v", err)
-		return fmt.Errorf("Error during unmarshaling of config file: %v", err)
+
+	// set last sync time to current time in UTC
+	cfgY.LastSync = time.Now().UTC().Format(time.RFC3339)
+
+	// adjust back processing status
+	cfgY.ProcStat = ""
+
+	// write config to file
+	if err = cfgY.write(); err != nil {
+		return err
 	}
+
+	log.Debug("Config has been saved")
 
 	return nil
 }
@@ -344,31 +308,24 @@ func (cfg *Config) SetProcStatWIP() error {
 	return nil
 }
 
-// UpdateLastSync updates the last sync time in the configuration file.
-// It's called after smsync has been running successfully
-func (cfg *Config) UpdateLastSync() error {
-	var (
-		cfgY cfgYml
-		err  error
-	)
-
-	// read config from file
-	if err = cfgY.read(); err != nil {
-		return err
+// readCfg read the configuration from the file smsync.yaml in the current directory
+func (cfgY *cfgYml) read() error {
+	// read config file
+	cfgFile, err := ioutil.ReadFile(filepath.Join(".", cfgFileName))
+	if err != nil {
+		// determine working directory for error message
+		wd, err0 := os.Getwd()
+		if err0 != nil {
+			log.Errorf("Cannot determine working directory: %v", err0)
+			return fmt.Errorf("Cannot determine working directory: %v", err0)
+		}
+		log.Errorf("No configuration file found in '%s'", wd)
+		return fmt.Errorf("No configuration file found in '%s'", wd)
 	}
-
-	// set last sync time to current time in UTC
-	cfgY.LastSync = time.Now().UTC().Format(time.RFC3339)
-
-	// adjust back processing status
-	cfgY.ProcStat = ""
-
-	// write config to file
-	if err = cfgY.write(); err != nil {
-		return err
+	if err = yaml.Unmarshal(cfgFile, &cfgY); err != nil {
+		log.Errorf("Error during unmarshaling of config file: %v", err)
+		return fmt.Errorf("Error during unmarshaling of config file: %v", err)
 	}
-
-	log.Debug("Config has been saved")
 
 	return nil
 }
@@ -392,4 +349,45 @@ func (cfgY *cfgYml) write() error {
 	}
 
 	return nil
+}
+
+// checkDir checks if the source directory exists and if it's a directory
+func checkDir(srcDir string) error {
+	if len(srcDir) == 0 {
+		log.Errorf("No source directory specified in config file")
+		return fmt.Errorf("No source directory specified in config file")
+	}
+	fi, err := os.Stat(srcDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Errorf("Source directory '%s' doesn't exist", srcDir)
+			return fmt.Errorf("Source directory '%s' doesn't exist", srcDir)
+		}
+		log.Errorf("Error regarding source directory '%s': %v", srcDir, err)
+		return fmt.Errorf("Error regarding source directory '%s': %v", srcDir, err)
+	}
+	if !fi.IsDir() {
+		log.Errorf("Source '%s' is no directory", srcDir)
+		return fmt.Errorf("Source '%s' is no directory", srcDir)
+	}
+
+	return nil
+}
+
+// getLastSync determines the time of the last synchronization
+func getLastSync(s string) (time.Time, error) {
+	var (
+		t   time.Time
+		err error
+	)
+
+	if len(s) == 0 {
+		log.Infof("No last sync time could be detected")
+		return time.Time{}, nil
+	}
+	if t, err = time.Parse(time.RFC3339, s); err == nil {
+		return t, nil
+	}
+	log.Errorf("Last sync time '%s' could not be parsed: %v", s, err)
+	return time.Time{}, fmt.Errorf("Last sync time '%s' could not be parsed: %v", s, err)
 }

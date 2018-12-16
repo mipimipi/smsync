@@ -132,18 +132,14 @@ func printCurrentFile(cfg *smsync.Config, f string) {
 // These functions are passed to process in the function parameter.
 func process(cfg *smsync.Config, wl *[]*string, f func(*smsync.Config, *[]*string) <-chan smsync.ProcRes, verbose bool) (time.Duration, error) {
 	var (
-		p       prog
+		p       = prog{done: 0, total: len(*wl), errors: 0, elapsed: 0}
 		pRes    smsync.ProcRes
-		procRes <-chan smsync.ProcRes
+		procRes = f(cfg, wl)
 		start   = time.Now()
 		ticker  = time.NewTicker(time.Second) // ticker to update progress on screen every second
 		ticked  = false
 		ok      = true
 	)
-
-	procRes = f(cfg, wl)
-
-	p.total = len(*wl)
 
 	// retrieve results and ticks
 	for ok {
@@ -220,11 +216,10 @@ func synchronize(level log.Level, verbose bool) error {
 	// get list of directories and files for sync
 	dirs, files := smsync.GetSyncFiles(&cfg)
 
-	// stop progress string ...
+	// stop progress string and receive stop confirmation. The confirmation is necessary to not
+	// scramble the command line output
 	stop <- struct{}{}
 	close(stop)
-	// .. and receive stop confirmation. The confirmation is necessary to not
-	// scramble the command line output
 	_ = <-confirm
 
 	// if no directories and no files need to be synchec: exit
@@ -276,6 +271,6 @@ func synchronize(level log.Level, verbose bool) error {
 	totalStr := fmt.Sprintf("%dh %02dmin %02ds", split[time.Hour], split[time.Minute], split[time.Second])
 	fmt.Printf("   Processed %d directories and %d files in %s\n", len(*dirs), len(*files), totalStr)
 
-	// update last sync time in config file
-	return cfg.UpdateLastSync()
+	// update config file
+	return cfg.SetProcEnd()
 }
