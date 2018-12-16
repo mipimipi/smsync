@@ -181,7 +181,12 @@ func process(cfg *smsync.Config, wl *[]*string, f func(*smsync.Config, *[]*strin
 // (2) determine directories and files to be synched
 // (3) start processing of these directories and files
 func synchronize(level log.Level, verbose bool) error {
-	var cfg smsync.Config
+	var (
+		cfg      smsync.Config
+		durDirs  time.Duration
+		durFiles time.Duration
+		err      error
+	)
 
 	if err := smsync.CreateLogger(level); err != nil {
 		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
@@ -214,7 +219,7 @@ func synchronize(level log.Level, verbose bool) error {
 	stop, confirm := lhlp.ProgressStr(":: Find differences (this can take a few minutes)", 1000)
 
 	// get list of directories and files for sync
-	dirs, files := smsync.GetSyncFiles(&cfg)
+	dirs, files := smsync.GetSyncFiles(&cfg, cli.init)
 
 	// stop progress string and receive stop confirmation. The confirmation is necessary to not
 	// scramble the command line output
@@ -251,17 +256,19 @@ func synchronize(level log.Level, verbose bool) error {
 	}
 
 	// process directories
-	fmt.Println("\n:: Process directories")
-	durDirs, err := process(&cfg, dirs, smsync.ProcessDirs, verbose)
-	if err != nil {
-		return err
+	if len(*dirs) > 0 {
+		fmt.Println("\n:: Process directories")
+		if durDirs, err = process(&cfg, dirs, smsync.ProcessDirs, verbose); err != nil {
+			return err
+		}
 	}
 
 	// process files
-	fmt.Println("\n:: Process files")
-	durFiles, err := process(&cfg, files, smsync.ProcessFiles, verbose)
-	if err != nil {
-		return err
+	if len(*files) > 0 {
+		fmt.Println("\n:: Process files")
+		if durFiles, err = process(&cfg, files, smsync.ProcessFiles, verbose); err != nil {
+			return err
+		}
 	}
 
 	// print headline

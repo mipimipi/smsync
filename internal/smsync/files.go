@@ -149,7 +149,7 @@ func DeleteTrg(cfg *Config) error {
 }
 
 // GetSyncFiles determines which directories and files need to be synched
-func GetSyncFiles(cfg *Config) (*[]*string, *[]*string) {
+func GetSyncFiles(cfg *Config, init bool) (*[]*string, *[]*string) {
 	// filter function needed for FindFiles
 	filter := func(srcFile string) bool {
 		fi, err := os.Stat(srcFile)
@@ -191,11 +191,11 @@ func GetSyncFiles(cfg *Config) (*[]*string, *[]*string) {
 			}
 		}
 
-		// if the last call smsync has been interrupted ("work in progress,
-		// WIP). files on source side are only relevant for sync, if no
-		// counterpart is existing on target side. That's checked in the next
-		// if statement
-		if cfg.WIP {
+		// if the last call smsync has been interrupted ('work in progress',
+		// WIP) and command line oprion 'initialize' hasn't been set, files on
+		// source side are only relevant for sync, if no counterpart is
+		// existing on target side. That's checked in the next if statement
+		if cfg.WIP && !init {
 			// assemble target file path
 			trgFile, err := lhlp.PathRelCopy(cfg.SrcDirPath, srcFile, cfg.TrgDirPath)
 			if err != nil {
