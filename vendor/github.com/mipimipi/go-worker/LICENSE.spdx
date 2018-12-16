@@ -1,7 +1,0 @@
-SPDXVersion: SPDX-2.0
-DataLicense: CC0-1.0
-Creator: Michael Picht
-PackageName: go-worker
-PackageOriginator: Michael Picht
-PackageHomePage: https://www.github.com/mipimipi/go-worker
-PackageLicenseDeclared: GPL-3.0

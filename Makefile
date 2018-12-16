@@ -7,7 +7,7 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# gool is distributed in the hope that it will be useful,
+# smsync is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
@@ -15,19 +15,25 @@
 # You should have received a copy of the GNU General Public License
 # along with smsync. If not, see <http://www.gnu.org/licenses/>.
 
-# This is how we want to name the binary output
-BINARY=smsync
+# project directory
+PROJECT=gitlab.com/mipimipi/smsync
 
-# set VERSION if VERSION hasn't been passed from command line
+# set project VERSION if VERSION hasn't been passed from command line
 ifndef $(VERSION)
-	VERSION=2.0.2
+	VERSION=3.0
 endif
 
-# Setup the -ldflags option for go build here, interpolate the variable values
+# use bash
+SHELL=/bin/bash
+
+# setup the -ldflags option for go build
 LDFLAGS=-ldflags "-X main.Version=${VERSION}"
 
 all:
-	go build ${LDFLAGS} -o ${BINARY}
+	# build all executables
+	for CMD in `ls cmd`; do \
+		go build $(LDFLAGS) ./cmd/$$CMD; \
+	done
 
 $(GOMETALINTER):
 	go get -u github.com/alecthomas/gometalinter
@@ -38,4 +44,8 @@ lint: $(GOMETALINTER)
 	gometalinter ./... --vendor
 
 install:
-	install -Dm755 ${BINARY} $(DESTDIR)/usr/bin/${BINARY}
+	# copy all executables to /usr/bin
+	for CMD in `ls cmd`; do \
+		install -Dm755 $$CMD $(DESTDIR)/usr/bin/$$CMD; \
+	done
+
