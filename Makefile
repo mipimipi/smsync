@@ -15,37 +15,37 @@
 # You should have received a copy of the GNU General Public License
 # along with smsync. If not, see <http://www.gnu.org/licenses/>.
 
-# project directory
-PROJECT=github.com/mipimipi/smsync
-
-# set project VERSION if VERSION hasn't been passed from command line
-ifndef $(VERSION)
-	VERSION=3.0.2
-endif
-
 # use bash
 SHELL=/bin/bash
 
-# setup the -ldflags option for go build
-LDFLAGS=-ldflags "-X main.Version=${VERSION}"
+# set project VERSION
+VERSION=$(cat ./VERSION)
 
+# setup the -ldflags option for go build
+LDFLAGS=-ldflags "-X main.Version=$(value VERSION)"
+
+# build all executables
 all:
-	# build all executables
-	for CMD in `ls cmd`; do \
-		go build $(LDFLAGS) ./cmd/$$CMD; \
-	done
+	dep ensure
+	go build $(LDFLAGS) ./cmd/...
 
 $(GOMETALINTER):
 	go get -u github.com/alecthomas/gometalinter
 	gometalinter --install &> /dev/null
 
 .PHONY: lint
+
 lint: $(GOMETALINTER)
 	gometalinter ./... --vendor
 
+# move all executables to /usr/bin and 
 install:
-	# copy all executables to /usr/bin
 	for CMD in `ls cmd`; do \
 		install -Dm755 $$CMD $(DESTDIR)/usr/bin/$$CMD; \
+		rm -f ./$$CMD; \
 	done
 
+# create a new release tag
+#release:
+#	git tag -a $(VERSION) -m "Release $(VERSION)" || true
+#	git push origin $(VERSION)	
