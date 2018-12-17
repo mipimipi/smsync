@@ -47,6 +47,6 @@ install:
 	done
 
 # create a new release tag
-#release:
-#	git tag -a $(VERSION) -m "Release $(VERSION)" || true
-#	git push origin $(VERSION)	
+release:
+	git tag -a $(VERSION) -m "Release $(VERSION)" || true
+	git push origin $(VERSION)	
