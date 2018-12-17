@@ -18,20 +18,21 @@
 # use bash
 SHELL=/bin/bash
 
-# set project VERSION
-VERSION=$(cat ./VERSION)
+# set project VERSION if VERSION hasn't been passed from command line
+ifndef $(VERSION)
+	VERSION=$(cat ./VERSION)
+endif
 
 # setup the -ldflags option for go build
 LDFLAGS=-ldflags "-X main.Version=$(value VERSION)"
 
 # build all executables
 all:
-	dep ensure
 	go build $(LDFLAGS) ./cmd/...
 
 $(GOMETALINTER):
 	go get -u github.com/alecthomas/gometalinter
-	gometalinter --install &> /dev/null
+	gometalinter --install --vendor &> /dev/null
 
 .PHONY: lint
 
