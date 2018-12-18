@@ -47,7 +47,7 @@ func execFFMPEG(srcFile string, trgFile string, params *[]string) error {
 	log.Debugf("FFmpeg command: ffmpeg %s", strings.Join(args, " "))
 
 	// execute FFMPEG command
-	if err := exec.Command("ffmpeg", args...).Run(); err != nil {
+	if err := exec.Command("ffmpeg", args...).Run(); err != nil { // nolint
 		log.Errorf("Executed FFMPEG for %s: %v", srcFile, err)
 		return err
 	}

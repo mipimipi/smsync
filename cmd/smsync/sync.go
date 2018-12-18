@@ -86,37 +86,37 @@ func printCfgSummary(cfg *smsync.Config) {
 	fmt.Println("\n:: Configuration")
 
 	// source directory
-	fmt.Printf(fmGen, "Source", cfg.SrcDirPath)
+	fmt.Printf(fmGen, "Source", cfg.SrcDirPath) // nolint
 
 	// target directory
-	fmt.Printf(fmGen, "Destination", cfg.TrgDirPath)
+	fmt.Printf(fmGen, "Destination", cfg.TrgDirPath) // nolint
 
 	// last sync time
 	if cfg.LastSync.IsZero() {
-		fmt.Printf(fmGen, "Last Sync", "Not set, initial sync")
+		fmt.Printf(fmGen, "Last Sync", "Not set, initial sync") // nolint
 	} else {
 		if cli.init {
-			fmt.Printf(fmGen, "Last Sync", "Set, but initial sync will be done per cli option")
+			fmt.Printf(fmGen, "Last Sync", "Set, but initial sync will be done per cli option") // nolint
 		} else {
-			fmt.Printf(fmGen, "Last Sync", cfg.LastSync.Local())
+			fmt.Printf(fmGen, "Last Sync", cfg.LastSync.Local()) // nolint
 		}
 	}
 
 	// number of CPU's & workers
-	fmt.Printf(fmGen, "#CPUs", strconv.Itoa(int(cfg.NumCpus)))
-	fmt.Printf(fmGen, "#Workers", strconv.Itoa(int(cfg.NumWrkrs)))
+	fmt.Printf(fmGen, "#CPUs", strconv.Itoa(int(cfg.NumCpus)))     // nolint
+	fmt.Printf(fmGen, "#Workers", strconv.Itoa(int(cfg.NumWrkrs))) // nolint
 
 	// conversions
-	fmt.Printf(fmGen, "Conversions", "")
+	fmt.Printf(fmGen, "Conversions", "") // nolint
 	for srcSuffix, cv := range cfg.Cvs {
 		if srcSuffix == "*" {
 			hasStar = true
 			continue
 		}
-		fmt.Printf(fmRl, srcSuffix, cv.TrgSuffix, cv.NormCvStr)
+		fmt.Printf(fmRl, srcSuffix, cv.TrgSuffix, cv.NormCvStr) // nolint
 	}
 	if hasStar {
-		fmt.Printf(fmRl, "*", cfg.Cvs["*"].TrgSuffix, cfg.Cvs["*"].NormCvStr)
+		fmt.Printf(fmRl, "*", cfg.Cvs["*"].TrgSuffix, cfg.Cvs["*"].NormCvStr) // nolint
 	}
 }
 

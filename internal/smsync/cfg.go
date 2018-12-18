@@ -53,7 +53,7 @@ type rule struct {
 type cfgYml struct {
 	ProcStat  string `yaml:"processing_status,omitempty"` // work in progress flag
 	SourceDir string `yaml:"source_dir"`                  // source directory
-	LastSync  string `yaml:"last_sync,omitempty"`         // timestamp when the last sync happend
+	LastSync  string `yaml:"last_sync,omitempty"`         // timestamp when the last sync happened
 	NumCPUs   uint   `yaml:"num_cpus,omitempty"`          // number of CPUs that gool is allowed to use
 	NumWrkrs  uint   `yaml:"num_wrkrs,omitempty"`         // number of worker Go routines to be created
 	Rules     []rule `yaml:"rules"`                       // conversion rules
@@ -64,7 +64,7 @@ type Config struct {
 	WIP        bool            // work in progress flag
 	SrcDirPath string          // source directory
 	TrgDirPath string          // target directory
-	LastSync   time.Time       // timestamp when the last sync happend
+	LastSync   time.Time       // timestamp when the last sync happened
 	NumCpus    uint            // number of CPUs that gool is allowed to use
 	NumWrkrs   uint            // number of worker Go routines to be created
 	Cvs        map[string]*cvm // conversion rules

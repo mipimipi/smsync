@@ -19,7 +19,7 @@
 SHELL=/bin/bash
 
 # set project VERSION if VERSION hasn't been passed from command line
-ifndef $(VERSION)
+ifndef $(value VERSION)
 	VERSION=$(cat ./VERSION)
 endif
 
@@ -30,23 +30,33 @@ LDFLAGS=-ldflags "-X main.Version=$(value VERSION)"
 all:
 	go build $(LDFLAGS) ./cmd/...
 
-$(GOMETALINTER):
-	go get -u github.com/alecthomas/gometalinter
-	gometalinter --install --vendor &> /dev/null
+.PHONY: all clean install lint release
 
-.PHONY: lint
-
-lint: $(GOMETALINTER)
-	gometalinter ./... --vendor
+lint:
+	gometalinter \
+		--enable=goimports \
+		--enable=misspell \
+		--enable=nakedret \
+		--enable=unparam \
+		--disable=gocyclo \
+		--vendor \
+		--errors \
+		--deadline=30s \
+		./...
 
 # move all executables to /usr/bin and 
 install:
 	for CMD in `ls cmd`; do \
 		install -Dm755 $$CMD $(DESTDIR)/usr/bin/$$CMD; \
-		rm -f ./$$CMD; \
 	done
 
 # create a new release tag
 release:
-	git tag -a $(VERSION) -m "Release $(VERSION)" || true
-	git push origin $(VERSION)	
+	git tag -a $(value VERSION) -m "Release $(value VERSION)"
+	git push origin $(value VERSION)	
+
+# remove build results
+clean:
+	for CMD in `ls cmd`; do \
+		rm -f ./$$CMD; \
+	done
