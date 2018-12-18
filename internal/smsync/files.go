@@ -151,11 +151,11 @@ func DeleteTrg(cfg *Config) error {
 // GetSyncFiles determines which directories and files need to be synched
 func GetSyncFiles(cfg *Config, init bool) (*[]*string, *[]*string) {
 	// filter function needed for FindFiles
-	filter := func(srcFile string) bool {
+	filter := func(srcFile string) (bool, bool) {
 		fi, err := os.Stat(srcFile)
 		if err != nil {
 			log.Errorf("Error from os.Stat('%s'): %v", srcFile, err)
-			return false
+			return false, true
 		}
 
 		// check if file is relevant for smsync (i.e. its suffix is contained
@@ -163,15 +163,20 @@ func GetSyncFiles(cfg *Config, init bool) (*[]*string, *[]*string) {
 		if !fi.IsDir() {
 			_, ok := cfg.getCv(srcFile)
 			if !ok {
-				return false
+				return false, false
 			}
+		}
+
+		// check if the directory needs to be excluded
+		if fi.IsDir() && lhlp.Contains(cfg.Excludes, srcFile) {
+			return false, false
 		}
 
 		// check if the file/directory has been changed since last sync.
 		// If not: Return false
 		if fi.ModTime().Before(cfg.LastSync) {
 			if fi.IsDir() {
-				return false
+				return false, true
 			}
 			// in case, srcFile is a file (and no directory), another check
 			// is necessary since the modification time of downloaded music
@@ -184,15 +189,15 @@ func GetSyncFiles(cfg *Config, init bool) (*[]*string, *[]*string) {
 			fiDir, err := os.Stat(filepath.Dir(srcFile))
 			if err != nil {
 				log.Errorf("Error from os.Stat('%s'): %v", filepath.Dir(srcFile), err)
-				return false
+				return false, false
 			}
 			if fiDir.ModTime().Before(cfg.LastSync) {
-				return false
+				return false, false
 			}
 		}
 
 		// if the last call smsync has been interrupted ('work in progress',
-		// WIP) and command line oprion 'initialize' hasn't been set, files on
+		// WIP) and command line option 'initialize' hasn't been set, files on
 		// source side are only relevant for sync, if no counterpart is
 		// existing on target side. That's checked in the next if statement
 		if cfg.WIP && !init {
@@ -200,7 +205,7 @@ func GetSyncFiles(cfg *Config, init bool) (*[]*string, *[]*string) {
 			trgFile, err := lhlp.PathRelCopy(cfg.SrcDirPath, srcFile, cfg.TrgDirPath)
 			if err != nil {
 				log.Errorf("Target path cannot be assembled: %v", err)
-				return false
+				return false, true
 			}
 
 			// if source file is a directory, check it the counterpart on
@@ -210,9 +215,9 @@ func GetSyncFiles(cfg *Config, init bool) (*[]*string, *[]*string) {
 				exists, err = lhlp.FileExists(trgFile)
 				if err != nil {
 					log.Errorf("%v", err)
-					return false
+					return false, true
 				}
-				return !exists
+				return !exists, true
 			}
 
 			// otherwise (if it's a file): check if counterpart exists on
@@ -220,11 +225,12 @@ func GetSyncFiles(cfg *Config, init bool) (*[]*string, *[]*string) {
 			fs, err := filepath.Glob(lhlp.EscapePattern(lhlp.PathTrunk(trgFile)) + ".*")
 			if err != nil {
 				log.Errorf("Error from Glob('%s'): %v", lhlp.EscapePattern(lhlp.PathTrunk(trgFile))+".*", err)
-				return false
+				return false, false
 			}
-			return (fs == nil)
+			return false, (fs == nil)
 		}
-		return true
+
+		return true, true
 	}
 
 	// call FindFiles with the smsync filter function to get the directories and files

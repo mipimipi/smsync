@@ -88,6 +88,14 @@ func printCfgSummary(cfg *smsync.Config) {
 	// source directory
 	fmt.Printf(fmGen, "Source", cfg.SrcDirPath) // nolint
 
+	// directories to exclude
+	if len(cfg.Excludes) > 0 {
+		fmt.Printf(fmGen, "Exclude", "") // nolint
+		for _, s := range cfg.Excludes {
+			fmt.Printf("       %s\n", s)
+		}
+	}
+
 	// target directory
 	fmt.Printf(fmGen, "Destination", cfg.TrgDirPath) // nolint
 
@@ -247,7 +255,7 @@ func synchronize(level log.Level, verbose bool) error {
 		return err
 	}
 
-	// delete all entries of the target directory per cli option
+	// delete all entries of the target directory if requested per cli option
 	if cli.init {
 		log.Info("Delete all entries of the target directory per cli option")
 		if err := smsync.DeleteTrg(&cfg); err != nil {

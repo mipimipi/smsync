@@ -51,12 +51,13 @@ type rule struct {
 
 // cfgYml is used to read from and write to the config yaml file
 type cfgYml struct {
-	ProcStat  string `yaml:"processing_status,omitempty"` // work in progress flag
-	SourceDir string `yaml:"source_dir"`                  // source directory
-	LastSync  string `yaml:"last_sync,omitempty"`         // timestamp when the last sync happened
-	NumCPUs   uint   `yaml:"num_cpus,omitempty"`          // number of CPUs that gool is allowed to use
-	NumWrkrs  uint   `yaml:"num_wrkrs,omitempty"`         // number of worker Go routines to be created
-	Rules     []rule `yaml:"rules"`                       // conversion rules
+	ProcStat  string   `yaml:"processing_status,omitempty"` // work in progress flag
+	SourceDir string   `yaml:"source_dir"`                  // source directory
+	Excludes  []string `yaml:"exclude,omitempty"`           // exclude these directories
+	LastSync  string   `yaml:"last_sync,omitempty"`         // timestamp when the last sync happened
+	NumCPUs   uint     `yaml:"num_cpus,omitempty"`          // number of CPUs that gool is allowed to use
+	NumWrkrs  uint     `yaml:"num_wrkrs,omitempty"`         // number of worker Go routines to be created
+	Rules     []rule   `yaml:"rules"`                       // conversion rules
 }
 
 // Config contains the enriched data that has been read from the config file
@@ -64,6 +65,7 @@ type Config struct {
 	WIP        bool            // work in progress flag
 	SrcDirPath string          // source directory
 	TrgDirPath string          // target directory
+	Excludes   []string        // exclude these directories
 	LastSync   time.Time       // timestamp when the last sync happened
 	NumCpus    uint            // number of CPUs that gool is allowed to use
 	NumWrkrs   uint            // number of worker Go routines to be created
@@ -106,6 +108,13 @@ func (cfg *Config) Get(init bool) error {
 		return err
 	}
 	cfg.SrcDirPath = cfgY.SourceDir
+
+	// get directories that shall be excluded
+	if len(cfgY.Excludes) > 0 {
+		if err = cfg.getExcludes(&cfgY.Excludes); err != nil {
+			return err
+		}
+	}
 
 	// get number of CPU's (optional). Default is to use all available cpus
 	if cfgY.NumCPUs == 0 {
@@ -172,6 +181,25 @@ func (cfg *Config) getCv(f string) (*cvm, bool) {
 		return cfg.Cvs[suffixStar], true
 	}
 	return nil, false
+}
+
+// getExcludes expands the directories specified in the config file (which) can
+// contain wildcards
+func (cfg *Config) getExcludes(excls *[]string) error {
+	for _, excl := range *excls {
+		if excl == "" {
+			continue
+		}
+
+		// expand directory
+		a, err := filepath.Glob(filepath.Join(cfg.SrcDirPath, excl))
+		if err != nil {
+			return err
+		}
+		cfg.Excludes = append(cfg.Excludes, a...)
+	}
+
+	return nil
 }
 
 // getRule verifies that r represents a valid rule and create the

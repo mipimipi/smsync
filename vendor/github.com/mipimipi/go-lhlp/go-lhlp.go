@@ -171,12 +171,12 @@ func FileSuffix(f string) string {
 // book "The Go Programming Language" by Alan A. A. Donovan & Brian W.
 // Kernighan.
 // See: https://github.com/adonovan/gopl.io/blob/master/ch8/du4/main.go
-func FindFiles(roots []string, filter func(string) bool, numWorkers int) (*[]*string, *[]*string) {
+func FindFiles(roots []string, filter func(string) (bool, bool), numWorkers int) (*[]*string, *[]*string) {
 	var (
-		dirs     []*string      // list of directories to be returned
-		files    []*string      // list of files to be returned
-		traverse func(string)   // func needs to be declared here since it calls itself recursively
-		wg       sync.WaitGroup // waiting group for the concurrent traversal
+		dirs    []*string      // list of directories to be returned
+		files   []*string      // list of files to be returned
+		descend func(string)   // func needs to be declared here since it calls itself recursively
+		wg      sync.WaitGroup // waiting group for the concurrent traversal
 	)
 
 	// create buffered channel, used as semaphore to restrict the number of Go routines
@@ -199,7 +199,7 @@ func FindFiles(roots []string, filter func(string) bool, numWorkers int) (*[]*st
 	}
 
 	// function to traverse the directory tree. Calls itself recursively
-	traverse = func(dir string) {
+	descend = func(dir string) {
 		defer wg.Done()
 
 		// loop at the entries of dir
@@ -210,12 +210,15 @@ func FindFiles(roots []string, filter func(string) bool, numWorkers int) (*[]*st
 			if entr.IsDir() {
 				// filter and add entry to dirs
 				subDir := filepath.Join(dir, entr.Name())
-				if filter(subDir) {
+				isValid, goDown := filter(subDir)
+				if isValid {
 					dirs = append(dirs, &subDir)
 				}
 				// traverse the next level
-				wg.Add(1)
-				go traverse(subDir)
+				if goDown {
+					wg.Add(1)
+					go descend(subDir)
+				}
 			} else {
 				// only regular files are relevant
 				if !entr.Mode().IsRegular() {
@@ -223,7 +226,7 @@ func FindFiles(roots []string, filter func(string) bool, numWorkers int) (*[]*st
 				}
 				// filter and add entry to files
 				file := filepath.Join(dir, entr.Name())
-				if filter(file) {
+				if valid, _ := filter(file); valid {
 					files = append(files, &file)
 				}
 			}
@@ -243,7 +246,7 @@ func FindFiles(roots []string, filter func(string) bool, numWorkers int) (*[]*st
 		}
 		// start traversal for this directory
 		wg.Add(1)
-		go traverse(root)
+		go descend(root)
 	}
 
 	// wait for traversals to be finalized

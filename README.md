@@ -95,6 +95,8 @@ A slave has to have a configuration file with the name `smsync.yaml` in its root
 Example:
 
     source_dir: /home/musiclover/Music/MASTER
+    exclude:
+    - 'Rock/Eric*'
     num_cpus: 4
     num_wrkrs: 4
     rules:
@@ -109,7 +111,11 @@ In former releases (< smsync 3.0) a configuration file in [INI format](https://e
 
 #### <a name="general"></a>General Configuration
 
-smsync interprets the configuration file. In the example, the root folder of the master is `/home/musiclover/Music/MASTER`. The next two entries are optional. They tell smsync to use 4 cpus and start 4 worker processes for the conversion. Per default, smsync uses all available cpus and starts #cpus worker processes.
+smsync interprets the configuration file. In the example, the root folder of the master is `/home/musiclover/Music/MASTER`.
+
+`exclude` allows to exclude a list of source folders from the conversion. The folder paths in that list are interpreted relative to the source directory. Wildcards are supported. In the example, all folders fitting to the pattern `/home/musiclover/Music/MASTER/Rock/Eric*` are excluded, i.e. `/home/musiclover/Music/MASTER/Rock/Eric Clapton`, `/home/musiclover/Music/MASTER/Rock/Eric Burden` etc. are excluded. The exclusion feature can be helpful if the target disk space is not big enough. In such a case, some artists or even entire genres can be excluded. Another option to deal with insufficient disk space would be to 
+
+The next two entries are optional. They tell smsync to use 4 cpus and start 4 worker processes for the conversion. Per default, smsync uses all available cpus and starts #cpus worker processes.
 
 #### <a name="rules"></a>Conversion Rules
 
@@ -233,12 +239,8 @@ to such a slave folder structure:
           |        |- ...
           |        |- cover.jpg
           |- ...
-          |- Eric Clapton
-              |- Unplugged
-                  |- ...
-                  |- Layla.mp3
-                  |- ...
-                  |- folder.png
+
+The folder "/home/musiclover/Music/MASTER/Rock/Eric Clapton" hasn't been converted because the directoty fits to the exclusion pattern.
 
 ### <a name="command">Command Line Options
 
