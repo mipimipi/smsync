@@ -44,7 +44,7 @@ lint:
 		--deadline=30s \
 		./...
 
-# move all executables to /usr/bin and 
+# move all executables to /usr/bin 
 install:
 	for CMD in `ls cmd`; do \
 		install -Dm755 $$CMD $(DESTDIR)/usr/bin/$$CMD; \
