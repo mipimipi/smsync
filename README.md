@@ -22,8 +22,9 @@ New music is typically added to the master only. If that happened you want to up
 * [Usage](#usage)
     * [Configuration File](#config)
         - [General Configuration](#general)
+        - [Exclude Folders](#exclude)
         - [Conversion Rules](#rules)
-        - [Format-dependent conversion parameters](#format)
+        - [Format-dependent Conversion Parameters](#format)
             - [FLAC](#flac)
             - [MP3](#mp3)
             - [OGG (Vorbis)](#ogg)
@@ -82,9 +83,7 @@ as `root` to copy the smsync binary to `/usr/bin`.
 
 ### <a name="pacman">Installation with Package Managers
 
-~~For Arch Linux (and other Linux distros, that can install packages from the Arch User Repository) there's a [smsync package in AUR](https://aur.archlinux.org/packages/smsync-git/).~~
-
-Building an AUR package is still in progress (see issue [#6](https://github.com/mipimipi/smsync/issues/6)).
+For Arch Linux (and other Linux distros, that can install packages from the Arch User Repository) there's a [smsync package in AUR](https://aur.archlinux.org/packages/smsync-git/).
 
 ## <a name="usage">Usage
 
@@ -95,10 +94,10 @@ A slave has to have a configuration file with the name `smsync.yaml` in its root
 Example:
 
     source_dir: /home/musiclover/Music/MASTER
-    exclude:
-    - 'Rock/Eric*'
     num_cpus: 4
     num_wrkrs: 4
+    exclude:
+    - 'Rock/Eric*'
     rules:
     - source: flac
       target: mp3
@@ -111,11 +110,11 @@ In former releases (< smsync 3.0) a configuration file in [INI format](https://e
 
 #### <a name="general"></a>General Configuration
 
-smsync interprets the configuration file. In the example, the root folder of the master is `/home/musiclover/Music/MASTER`.
+smsync interprets the configuration file. In the example, the root folder of the master is `/home/musiclover/Music/MASTER`. The next two entries are optional. They tell smsync to use 4 cpus and start 4 worker processes for the conversion. Per default, smsync uses all available cpus and starts #cpus worker processes.
+
+#### <a name="exclude"></a>Exclude Folders
 
 `exclude` allows to exclude a list of source folders from the conversion. The folder paths in that list are interpreted relative to the source directory. Wildcards are supported. In the example, all folders fitting to the pattern `/home/musiclover/Music/MASTER/Rock/Eric*` are excluded, i.e. `/home/musiclover/Music/MASTER/Rock/Eric Clapton`, `/home/musiclover/Music/MASTER/Rock/Eric Burden` etc. are excluded. The exclusion feature can be helpful if the target disk space is not big enough. In such a case, some artists or even entire genres can be excluded. Another option to deal with insufficient disk space would be to 
-
-The next two entries are optional. They tell smsync to use 4 cpus and start 4 worker processes for the conversion. Per default, smsync uses all available cpus and starts #cpus worker processes.
 
 #### <a name="rules"></a>Conversion Rules
 
@@ -135,7 +134,7 @@ Basically, a rule consists of a source suffix, a target suffix and a conversion.
 
 * The conversion can be omitted if it's `copy`. I.e. a copy conversion can either be specified explicitly with `conversion: copy` (like in the second rule) or implicitly without any conversion line (like in the third rule)
 
-#### <a name="format"></a>Format-dependent conversion parameters
+#### <a name="format"></a>Format-dependent Conversion Parameters
 
 Basically, two things can be determined with a conversion parameter string:
 

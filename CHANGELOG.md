@@ -1,3 +1,10 @@
+# [Release 3.1.0](https://github.com/mipimipi/smsync/releases/tag/3.1.0) (2018-12-19)
+
+## Added
+
+* Possibility to exclude source folders from conversion ([#7](https://github.com/mipimipi/smsync/issues/7))
+* Indicator for insufficient diskspace on target device ([#8](https://github.com/mipimipi/smsync/issues/8))
+
 # [Release 3.0.3](https://github.com/mipimipi/smsync/releases/tag/3.0.3) (2018-12-17)
 
 ## Added
