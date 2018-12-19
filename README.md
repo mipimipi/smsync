@@ -190,15 +190,17 @@ The synchronization process is executed in the following steps:
 
 1. smsync determines all files and directories of the master, that have changed since the last synchronization. In our example, there was no synchronization before (as otherwise the configuration file would have an entry `last_sync` that contained the time stamp of the last synchronization). Depending on the number of files, this could take a few minutes. smsync displays how many directories and files need to be synchronized and again, the user is asked for confirmation (if smsync hasn't been called with the option ' --yes`).
 
-1. The replication / conversion of files and directories is executed. smsync shows the progress and an estimation of the remaining time and the end time:
+1. The replication / conversion of files and directories is executed. smsync shows the progress:
 
     ```
-    :: Process directories
-    To do: 0 | Rem time: 00:00:00 | Est end: 16:18:53
-
     :: Process files
-    To do: 10 | Rem time: 00:00:11 | Est end: 16:19:12
+             Elapsed  Remaining         Estimated
+    #TODO       Time       Time    Free Diskspace
+   ---------------------------------------------
+      184   00:01:08   00:24:43         176988 MB
     ```
+
+     Besides the number of files that still need to be converted, not only the elapsed and the remaining time is displayed, but also the estimated free diskspace. The latter is an estimation of the available diskspace on the target device *AFTER* alls file will have been converted. That's very helpful to see at an early stage if the available space will be suffient. 
 
     With the command line option `--verbose` the progress is displayed in more detail, i.e. each file is displayed after it has been converted.  
 

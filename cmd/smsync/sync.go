@@ -27,37 +27,100 @@ import (
 
 	lhlp "github.com/mipimipi/go-lhlp"
 	"github.com/mipimipi/smsync/internal/smsync"
+	"github.com/ricochet2200/go-disk-usage/du"
 	log "github.com/sirupsen/logrus"
 )
+
+// size returns the size of a file
+func size(f string) uint64 {
+	fi, err := os.Stat(f)
+	if err != nil {
+		log.Errorf("%v", err)
+		return 0
+	}
+	if fi.IsDir() {
+		return 0
+	}
+	return uint64(fi.Size())
+}
+
+// totalSize returns the aggregated size of a list of files
+func totalSize(fs []*string) uint64 {
+	var sz uint64
+	for _, f := range fs {
+		sz += size(*f)
+	}
+	return sz
+}
 
 // prog contains attributes that are used to communicate the progress of the
 // conversion
 type prog struct {
-	done    int           // number of files / dirs that have been processed
-	total   int           // total number of files / dirs
-	errors  int           // number of errors
-	elapsed time.Duration // elapsed time
+	done      int           // number of files / dirs that have been processed
+	totalNum  int           // total number of files / dirs
+	totalSize uint64        // total aggregated size of source files
+	srcSize   uint64        // cumulated size of source files
+	trgSize   uint64        // cumulated size of target files
+	diskspace uint64        // available space on target device
+	errors    int           // number of errors
+	start     time.Time     // start time of processing
+	elapsed   time.Duration // elapsed time
 }
 
-// print calculates the elapsed time (based on the start time and the current
-// time), the remaining time and the expected end time. The results are printed
-// in a specific format
-func (prog *prog) print(start time.Time) {
-	var remaining time.Duration // remaining time
+// format string for progress display
+var format = "%8s %10s %10s %17s"
+
+// printHeader prints the headline for progress display
+func (prog *prog) printHeader() {
+	var (
+		line    = "------------------------------------------------" // lenght=48
+		durNull = "--:--:--"                                         // "null" string for display of durations
+	)
+
+	fmt.Printf(format+"\n", "", "Elapsed", "Remaining", "Estimated")   // nolint, headline 1
+	fmt.Printf(format+"\n", "#TODO", "Time", "Time", "Free Diskspace") // nolint, headline 2
+	fmt.Println(line)                                                  // separator
+	fmt.Printf(format, "0", durNull, durNull, "0 MB")                  // nolint
+}
+
+// print display the progress of the conversion. It takesthe attributes of the
+// structure prog as basis and calculates additional data, such as elapsed and
+// remaining time and the estimated free diskspace
+func (prog *prog) print() {
+	var (
+		remaining time.Duration         // remaining time
+		mb        = uint64(1024 * 1024) // one megabyte
+		avail     uint64                // estimated free diskspace
+	)
 
 	// calculate the elapsed time
-	prog.elapsed = time.Since(start)
+	prog.elapsed = time.Since(prog.start)
 
 	// calculate the remaining time
 	if prog.done > 0 {
-		remaining = time.Duration(int64(prog.elapsed) / int64(prog.done) * int64(prog.total-prog.done))
+		remaining = time.Duration(int64(prog.elapsed) / int64(prog.done) * int64(prog.totalNum-prog.done))
 	}
 
-	// print progress
-	split := lhlp.SplitDuration(remaining)
-	fmt.Printf("\r   To do: %0"+strconv.Itoa(len(strconv.Itoa(prog.total)))+"d | Rem time: %02d:%02d:%02d | Est end: %s", prog.total-prog.done, split[time.Hour], split[time.Minute], split[time.Second], time.Now().Add(remaining).Local().Format("15:04:05"))
+	// local function to print durations as formatted string (HH:MM:SS)
+	split := func(d time.Duration) string {
+		sp := lhlp.SplitDuration(d)
+		return fmt.Sprintf("%02d:%02d:%02d", sp[time.Hour], sp[time.Minute], sp[time.Second])
+	}
+
+	// calculates estimated available disk space
+	if prog.srcSize > 0 {
+		avail = uint64((float64(prog.diskspace) - float64(prog.trgSize)/float64(prog.srcSize)*float64(prog.totalSize)) / float64(mb))
+	} else {
+		avail = prog.diskspace / mb
+	}
+
+	// print progress (updates the same screen row)
+	fmt.Printf("\r"+format, strconv.Itoa(prog.totalNum-prog.done), split(prog.elapsed), split(remaining), fmt.Sprintf("%d MB", avail)) //nolint
 }
 
+// printCfgSummary display a summary of the configuration. The content of the
+// configuration files is taken as basis, and it's enriched by additional
+//information
 func printCfgSummary(cfg *smsync.Config) {
 	var (
 		fmGen   = "   %-12s: %s\n" // format string for general config values
@@ -128,6 +191,9 @@ func printCfgSummary(cfg *smsync.Config) {
 	}
 }
 
+// printCurrentFile displays a file name relative to the source directory (from
+// the configuration). This function is used if the user called smsync with the
+// option --verbose / -v
 func printCurrentFile(cfg *smsync.Config, f string) {
 	s, err := filepath.Rel(cfg.SrcDirPath, f)
 	if err != nil {
@@ -140,37 +206,53 @@ func printCurrentFile(cfg *smsync.Config, f string) {
 // These functions are passed to process in the function parameter.
 func process(cfg *smsync.Config, wl *[]*string, f func(*smsync.Config, *[]*string) <-chan smsync.ProcRes, verbose bool) (time.Duration, error) {
 	var (
-		p       = prog{done: 0, total: len(*wl), errors: 0, elapsed: 0}
-		pRes    smsync.ProcRes
-		procRes = f(cfg, wl)
-		start   = time.Now()
+		p = prog{totalNum: len(*wl),
+			totalSize: totalSize(*wl),
+			diskspace: du.NewDiskUsage(cfg.SrcDirPath).Available(),
+			start:     time.Now()} // progress structure
+		pRes    smsync.ProcRes                // structure to return the processing result
+		procRes = f(cfg, wl)                  // call of conversion
 		ticker  = time.NewTicker(time.Second) // ticker to update progress on screen every second
 		ticked  = false
 		ok      = true
 	)
+
+	// print progress header (if the user doesn't want smsync to be verbose)
+	if !verbose {
+		p.printHeader()
+	}
 
 	// retrieve results and ticks
 	for ok {
 		select {
 		case <-ticker.C:
 			ticked = true
+			// print progress (if the user doesn't want smsync to be verbose)
 			if !verbose {
-				p.print(start)
+				p.print()
 			}
 		case pRes, ok = <-procRes:
 			if ok {
-				// if ticker hasn't ticked so far: print progress
+				// if ticker hasn't ticked so far: print progress (if the user
+				// doesn't want smsync to be verbose)
 				if !ticked && !verbose {
-					p.print(start)
+					p.print()
 				}
-				p.done++
-
+				// if the user wants smsync to be verbose, display file (that
+				// has been processed) ...
 				if verbose {
 					printCurrentFile(cfg, pRes.SrcFile)
+				} else {
+					// ... otherwise update values in progress structure
+					p.done++                        // increase number of processed files
+					p.srcSize += size(pRes.SrcFile) // aggregate sizes of source files
+					p.trgSize += size(pRes.TrgFile) // aggregate sizes of target files
 				}
 			} else {
+				// if there is no more file to process, the final progress data
+				// is displayed (if the user desn't want smsync to be verbose)
 				if !verbose {
-					p.print(start)
+					p.print()
 					fmt.Println()
 				}
 
@@ -180,6 +262,7 @@ func process(cfg *smsync.Config, wl *[]*string, f func(*smsync.Config, *[]*strin
 		}
 	}
 
+	// return elapsed time (needed to display final success message)
 	return p.elapsed, nil
 }
 

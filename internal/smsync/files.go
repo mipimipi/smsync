@@ -30,6 +30,7 @@ import (
 // ProcRes is the result structure for directory or file processing
 type ProcRes struct {
 	SrcFile string // source file or directory
+	TrgFile string // target file or directory
 	Err     error  // error (that occurred during processing)
 }
 
@@ -283,7 +284,7 @@ func ProcessDirs(cfg *Config, dirs *[]*string) <-chan ProcRes {
 				}
 			}
 
-			procRes <- ProcRes{*d, err}
+			procRes <- ProcRes{SrcFile: *d, TrgFile: trgDirPath, Err: err}
 		}
 
 		close(procRes)
@@ -324,7 +325,7 @@ func ProcessFiles(cfg *Config, files *[]*string) <-chan ProcRes {
 				// TODO				prog.Errors++
 			}
 			// send current progress
-			procRes <- ProcRes{r.(cvOutput).srcFile, r.(cvOutput).err}
+			procRes <- ProcRes{SrcFile: r.(cvOutput).srcFile, TrgFile: r.(cvOutput).trgFile, Err: r.(cvOutput).err}
 		}
 
 		close(procRes)
