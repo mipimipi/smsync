@@ -90,7 +90,7 @@ func (prog *prog) print() {
 	var (
 		remaining time.Duration         // remaining time
 		mb        = uint64(1024 * 1024) // one megabyte
-		avail     uint64                // estimated free diskspace
+		avail     int64                 // estimated free diskspace
 	)
 
 	// calculate the elapsed time
@@ -109,9 +109,9 @@ func (prog *prog) print() {
 
 	// calculates estimated available disk space
 	if prog.srcSize > 0 {
-		avail = uint64((float64(prog.diskspace) - float64(prog.trgSize)/float64(prog.srcSize)*float64(prog.totalSize)) / float64(mb))
+		avail = int64((float64(prog.diskspace) - float64(prog.trgSize)/float64(prog.srcSize)*float64(prog.totalSize)) / float64(mb))
 	} else {
-		avail = prog.diskspace / mb
+		avail = int64(prog.diskspace / mb)
 	}
 
 	// print progress (updates the same screen row)
