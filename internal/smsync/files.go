@@ -327,10 +327,6 @@ func ProcessFiles(cfg *Config, files *[]*string) <-chan ProcRes {
 	// retrieve worker results
 	go func() {
 		for r := range res {
-			// increase number of errors
-			if r.(cvOutput).err != nil {
-				// TODO				prog.Errors++
-			}
 			// send current progress
 			procRes <- ProcRes{SrcFile: r.(cvOutput).srcFile, TrgFile: r.(cvOutput).trgFile, Err: r.(cvOutput).err}
 		}

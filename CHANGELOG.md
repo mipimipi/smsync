@@ -1,3 +1,13 @@
+# [Release 3.1.1](https://github.com/mipimipi/smsync/releases/tag/3.1.1) (2018-12-20)
+
+# Added
+
+* Enhanced progress display by estimated target size, number of errors and average compression rate
+
+# Fixed
+
+* Erroneous calculation of disk space
+
 # [Release 3.1.0](https://github.com/mipimipi/smsync/releases/tag/3.1.0) (2018-12-19)
 
 ## Added

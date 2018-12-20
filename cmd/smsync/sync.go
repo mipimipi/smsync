@@ -68,19 +68,19 @@ type prog struct {
 }
 
 // format string for progress display
-var format = "%8s %10s %10s %16s %16s"
+var format = "  %6s  %8s  %8s  %7s %12s  %12s  %7s"
 
 // printHeader prints the headline for progress display
 func (prog *prog) printHeader() {
 	var (
-		line    = "----------------------------------------------------------------" // lenght=64
-		durNull = "--:--:--"                                                         // "null" string for display of durations
+		line    = "-------------------------------------------------------------------------" // lenght=73
+		durNull = "--:--:--"                                                                  // "null" string for display of durations
 	)
 
-	fmt.Printf(format+"\n", "", "Elapsed", "Remaining", "Estimated", "Estimated")     // nolint, headline 1
-	fmt.Printf(format+"\n", "#TODO", "Time", "Time", "Target Size", "Free Diskspace") // nolint, headline 2
-	fmt.Println(line)                                                                 // separator
-	fmt.Printf(format, "0", durNull, durNull, "- MB", "- MB")                         // nolint
+	fmt.Printf(format+"\n", "", "Elapsed", "Remain.", "Avg.", "Estimated", "Estimated", "")            // nolint, headline 1
+	fmt.Printf(format+"\n", "#TODO", "Time", "Time", "Compr.", "Target Size", "Free Space", "#Errors") // nolint, headline 2
+	fmt.Println(line)                                                                                  // separator
+	fmt.Printf(format, "0", durNull, durNull, " - %", "- MB", "- MB", "0")                             // nolint
 }
 
 // print display the progress of the conversion. It takesthe attributes of the
@@ -105,21 +105,35 @@ func (prog *prog) print() {
 
 	if prog.srcSize == 0 {
 		// print progress (updates the same screen row)
-		fmt.Printf("\r"+format, strconv.Itoa(prog.totalNum-prog.done), split(prog.elapsed), split(remaining), "- MB", "- MB") //nolint
+		fmt.Printf("\r"+format,
+			strconv.Itoa(prog.totalNum-prog.done),
+			split(prog.elapsed), split(remaining),
+			"- %", "- MB", "- MB",
+			strconv.Itoa(prog.errors)) //nolint
 	} else {
 		var (
 			mb    = uint64(1024 * 1024)   // one megabyte
 			avail = int64(prog.diskspace) // estimated free diskspace
 			size  uint64                  // estimated target size
+			comp  float64                 // average compression
 		)
 
-		// calculates estimated target size and available disk space
-		size = uint64(float64(prog.trgSize) / float64(prog.srcSize) * float64(prog.totalSize))
+		// calculate avg. compression
+		comp = float64(prog.trgSize) / float64(prog.srcSize)
+		// calculate estimated target size and available disk space
+		size = uint64(comp * float64(prog.totalSize))
 		avail = (avail - int64(size)) / int64(mb)
 		size /= mb
 
 		// print progress (updates the same screen row)
-		fmt.Printf("\r"+format, strconv.Itoa(prog.totalNum-prog.done), split(prog.elapsed), split(remaining), fmt.Sprintf("%d MB", size), fmt.Sprintf("%d MB", avail)) //nolint
+		fmt.Printf("\r"+format,
+			strconv.Itoa(prog.totalNum-prog.done),
+			split(prog.elapsed),
+			split(remaining),
+			fmt.Sprintf("%5.1f %%", comp*100),
+			fmt.Sprintf("%d MB", size),
+			fmt.Sprintf("%d MB", avail),
+			strconv.Itoa(prog.errors)) //nolint
 	}
 }
 
@@ -196,15 +210,17 @@ func printCfgSummary(cfg *smsync.Config) {
 	}
 }
 
-// printCurrentFile displays a file name relative to the source directory (from
+// printVerbose displays a file name relative to the source directory (from
 // the configuration). This function is used if the user called smsync with the
 // option --verbose / -v
-func printCurrentFile(cfg *smsync.Config, f string) {
-	s, err := filepath.Rel(cfg.SrcDirPath, f)
+func printVerbose(cfg *smsync.Config, pRes smsync.ProcRes) {
+	srcFile, err := filepath.Rel(cfg.SrcDirPath, pRes.SrcFile)
 	if err != nil {
 		log.Error(err)
+
+	} else {
+		fmt.Printf("%s -> DONE\n", srcFile)
 	}
-	fmt.Printf("%s DONE\n", s)
 }
 
 // process is a wrapper around the specific functions for processing dirs or files.
@@ -246,12 +262,15 @@ func process(cfg *smsync.Config, wl *[]*string, f func(*smsync.Config, *[]*strin
 				// if the user wants smsync to be verbose, display file (that
 				// has been processed) ...
 				if verbose {
-					printCurrentFile(cfg, pRes.SrcFile)
+					printVerbose(cfg, pRes)
 				} else {
 					// ... otherwise update values in progress structure
 					p.done++                        // increase number of processed files
 					p.srcSize += size(pRes.SrcFile) // aggregate sizes of source files
 					p.trgSize += size(pRes.TrgFile) // aggregate sizes of target files
+					if pRes.Err != nil {
+						p.errors++
+					}
 				}
 			} else {
 				// if there is no more file to process, the final progress data

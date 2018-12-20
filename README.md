@@ -2,7 +2,7 @@
 
 # Smart Music Sync (smsync)
 
-keeps huge music collections in sync and is takes care of conversions between different formats. It's an easy-to-use command line application. 
+keeps huge music collections in sync and is takes care of conversions between different formats. It's an easy-to-use command line application for Linux. 
 
 smsync is made for use cases where you have a folder structure for your high quality lossless or lossy but high bit rate music that acts as a "master". From this master you replicate your music to "slaves", such as a smartphone or an SD card / hard drive for your car etc. On a smartphone or in the car you either don't have or you don't want to spend that much storage capacity that you might have for you master music storage. Thus, the replication step from the master to the slaves is not a simple copy, it's in fact a conversion step. For instance, music that is stored on the master in the lossless [FLAC format](https://en.wikipedia.org/wiki/FLAC) shall be converted to [MP3](https://en.wikipedia.org/wiki/MP3) while being replicated to a slave.
 
@@ -193,13 +193,18 @@ The synchronization process is executed in the following steps:
 
     ```
     :: Process files
-             Elapsed  Remaining         Estimated
-    #TODO       Time       Time    Free Diskspace
-   ---------------------------------------------
-      184   00:01:08   00:24:43         176988 MB
+               Elapsed   Remain.     Avg.    Estimated     Estimated         
+       #TODO      Time      Time   Compr.  Target Size    Free Space  #Errors
+    -------------------------------------------------------------------------
+       37290  00:06:06  13:50:10    9.4 %    126069 MB      79075 MB        0
     ```
 
-     Besides the number of files that still need to be converted, not only the elapsed and the remaining time is displayed, but also the estimated free diskspace. The latter is an estimation of the available diskspace on the target device *AFTER* alls file will have been converted. That's very helpful to see at an early stage if the available space will be suffient. 
+    Besides the number of files that still need to be converted, not only the elapsed and the remaining time is displayed, but also 
+     * the average compression rate,
+     * the estimated target size
+     * and the estimated free diskspace.
+     
+    The latter is an estimation of the available diskspace on the target device *AFTER* alls file will have been converted. That's very helpful to see at an early stage if the available space will be suffient. 
 
     With the command line option `--verbose` the progress is displayed in more detail, i.e. each file is displayed after it has been converted.  
 

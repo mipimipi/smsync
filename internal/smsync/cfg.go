@@ -62,11 +62,11 @@ type cfgYml struct {
 
 // Config contains the enriched data that has been read from the config file
 type Config struct {
+	LastSync   time.Time       // timestamp when the last sync happened
 	WIP        bool            // work in progress flag
 	SrcDirPath string          // source directory
 	TrgDirPath string          // target directory
 	Excludes   []string        // exclude these directories
-	LastSync   time.Time       // timestamp when the last sync happened
 	NumCpus    uint            // number of CPUs that gool is allowed to use
 	NumWrkrs   uint            // number of worker Go routines to be created
 	Cvs        map[string]*cvm // conversion rules
