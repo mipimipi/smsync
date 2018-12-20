@@ -18,6 +18,7 @@
 package smsync
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -45,23 +46,10 @@ func deleteObsoleteFiles(cfg *Config, srcDirPath string) error {
 		return err
 	}
 
-	// open target directory
-	trgDir, err := os.Open(trgDirPath)
-	if err != nil {
-		log.Errorf("Cannot open '%s': %v", trgDirPath, err)
-		return err
-	}
-	// close target directory (deferred)
-	defer func() {
-		if err = trgDir.Close(); err != nil {
-			log.Errorf("%s can't be closed: %v", trgDirPath, err)
-		}
-	}()
-
 	// read entries of target directory
-	trgEntrs, err := trgDir.Readdir(0)
+	trgEntrs, err := ioutil.ReadDir(trgDirPath)
 	if err != nil {
-		log.Errorf("Cannot read directory '%s': %v", trgDir.Name(), err)
+		log.Errorf("Cannot read directory '%s': %v", trgDirPath, err)
 		return err
 	}
 
@@ -87,7 +75,7 @@ func deleteObsoleteFiles(cfg *Config, srcDirPath string) error {
 			if !trgEntr.Mode().IsRegular() {
 				continue
 			}
-			// don't delete smsync files (smsync.log or smsync.yaml)
+			// exclude smsync files (smsync.log or smsync.yaml) from deletion logic
 			if strings.Contains(trgEntr.Name(), logFileName) || strings.Contains(trgEntr.Name(), cfgFileName) {
 				continue
 			}
