@@ -28,7 +28,7 @@ import (
 type cvCopy struct{}
 
 // exec executes simple file copy
-func (cvCopy) exec(srcFile string, trgFile string, cvStr string) error {
+func (cvCopy) exec(srcFile string, trgFile string, logFile string, cvStr string) error {
 	return lhlp.CopyFile(srcFile, trgFile)
 }
 

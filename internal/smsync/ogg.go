@@ -31,7 +31,7 @@ import (
 type cvAll2OGG struct{}
 
 // exec executes the conversion to OGG
-func (cv cvAll2OGG) exec(srcFile string, trgFile string, cvStr string) error {
+func (cv cvAll2OGG) exec(srcFile string, trgFile string, logFile string, cvStr string) error {
 	var params []string
 
 	// set vorbis codec
@@ -47,7 +47,7 @@ func (cv cvAll2OGG) exec(srcFile string, trgFile string, cvStr string) error {
 	}
 
 	//execute ffmpeg
-	return execFFMPEG(srcFile, trgFile, &params)
+	return execFFMPEG(srcFile, trgFile, logFile, &params)
 }
 
 // normCvStr normalizes the conversion string: Blanks are removed and default

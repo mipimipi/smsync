@@ -18,6 +18,7 @@
 package smsync
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -33,6 +34,41 @@ type ProcRes struct {
 	SrcFile string // source file or directory
 	TrgFile string // target file or directory
 	Err     error  // error (that occurred during processing)
+}
+
+// CleanUp removes temporary files and directories from smsync that are
+// obsolete
+func CleanUp(cfg *Config) error {
+	var (
+		b       bool
+		err     error
+		logDir  = filepath.Join(cfg.TrgDirPath, cvLogDir)
+		logFile = filepath.Join(cfg.TrgDirPath, logFileName)
+	)
+
+	// remove log directory if it's empty
+	if b, err = lhlp.DirIsEmpty(logDir); err != nil {
+		return err
+	}
+	if b {
+		if err = os.Remove(logDir); err != nil {
+			log.Errorf("Cannot remove '%s': %v", logDir, err)
+			return err
+		}
+	}
+
+	// remove log file if it's empty
+	if b, err = lhlp.FileIsEmpty(logFile); err != nil {
+		return err
+	}
+	if b {
+		if err = os.Remove(logFile); err != nil {
+			log.Errorf("Cannot remove '%s': %v", logFile, err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 // deleteObsoleteFiles deletes directories and files that are available in the
@@ -56,6 +92,14 @@ func deleteObsoleteFiles(cfg *Config, srcDirPath string) error {
 	// loop over all entries of target directory
 	for _, trgEntr := range trgEntrs {
 		if trgEntr.IsDir() {
+			fmt.Println("deleteObsoleteFiles: ", trgEntr.Name())
+
+			// exclude conversion log dir from deletion logic
+			if trgEntr.Name() == filepath.Join(cfg.TrgDirPath, cvLogDir) {
+				fmt.Println("CHECK")
+				continue
+			}
+
 			// if entry is a directory ...
 			b, _ := lhlp.FileExists(filepath.Join(srcDirPath, trgEntr.Name()))
 			if err != nil {
@@ -298,6 +342,12 @@ func ProcessFiles(cfg *Config, files *[]*string) <-chan ProcRes {
 
 	// nothing to do in case of empty files array
 	if len(*files) == 0 {
+		return nil
+	}
+
+	// create log directory
+	if err := os.MkdirAll(filepath.Join(cfg.TrgDirPath, cvLogDir), os.ModeDir|0755); (err != nil) && (err != os.ErrExist) {
+		log.Errorf("Cannot create log directory: %v", err)
 		return nil
 	}
 

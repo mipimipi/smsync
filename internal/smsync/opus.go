@@ -30,7 +30,7 @@ import (
 type cvAll2OPUS struct{}
 
 // exec executes the conversion to OPUS
-func (cv cvAll2OPUS) exec(srcFile string, trgFile string, cvStr string) error {
+func (cv cvAll2OPUS) exec(srcFile string, trgFile string, logFile string, cvStr string) error {
 	var params []string
 
 	// set OPUS codec
@@ -55,7 +55,7 @@ func (cv cvAll2OPUS) exec(srcFile string, trgFile string, cvStr string) error {
 	params = append(params, "-compression_level", a[3])
 
 	// execute ffmpeg
-	return execFFMPEG(srcFile, trgFile, &params)
+	return execFFMPEG(srcFile, trgFile, logFile, &params)
 }
 
 // normCvStr normalizes the conversion string: Blanks are removed and default

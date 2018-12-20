@@ -19,12 +19,18 @@ package smsync
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 
 	lhlp "github.com/mipimipi/go-lhlp"
 	log "github.com/sirupsen/logrus"
 )
+
+// detailed log from conversion are create in [TARGET DIR]\log
+const cvLogDir = "SMSYNC.LOG"
 
 type (
 	// conversion needs to be unique for a pair of source suffix and
@@ -50,7 +56,7 @@ type (
 	// conversion interface
 	conversion interface {
 		// execute conversion
-		exec(string, string, string) error
+		exec(string, string, string, string) error
 
 		// normalize the conversion string
 		normCvStr(string) (string, error)
@@ -105,6 +111,26 @@ var (
 	}
 )
 
+// assembleLogFile creates a name for the FFMPEG log file for a specific source
+// file
+func assembleLogFile(cfg *Config, srcFilePath string) (string, error) {
+	// get relevant part of src file path
+	srcFile, err := filepath.Rel(cfg.SrcDirPath, srcFilePath)
+	if err != nil {
+		log.Errorf("Cannot assemble log file name for %s: %v", srcFilePath, err)
+		return "", fmt.Errorf("Cannot assemble log file name for %s: %v", srcFilePath, err)
+	}
+
+	// assemble logFileName. Replace directory seperators ("/") with "-",
+	// escape space and replace ":" with "-"
+	logFile := strings.Replace(srcFile, "/", "-", -1)
+	logFile = strings.Replace(logFile, " ", "\\ ", -1)
+	logFile = strings.Replace(logFile, ":", "-", -1)
+	logFile += ".log"
+
+	return filepath.Join(cfg.TrgDirPath, cvLogDir, logFile), nil
+}
+
 // assembleTrgFile creates the target file path from the source file path
 // (f) and the configuration
 func assembleTrgFile(cfg *Config, srcFilePath string) (string, error) {
@@ -136,6 +162,13 @@ func assembleTrgFile(cfg *Config, srcFilePath string) (string, error) {
 
 // convert executes conversion for one file
 func convert(i cvInput) cvOutput {
+	var (
+		logFile string
+		trgFile string
+		cv      conversion
+		err     error
+	)
+
 	// get conversion string for f from config
 	cvm, ok := i.cfg.getCv(i.srcFile)
 
@@ -145,23 +178,36 @@ func convert(i cvInput) cvOutput {
 	}
 
 	// assemble output file
-	trgFile, err := assembleTrgFile(i.cfg, i.srcFile)
-	if err != nil {
-		return cvOutput{"", "", err}
+	if trgFile, err = assembleTrgFile(i.cfg, i.srcFile); err != nil {
+		return cvOutput{srcFile: "", trgFile: "", err: err}
 	}
-
-	var cv conversion
 
 	// set transformation function
 	if cvm.NormCvStr == cvCopyStr {
 		cv = cp
 	} else {
 		// determine transformation function for srcSuffix -> trgSuffix
-		cv = validCvs[cvKey{lhlp.FileSuffix(i.srcFile), cvm.TrgSuffix}]
+		cv = validCvs[cvKey{srcSuffix: lhlp.FileSuffix(i.srcFile), trgSuffix: cvm.TrgSuffix}]
+	}
+
+	// get log file name
+	if logFile, err = assembleLogFile(i.cfg, i.srcFile); err != nil {
+		return cvOutput{srcFile: "", trgFile: "", err: err}
+	}
+
+	// execute conversion
+	err = cv.exec(i.srcFile, trgFile, logFile, cvm.NormCvStr)
+
+	// if no error: remove log file
+	if err == nil {
+		if e := os.Remove(logFile); e != nil {
+			log.Errorf("Cannot remove '%s': %v", logFile, e)
+		}
+		log.Debugf("Remove '%s'", logFile)
 	}
 
 	// call transformation function and return result
-	return cvOutput{i.srcFile, trgFile, cv.exec(i.srcFile, trgFile, cvm.NormCvStr)}
+	return cvOutput{srcFile: i.srcFile, trgFile: trgFile, err: err}
 }
 
 // isValidBitrate determines if s represents a valid bit rate. I.e. it needs

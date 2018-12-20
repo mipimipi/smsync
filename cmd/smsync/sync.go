@@ -365,7 +365,7 @@ func synchronize(level log.Level, verbose bool) error {
 	// delete all entries of the target directory if requested per cli option
 	if cli.init {
 		log.Info("Delete all entries of the target directory per cli option")
-		if err := smsync.DeleteTrg(&cfg); err != nil {
+		if err = smsync.DeleteTrg(&cfg); err != nil {
 			return err
 		}
 	}
@@ -392,6 +392,11 @@ func synchronize(level log.Level, verbose bool) error {
 	split := lhlp.SplitDuration(durDirs + durFiles)
 	totalStr := fmt.Sprintf("%dh %02dmin %02ds", split[time.Hour], split[time.Minute], split[time.Second])
 	fmt.Printf("   Processed %d directories and %d files in %s\n", len(*dirs), len(*files), totalStr)
+
+	// remove obsolete stuff
+	if err = smsync.CleanUp(&cfg); err != nil {
+		return err
+	}
 
 	// update config file
 	return cfg.SetProcEnd()

@@ -21,6 +21,7 @@ package smsync
 // esp. the call to ffmpeg
 
 import (
+	"os"
 	"os/exec"
 	"strings"
 
@@ -29,10 +30,10 @@ import (
 
 // execFFMPEG calls ffmpeg to convert srcFile to trgFile using the
 // conversion-specific parameters *params
-func execFFMPEG(srcFile string, trgFile string, params *[]string) error {
-	var args []string
+func execFFMPEG(srcFile string, trgFile string, logFile string, params *[]string) error {
+	var args []string // arguments for FFMPEG
 
-	// assemble input file
+	// add input file
 	args = append(args, "-i", srcFile)
 
 	// add conversion-specific parameters
@@ -44,6 +45,10 @@ func execFFMPEG(srcFile string, trgFile string, params *[]string) error {
 	// add target file
 	args = append(args, trgFile)
 
+	// set environment variable for loggingr
+	os.Setenv("FFREPORT", "file="+logFile+":level=32")
+
+	log.Debugf("Env: FFREPORT=%s", os.Getenv("FFREPORT"))
 	log.Debugf("FFmpeg command: ffmpeg %s", strings.Join(args, " "))
 
 	// execute FFMPEG command

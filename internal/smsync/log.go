@@ -30,8 +30,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// smsync always logs into ./smsync.log
-const logFileName = "smsync.log"
+const logFileName = "smsync.log" // smsync always logs into ./smsync.log
 
 // text formatting structure for gool
 type smsyncTextFormatter struct{}

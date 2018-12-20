@@ -127,36 +127,13 @@ func CopyFile(srcFn, dstFn string) error {
 	return dst.Sync()
 }
 
-// DirIsLeave return true is the directory has no sub directories
-func DirIsLeave(dir string) (bool, error) {
-	var (
-		fi  os.FileInfo
-		err error
-	)
-
-	// verify that dir represents a directory
-	fi, err = os.Stat(dir)
+// DirIsEmpty returns true is directory d is empty, otherwise false
+func DirIsEmpty(d string) (bool, error) {
+	entries, err := ioutil.ReadDir(d)
 	if err != nil {
 		return false, err
 	}
-	if !fi.IsDir() {
-		return false, nil
-	}
-
-	// get content of dir
-	entries, err := ioutil.ReadDir(fi.Name())
-	if err != nil {
-		return false, err
-	}
-
-	// return false if there's at least one sub directory
-	for _, entr := range entries {
-		if entr.IsDir() {
-			return false, nil
-		}
-	}
-
-	return true, nil
+	return (len(entries) == 0), nil
 }
 
 // EscapePattern escapes special characters in pattern strings for usage in
@@ -180,6 +157,15 @@ func FileExists(filePath string) (bool, error) {
 		return false, fmt.Errorf("Existence of file '%s' couldn't be determined: %v", filePath, err)
 	}
 	return true, nil
+}
+
+// FileIsEmpty returns true is file f is empty, otherwise false
+func FileIsEmpty(f string) (bool, error) {
+	fi, err := os.Stat(f)
+	if err != nil {
+		return false, err
+	}
+	return (fi.Size() == 0), nil
 }
 
 // FileSuffix return the suffix of a file without the dot. If the file name
