@@ -127,6 +127,38 @@ func CopyFile(srcFn, dstFn string) error {
 	return dst.Sync()
 }
 
+// DirIsLeave return true is the directory has no sub directories
+func DirIsLeave(dir string) (bool, error) {
+	var (
+		fi  os.FileInfo
+		err error
+	)
+
+	// verify that dir represents a directory
+	fi, err = os.Stat(dir)
+	if err != nil {
+		return false, err
+	}
+	if !fi.IsDir() {
+		return false, nil
+	}
+
+	// get content of dir
+	entries, err := ioutil.ReadDir(fi.Name())
+	if err != nil {
+		return false, err
+	}
+
+	// return false if there's at least one sub directory
+	for _, entr := range entries {
+		if entr.IsDir() {
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
 // EscapePattern escapes special characters in pattern strings for usage in
 // filepath.Glob() or filepath.Match()
 // See: https://godoc.org/path/filepath#Match
@@ -162,8 +194,11 @@ func FileSuffix(f string) string {
 // FindFiles traverses directory trees to find files and directories that
 // fulfill a certain filter condition. It starts at a list of root
 // directories. The condition must be implemented in a function, which is
-// passed to FindFiles as a parameter. numWorkers is the number of concurrent
-// Go routines that FindFiles uses.
+// passed to FindFiles as a parameter. This condition returns two boolean value
+// The first one determines if a certain entry is valid (i.e. fulfills the
+// actual filter condition), the second determines (only in case of a
+// directory) if FindFiles shall descend.
+// numWorkers is the number of concurrent Go routines that FindFiles uses.
 // FindFiles returns two string arrays: One contains the directories and one
 // the files that fulfill the filter condition. Both lists contain the absolute
 // paths.

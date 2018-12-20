@@ -197,6 +197,13 @@ func GetSyncFiles(cfg *Config, init bool) (*[]*string, *[]*string) {
 			}
 		}
 
+		if !fi.IsDir() {
+			_, ok := cfg.getCv(srcFile)
+			if !ok {
+				return false, false
+			}
+		}
+
 		// if the last call smsync has been interrupted ('work in progress',
 		// WIP) and command line option 'initialize' hasn't been set, files on
 		// source side are only relevant for sync, if no counterpart is

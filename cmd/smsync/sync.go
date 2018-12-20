@@ -68,30 +68,26 @@ type prog struct {
 }
 
 // format string for progress display
-var format = "%8s %10s %10s %17s"
+var format = "%8s %10s %10s %16s %16s"
 
 // printHeader prints the headline for progress display
 func (prog *prog) printHeader() {
 	var (
-		line    = "------------------------------------------------" // lenght=48
-		durNull = "--:--:--"                                         // "null" string for display of durations
+		line    = "----------------------------------------------------------------" // lenght=64
+		durNull = "--:--:--"                                                         // "null" string for display of durations
 	)
 
-	fmt.Printf(format+"\n", "", "Elapsed", "Remaining", "Estimated")   // nolint, headline 1
-	fmt.Printf(format+"\n", "#TODO", "Time", "Time", "Free Diskspace") // nolint, headline 2
-	fmt.Println(line)                                                  // separator
-	fmt.Printf(format, "0", durNull, durNull, "0 MB")                  // nolint
+	fmt.Printf(format+"\n", "", "Elapsed", "Remaining", "Estimated", "Estimated")     // nolint, headline 1
+	fmt.Printf(format+"\n", "#TODO", "Time", "Time", "Target Size", "Free Diskspace") // nolint, headline 2
+	fmt.Println(line)                                                                 // separator
+	fmt.Printf(format, "0", durNull, durNull, "- MB", "- MB")                         // nolint
 }
 
 // print display the progress of the conversion. It takesthe attributes of the
 // structure prog as basis and calculates additional data, such as elapsed and
 // remaining time and the estimated free diskspace
 func (prog *prog) print() {
-	var (
-		remaining time.Duration         // remaining time
-		mb        = uint64(1024 * 1024) // one megabyte
-		avail     int64                 // estimated free diskspace
-	)
+	var remaining time.Duration // remaining time
 
 	// calculate the elapsed time
 	prog.elapsed = time.Since(prog.start)
@@ -107,15 +103,24 @@ func (prog *prog) print() {
 		return fmt.Sprintf("%02d:%02d:%02d", sp[time.Hour], sp[time.Minute], sp[time.Second])
 	}
 
-	// calculates estimated available disk space
-	if prog.srcSize > 0 {
-		avail = int64((float64(prog.diskspace) - float64(prog.trgSize)/float64(prog.srcSize)*float64(prog.totalSize)) / float64(mb))
+	if prog.srcSize == 0 {
+		// print progress (updates the same screen row)
+		fmt.Printf("\r"+format, strconv.Itoa(prog.totalNum-prog.done), split(prog.elapsed), split(remaining), "- MB", "- MB") //nolint
 	} else {
-		avail = int64(prog.diskspace / mb)
-	}
+		var (
+			mb    = uint64(1024 * 1024)   // one megabyte
+			avail = int64(prog.diskspace) // estimated free diskspace
+			size  uint64                  // estimated target size
+		)
 
-	// print progress (updates the same screen row)
-	fmt.Printf("\r"+format, strconv.Itoa(prog.totalNum-prog.done), split(prog.elapsed), split(remaining), fmt.Sprintf("%d MB", avail)) //nolint
+		// calculates estimated target size and available disk space
+		size = uint64(float64(prog.trgSize) / float64(prog.srcSize) * float64(prog.totalSize))
+		avail = (avail - int64(size)) / int64(mb)
+		size /= mb
+
+		// print progress (updates the same screen row)
+		fmt.Printf("\r"+format, strconv.Itoa(prog.totalNum-prog.done), split(prog.elapsed), split(remaining), fmt.Sprintf("%d MB", size), fmt.Sprintf("%d MB", avail)) //nolint
+	}
 }
 
 // printCfgSummary display a summary of the configuration. The content of the
@@ -153,7 +158,7 @@ func printCfgSummary(cfg *smsync.Config) {
 
 	// directories to exclude
 	if len(cfg.Excludes) > 0 {
-		fmt.Printf(fmGen, "Exclude", "") // nolint
+		fmt.Printf(fmGen, "Exclude (expanded)", "") // nolint
 		for _, s := range cfg.Excludes {
 			fmt.Printf("       %s\n", s)
 		}
@@ -208,7 +213,7 @@ func process(cfg *smsync.Config, wl *[]*string, f func(*smsync.Config, *[]*strin
 	var (
 		p = prog{totalNum: len(*wl),
 			totalSize: totalSize(*wl),
-			diskspace: du.NewDiskUsage(cfg.SrcDirPath).Available(),
+			diskspace: du.NewDiskUsage(cfg.TrgDirPath).Available(),
 			start:     time.Now()} // progress structure
 		pRes    smsync.ProcRes                // structure to return the processing result
 		procRes = f(cfg, wl)                  // call of conversion
