@@ -204,7 +204,7 @@ The synchronization process is executed in the following steps:
      * the estimated target size
      * and the estimated free diskspace.
      
-    The latter is an estimation of the available diskspace on the target device *AFTER* alls file will have been converted. That's very helpful to see at an early stage if the available space will be suffient. 
+    The latter is an estimation of the available diskspace on the target device *AFTER* all files will have been converted. That's very helpful to see at an early stage if the available space will be suffient. 
 
     With the command line option `--verbose` the progress is displayed in more detail, i.e. each file is displayed after it has been converted.  
 
