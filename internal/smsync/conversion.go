@@ -165,7 +165,7 @@ func convert(i cvInput) cvOutput {
 }
 
 // isValidBitrate determines if s represents a valid bit rate. I.e. it needs
-// be a 1-3-digit number, which is greate or equal than min and smaller or
+// be a 1-3-digit number, which is greater or equal than min and smaller or
 // equal than max
 func isValidBitrate(s string, min, max int) bool {
 	var isValid bool
