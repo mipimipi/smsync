@@ -21,9 +21,13 @@ package smsync
 // esp. the call to ffmpeg
 
 import (
-	"os"
+	"bytes"
+	"io/ioutil"
 	"os/exec"
+	"path/filepath"
 	"strings"
+
+	"github.com/mipimipi/go-lhlp"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -31,7 +35,11 @@ import (
 // execFFMPEG calls ffmpeg to convert srcFile to trgFile using the
 // conversion-specific parameters *params
 func execFFMPEG(srcFile string, trgFile string, logFile string, params *[]string) error {
-	var args []string // arguments for FFMPEG
+	var (
+		args   []string // arguments for FFMPEG
+		stdout bytes.Buffer
+		stderr bytes.Buffer
+	)
 
 	// add input file
 	args = append(args, "-i", srcFile)
@@ -45,15 +53,22 @@ func execFFMPEG(srcFile string, trgFile string, logFile string, params *[]string
 	// add target file
 	args = append(args, trgFile)
 
-	// set environment variable for loggingr
-	os.Setenv("FFREPORT", "file="+logFile+":level=32")
-
-	log.Debugf("Env: FFREPORT=%s", os.Getenv("FFREPORT"))
 	log.Debugf("FFmpeg command: ffmpeg %s", strings.Join(args, " "))
 
 	// execute FFMPEG command
-	if err := exec.Command("ffmpeg", args...).Run(); err != nil { // nolint
+	cmd := exec.Command("ffmpeg", args...)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil { // nolint
 		log.Errorf("Executed FFMPEG for %s: %v", srcFile, err)
+
+		// assemble error file name
+		errFile := "smsync.err/" + filepath.Base(lhlp.PathTrunk(trgFile)) + ".log"
+		// write stdout into error file
+		if e := ioutil.WriteFile(errFile, stdout.Bytes(), 0644); e != nil {
+			log.Errorf("Couldn't write FFMPEG error file '%s's: %v", errFile, e)
+		}
+
 		return err
 	}
 
