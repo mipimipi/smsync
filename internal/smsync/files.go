@@ -29,6 +29,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// errDir is the directory that stores error logs from conversion
+const errDir = "smsync.err"
+
 // ProcRes is the result structure for directory or file processing
 type ProcRes struct {
 	SrcFile string // source file or directory
@@ -42,20 +45,8 @@ func CleanUp(cfg *Config) error {
 	var (
 		b       bool
 		err     error
-		logDir  = filepath.Join(cfg.TrgDirPath, cvLogDir)
 		logFile = filepath.Join(cfg.TrgDirPath, logFileName)
 	)
-
-	// remove log directory if it's empty
-	if b, err = lhlp.DirIsEmpty(logDir); err != nil {
-		return err
-	}
-	if b {
-		if err = os.Remove(logDir); err != nil {
-			log.Errorf("Cannot remove '%s': %v", logDir, err)
-			return err
-		}
-	}
 
 	// remove log file if it's empty
 	if b, err = lhlp.FileIsEmpty(logFile); err != nil {
@@ -93,12 +84,6 @@ func deleteObsoleteFiles(cfg *Config, srcDirPath string) error {
 	for _, trgEntr := range trgEntrs {
 		if trgEntr.IsDir() {
 			fmt.Println("deleteObsoleteFiles: ", trgEntr.Name())
-
-			// exclude conversion log dir from deletion logic
-			if trgEntr.Name() == filepath.Join(cfg.TrgDirPath, cvLogDir) {
-				fmt.Println("CHECK")
-				continue
-			}
 
 			// if entry is a directory ...
 			b, _ := lhlp.FileExists(filepath.Join(srcDirPath, trgEntr.Name()))
@@ -345,12 +330,6 @@ func ProcessFiles(cfg *Config, files *[]*string) <-chan ProcRes {
 		return nil
 	}
 
-	// create log directory
-	if err := os.MkdirAll(filepath.Join(cfg.TrgDirPath, cvLogDir), os.ModeDir|0755); (err != nil) && (err != os.ErrExist) {
-		log.Errorf("Cannot create log directory: %v", err)
-		return nil
-	}
-
 	// setup worker Go routine and get worklist and result channels
 	wl, res := worker.Setup(func(i interface{}) interface{} { return convert(i.(cvInput)) }, cfg.NumWrkrs)
 
@@ -373,4 +352,9 @@ func ProcessFiles(cfg *Config, files *[]*string) <-chan ProcRes {
 	}()
 
 	return procRes
+}
+
+// RemoveErrDir deletes the error directory
+func RemoveErrDir() error {
+	return os.RemoveAll(filepath.Join(".", errDir))
 }

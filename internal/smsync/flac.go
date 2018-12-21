@@ -32,7 +32,7 @@ import (
 type cvAll2FLAC struct{}
 
 // exec executes the conversion to FLAC
-func (cvAll2FLAC) exec(srcFile string, trgFile string, logFile string, cvStr string) error {
+func (cvAll2FLAC) exec(srcFile string, trgFile string, cvStr string) error {
 	var params []string
 
 	// set FLAC codec
@@ -42,7 +42,7 @@ func (cvAll2FLAC) exec(srcFile string, trgFile string, logFile string, cvStr str
 	params = append(params, "-compression_level", lhlp.SplitMulti(cvStr, "|:")[1])
 
 	// execute ffmpeg
-	return execFFMPEG(srcFile, trgFile, logFile, &params)
+	return execFFMPEG(srcFile, trgFile, &params)
 }
 
 // normCvStr normalizes the conversion string: Blanks are removed and default

@@ -30,7 +30,7 @@ import (
 type cvAll2MP3 struct{}
 
 // exec executes the conversion to MP3
-func (cv cvAll2MP3) exec(srcFile string, trgFile string, logFile string, cvStr string) error {
+func (cv cvAll2MP3) exec(srcFile string, trgFile string, cvStr string) error {
 	var params []string
 
 	// set MP3 codec
@@ -51,7 +51,7 @@ func (cv cvAll2MP3) exec(srcFile string, trgFile string, logFile string, cvStr s
 	params = append(params, "-compression_level", a[3])
 
 	//execute ffmpeg
-	return execFFMPEG(srcFile, trgFile, logFile, &params)
+	return execFFMPEG(srcFile, trgFile, &params)
 }
 
 // normCvStr normalizes the conversion string: Blanks are removed and default

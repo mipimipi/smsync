@@ -21,8 +21,8 @@ package smsync
 // esp. the call to ffmpeg
 
 import (
-	"bytes"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -34,11 +34,11 @@ import (
 
 // execFFMPEG calls ffmpeg to convert srcFile to trgFile using the
 // conversion-specific parameters *params
-func execFFMPEG(srcFile string, trgFile string, logFile string, params *[]string) error {
+func execFFMPEG(srcFile string, trgFile string, params *[]string) error {
 	var (
-		args   []string // arguments for FFMPEG
-		stdout bytes.Buffer
-		stderr bytes.Buffer
+		args []string // arguments for FFMPEG
+		out  []byte   // to capture output of FFMPEG
+		err  error
 	)
 
 	// add input file
@@ -50,6 +50,9 @@ func execFFMPEG(srcFile string, trgFile string, logFile string, params *[]string
 	// overwrite output file (in case it's existing)
 	args = append(args, "-y")
 
+	// set logging
+	args = append(args, "-loglevel", "repeat+level+verbose")
+
 	// add target file
 	args = append(args, trgFile)
 
@@ -57,15 +60,19 @@ func execFFMPEG(srcFile string, trgFile string, logFile string, params *[]string
 
 	// execute FFMPEG command
 	cmd := exec.Command("ffmpeg", args...)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil { // nolint
+	if out, err = cmd.CombinedOutput(); err != nil { // nolint
 		log.Errorf("Executed FFMPEG for %s: %v", srcFile, err)
 
+		// if error directory doesn't exist: create it
+		if _, e0 := os.Stat(filepath.Join(".", errDir)); os.IsNotExist(e0) {
+			if e1 := os.Mkdir(filepath.Join(".", errDir), os.ModeDir|0755); e1 != nil {
+				log.Errorf("Error from Mkdir('%s'): %v", errDir, e1)
+			}
+		}
 		// assemble error file name
 		errFile := "smsync.err/" + filepath.Base(lhlp.PathTrunk(trgFile)) + ".log"
 		// write stdout into error file
-		if e := ioutil.WriteFile(errFile, stdout.Bytes(), 0644); e != nil {
+		if e := ioutil.WriteFile(errFile, out, 0644); e != nil {
 			log.Errorf("Couldn't write FFMPEG error file '%s's: %v", errFile, e)
 		}
 

@@ -357,6 +357,9 @@ func synchronize(level log.Level, verbose bool) error {
 		}
 	}
 
+	// remove potentially existing error directory from last run
+	smsync.RemoveErrDir()
+
 	// set processing status to "work in progress" in smsync.yaml
 	if err := cfg.SetProcStatWIP(); err != nil {
 		return err
