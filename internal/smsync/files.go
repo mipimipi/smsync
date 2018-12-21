@@ -300,12 +300,6 @@ func ProcessDirs(cfg *Config, dirs *[]*string) <-chan ProcRes {
 				if err = deleteObsoleteFiles(cfg, *d); err != nil {
 					return
 				}
-			} else {
-				// if it doesn't exist: create it
-				if err = os.MkdirAll(trgDirPath, os.ModeDir|0755); (err != nil) && (err != os.ErrExist) {
-					log.Errorf("Error from MkdirAll('%s'): %v", trgDirPath, err)
-					return
-				}
 			}
 
 			procRes <- ProcRes{SrcFile: *d, TrgFile: trgDirPath, Err: err}

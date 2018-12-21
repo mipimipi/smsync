@@ -19,6 +19,8 @@ package smsync
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 
@@ -152,7 +154,15 @@ func convert(i cvInput) cvOutput {
 
 	// assemble output file
 	if trgFile, err = assembleTrgFile(i.cfg, i.srcFile); err != nil {
-		return cvOutput{srcFile: "", trgFile: "", err: err}
+		return cvOutput{srcFile: i.srcFile, trgFile: "", err: err}
+	}
+
+	// if error directory doesn't exist: create it
+	if _, err := os.Stat(filepath.Dir(trgFile)); os.IsNotExist(err) {
+		if e := os.MkdirAll(filepath.Dir(trgFile), os.ModeDir|0755); e != nil {
+			log.Errorf("Error from MkdirAll('%s'): %v", errDir, e)
+			return cvOutput{srcFile: i.srcFile, trgFile: trgFile, err: err}
+		}
 	}
 
 	// set transformation function
