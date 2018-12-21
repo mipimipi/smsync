@@ -21,6 +21,7 @@ package smsync
 // esp. the call to ffmpeg
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -35,11 +36,7 @@ import (
 // execFFMPEG calls ffmpeg to convert srcFile to trgFile using the
 // conversion-specific parameters *params
 func execFFMPEG(srcFile string, trgFile string, params *[]string) error {
-	var (
-		args []string // arguments for FFMPEG
-		out  []byte   // to capture output of FFMPEG
-		err  error
-	)
+	var args []string // arguments for FFMPEG
 
 	// add input file
 	args = append(args, "-i", srcFile)
@@ -59,9 +56,9 @@ func execFFMPEG(srcFile string, trgFile string, params *[]string) error {
 	log.Debugf("FFmpeg command: ffmpeg %s", strings.Join(args, " "))
 
 	// execute FFMPEG command
-	cmd := exec.Command("ffmpeg", args...)
-	if out, err = cmd.CombinedOutput(); err != nil { // nolint
+	if out, err := exec.Command("ffmpeg", args...).CombinedOutput(); err != nil { // nolint
 		log.Errorf("Executed FFMPEG for %s: %v", srcFile, err)
+		log.Errorf("FFmpeg command: ffmpeg %s", strings.Join(args, " "))
 
 		// if error directory doesn't exist: create it
 		if _, e0 := os.Stat(filepath.Join(".", errDir)); os.IsNotExist(e0) {
@@ -70,13 +67,13 @@ func execFFMPEG(srcFile string, trgFile string, params *[]string) error {
 			}
 		}
 		// assemble error file name
-		errFile := "smsync.err/" + filepath.Base(lhlp.PathTrunk(trgFile)) + ".log"
+		errFile := filepath.Join(".", errDir, filepath.Base(lhlp.PathTrunk(trgFile))) + ".log"
 		// write stdout into error file
 		if e := ioutil.WriteFile(errFile, out, 0644); e != nil {
 			log.Errorf("Couldn't write FFMPEG error file '%s's: %v", errFile, e)
 		}
 
-		return err
+		return fmt.Errorf("Error during execution of FFMPEG: %v", err)
 	}
 
 	// everything's fine

@@ -279,10 +279,10 @@ func (cfg *Config) getRule(r *rule, i int) (*cvm, error) {
 	return &cvm{TrgSuffix: r.Target, NormCvStr: normCvStr}, nil
 }
 
-// SetProcEnd updates the file smsync.yaml after the conversions have ended
+// setProcEnd updates the file smsync.yaml after the conversions have ended
 // successfully. It sets the last sync time and removes the "wip" (work in
 // progress).
-func (cfg *Config) SetProcEnd() error {
+func (cfg *Config) setProcEnd() error {
 	var (
 		cfgY cfgYml
 		err  error
@@ -304,15 +304,15 @@ func (cfg *Config) SetProcEnd() error {
 		return err
 	}
 
-	log.Debug("Config has been saved")
+	log.Debug("Config.setProcEnd(): Config has been saved")
 
 	return nil
 }
 
-// SetProcStatWIP sets the processing status in the file smsync.yaml to
+// setProcStatWIP sets the processing status in the file smsync.yaml to
 // "wip" (= work is progress). This status is valid as long as smsync is
 // processing / converting files
-func (cfg *Config) SetProcStatWIP() error {
+func (cfg *Config) setProcStatWIP() error {
 	var (
 		cfgY cfgYml
 		err  error
@@ -331,7 +331,7 @@ func (cfg *Config) SetProcStatWIP() error {
 		return err
 	}
 
-	log.Debug("Config has been saved")
+	log.Debug("Config.setProcStatWIP(): Config has been saved")
 
 	return nil
 }

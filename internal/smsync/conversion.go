@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"time"
 
 	lhlp "github.com/mipimipi/go-lhlp"
 	log "github.com/sirupsen/logrus"
@@ -44,9 +45,10 @@ type (
 
 	// output structure of a conversion
 	cvOutput struct {
-		srcFile string // source file
-		trgFile string // target file
-		err     error  // error (that occurred during the conversion)
+		srcFile string        // source file
+		trgFile string        // target file
+		dur     time.Duration // duration of conversion
+		err     error         // error (that occurred during the conversion)
 	}
 
 	// conversion interface
@@ -149,7 +151,7 @@ func convert(i cvInput) cvOutput {
 
 	// if no string found: exit
 	if !ok {
-		return cvOutput{"", "", nil}
+		return cvOutput{"", "", 0, nil}
 	}
 
 	// assemble output file
@@ -174,10 +176,11 @@ func convert(i cvInput) cvOutput {
 	}
 
 	// execute conversion
+	start := time.Now()
 	err = cv.exec(i.srcFile, trgFile, cvm.NormCvStr)
 
 	// call transformation function and return result
-	return cvOutput{srcFile: i.srcFile, trgFile: trgFile, err: err}
+	return cvOutput{srcFile: i.srcFile, trgFile: trgFile, dur: time.Since(start), err: err}
 }
 
 // isValidBitrate determines if s represents a valid bit rate. I.e. it needs

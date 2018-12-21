@@ -18,30 +18,21 @@
 package smsync
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
 	lhlp "github.com/mipimipi/go-lhlp"
-	worker "github.com/mipimipi/go-worker"
 	log "github.com/sirupsen/logrus"
 )
 
 // errDir is the directory that stores error logs from conversion
 const errDir = "smsync.err"
 
-// ProcRes is the result structure for directory or file processing
-type ProcRes struct {
-	SrcFile string // source file or directory
-	TrgFile string // target file or directory
-	Err     error  // error (that occurred during processing)
-}
-
-// CleanUp removes temporary files and directories from smsync that are
+// cleanUp removes temporary files and directories from smsync that are
 // obsolete
-func CleanUp(cfg *Config) error {
+func cleanUp(cfg *Config) error {
 	var (
 		b       bool
 		err     error
@@ -66,6 +57,9 @@ func CleanUp(cfg *Config) error {
 // target directory tree but not in the source directory tree. It is called
 // for all source directories that have been changes since the last sync
 func deleteObsoleteFiles(cfg *Config, srcDirPath string) error {
+	log.Debug("deleteOnsoleteFiles: START")
+	defer log.Debug("deleteOnsoleteFiles: END")
+
 	// assemble target directory path
 	trgDirPath, err := lhlp.PathRelCopy(cfg.SrcDirPath, srcDirPath, cfg.TrgDirPath)
 	if err != nil {
@@ -83,12 +77,10 @@ func deleteObsoleteFiles(cfg *Config, srcDirPath string) error {
 	// loop over all entries of target directory
 	for _, trgEntr := range trgEntrs {
 		if trgEntr.IsDir() {
-			fmt.Println("deleteObsoleteFiles: ", trgEntr.Name())
-
 			// if entry is a directory ...
 			b, _ := lhlp.FileExists(filepath.Join(srcDirPath, trgEntr.Name()))
 			if err != nil {
-				log.Errorf("%v", err)
+				log.Errorf("HALO %v", err)
 			}
 			// ... and the counterpart on source side doesn't exists: ...
 			if !b {
@@ -130,7 +122,7 @@ func deleteObsoleteFiles(cfg *Config, srcDirPath string) error {
 }
 
 // DeleteTrg deletes all entries of the target directory
-func DeleteTrg(cfg *Config) error {
+func deleteTrg(cfg *Config) error {
 	// open target directory
 	trgDir, err := os.Open(cfg.TrgDirPath)
 	if err != nil {
@@ -214,12 +206,14 @@ func GetSyncFiles(cfg *Config, init bool) (*[]*string, *[]*string) {
 			}
 		}
 
-		if !fi.IsDir() {
-			_, ok := cfg.getCv(srcFile)
-			if !ok {
-				return false, false
+		/*
+			if !fi.IsDir() {
+				_, ok := cfg.getCv(srcFile)
+				if !ok {
+					return false, false
+				}
 			}
-		}
+		*/
 
 		// if the last call smsync has been interrupted ('work in progress',
 		// WIP) and command line option 'initialize' hasn't been set, files on
@@ -239,7 +233,7 @@ func GetSyncFiles(cfg *Config, init bool) (*[]*string, *[]*string) {
 				var exists bool
 				exists, err = lhlp.FileExists(trgFile)
 				if err != nil {
-					log.Errorf("%v", err)
+					log.Errorf("A %v", err)
 					return false, true
 				}
 				return !exists, true
@@ -262,93 +256,33 @@ func GetSyncFiles(cfg *Config, init bool) (*[]*string, *[]*string) {
 	return lhlp.FindFiles([]string{cfg.SrcDirPath}, filter, 20)
 }
 
-// ProcessDirs creates new and deletes obsolete directories. processDirs
-// returns a channel that it uses to return the processing status/result
-// continuously after a directory has been processed.
-func ProcessDirs(cfg *Config, dirs *[]*string) <-chan ProcRes {
-	var procRes = make(chan ProcRes)
-
-	// nothing to do in case of empty directory array
-	if len(*dirs) == 0 {
-		return nil
-	}
-
-	go func() {
-		var (
-			trgDirPath string
-			exists     bool
-			err        error
-		)
-
-		for _, d := range *dirs {
-			// assemble full path of new directory (source & target)
-			trgDirPath, err = lhlp.PathRelCopy(cfg.SrcDirPath, *d, cfg.TrgDirPath)
-			if err != nil {
-				log.Errorf("Target path cannot be assembled: %v", err)
-				return
-			}
-
-			// determine if directory exists
-			exists, err = lhlp.FileExists(trgDirPath)
-			if err != nil {
-				log.Errorf("%v", err)
-				return
-			}
-
-			if exists {
-				// if it exists: check if there are obsolete files and delete them
-				if err = deleteObsoleteFiles(cfg, *d); err != nil {
-					return
-				}
-			}
-
-			procRes <- ProcRes{SrcFile: *d, TrgFile: trgDirPath, Err: err}
-		}
-
-		close(procRes)
-	}()
-
-	return procRes
-}
-
-// ProcessFiles calls the conversion for all new or changes files. Files
-// are processed in parallel using the package github.com/mipimipi/go-worker.
-// It returns a channel that it uses to return the processing status/result
-// continuously after a file has been processed.
-func ProcessFiles(cfg *Config, files *[]*string) <-chan ProcRes {
-	// variables needed to measure progress
-	var procRes = make(chan ProcRes)
-
-	// nothing to do in case of empty files array
-	if len(*files) == 0 {
-		return nil
-	}
-
-	// setup worker Go routine and get worklist and result channels
-	wl, res := worker.Setup(func(i interface{}) interface{} { return convert(i.(cvInput)) }, cfg.NumWrkrs)
-
-	// fill worklist with files and close worklist channel
-	go func() {
-		for _, f := range *files {
-			wl <- cvInput{cfg, *f}
-		}
-		close(wl)
-	}()
-
-	// retrieve worker results
-	go func() {
-		for r := range res {
-			// send current progress
-			procRes <- ProcRes{SrcFile: r.(cvOutput).srcFile, TrgFile: r.(cvOutput).trgFile, Err: r.(cvOutput).err}
-		}
-
-		close(procRes)
-	}()
-
-	return procRes
-}
-
-// RemoveErrDir deletes the error directory
-func RemoveErrDir() error {
+// removeErrDir deletes the error directory
+func removeErrDir() error {
 	return os.RemoveAll(filepath.Join(".", errDir))
+}
+
+// size returns the size of a file
+func size(f string) uint64 {
+	if f == "" {
+		return 0
+	}
+
+	fi, err := os.Stat(f)
+	if err != nil {
+		log.Errorf("%v", err)
+		return 0
+	}
+	if fi.IsDir() {
+		return 0
+	}
+	return uint64(fi.Size())
+}
+
+// totalSize returns the aggregated size of a list of files
+func totalSize(fs []*string) uint64 {
+	var sz uint64
+	for _, f := range fs {
+		sz += size(*f)
+	}
+	return sz
 }
