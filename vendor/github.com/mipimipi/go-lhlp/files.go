@@ -26,29 +26,27 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"sync"
-	"time"
 )
 
-// Contains checks if the array a contains the element e.
-// inspired by: https://stackoverflow.com/questions/10485743/contains-method-for-a-slice
-func Contains(a interface{}, e interface{}) bool {
-	arr := reflect.ValueOf(a)
-
-	if arr.Kind() == reflect.Slice {
-		for i := 0; i < arr.Len(); i++ {
-			// XXX - panics if slice element points to an unexported struct field
-			// see https://golang.org/pkg/reflect/#Value.Interface
-			if arr.Index(i).Interface() == e {
-				return true
-			}
-		}
-	}
-
-	return false
+// FileInfo extends the standard interface os.FileInfo
+type FileInfo interface {
+	os.FileInfo
+	Path() string // get complete file name
 }
+
+// fileinfo is an internal helper structire that implements FileInfo
+type fileinfo struct {
+	os.FileInfo
+	path string // complete name of the file
+}
+
+// Path implements the Path() method, so that fileinfo implements FileInfo
+func (fi fileinfo) Path() string { return fi.path }
+
+// create FileInfo from os.FileInfo and a path
+func newFI(fi os.FileInfo, p string) FileInfo { return fileinfo{fi, p} }
 
 // CopyFile copies srcFn to dstFn. Prequisite is, that srcFn and (if existing)
 // dstFn are regular files (i.e. no devices etc.). In case both files are the
@@ -168,6 +166,18 @@ func FileIsEmpty(f string) (bool, error) {
 	return (fi.Size() == 0), nil
 }
 
+// FileStat returns info about the file whose path is passed as
+// parameter. In this regard, it is simlar to the standard function os.Stat.
+// Different from it, FileStat return file info of type FileInfo, i.e. extended
+// by Path(), which return the path of the file.
+func FileStat(path string) (FileInfo, error) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	return newFI(fi, path), nil
+}
+
 // FileSuffix return the suffix of a file without the dot. If the file name
 // contains no dot, an empty string is returned
 func FileSuffix(f string) string {
@@ -192,10 +202,10 @@ func FileSuffix(f string) string {
 // book "The Go Programming Language" by Alan A. A. Donovan & Brian W.
 // Kernighan.
 // See: https://github.com/adonovan/gopl.io/blob/master/ch8/du4/main.go
-func FindFiles(roots []string, filter func(string) (bool, bool), numWorkers int) (*[]*string, *[]*string) {
+func FindFiles(roots []string, filter func(string) (bool, bool), numWorkers int) (*[]FileInfo, *[]FileInfo) {
 	var (
-		dirs    []*string      // list of directories to be returned
-		files   []*string      // list of files to be returned
+		dirs    []FileInfo     // list of directories to be returned
+		files   []FileInfo     // list of files to be returned
 		descend func(string)   // func needs to be declared here since it calls itself recursively
 		wg      sync.WaitGroup // waiting group for the concurrent traversal
 	)
@@ -233,7 +243,8 @@ func FindFiles(roots []string, filter func(string) (bool, bool), numWorkers int)
 				subDir := filepath.Join(dir, entr.Name())
 				isValid, goDown := filter(subDir)
 				if isValid {
-					dirs = append(dirs, &subDir)
+					// create extended FileInfo and append it to dirs array
+					dirs = append(dirs, newFI(entr, subDir))
 				}
 				// traverse the next level
 				if goDown {
@@ -248,7 +259,8 @@ func FindFiles(roots []string, filter func(string) (bool, bool), numWorkers int)
 				// filter and add entry to files
 				file := filepath.Join(dir, entr.Name())
 				if valid, _ := filter(file); valid {
-					files = append(files, &file)
+					// create extended FileInfo and append it to dirs array
+					files = append(files, newFI(entr, file))
 				}
 			}
 		}
@@ -274,6 +286,18 @@ func FindFiles(roots []string, filter func(string) (bool, bool), numWorkers int)
 	wg.Wait()
 
 	return &dirs, &files
+}
+
+// MkdirAll creates a directory named path, along with any necessary parents.
+// In this regard, it behaves like the standard os.MkdirAll. In contrast to
+// this, it doesn't complain if path already exists.
+func MkdirAll(path string, perm os.FileMode) error {
+	var err error
+
+	if _, err = os.Stat(path); os.IsNotExist(err) {
+		err = os.MkdirAll(path, perm)
+	}
+	return err
 }
 
 // PathRelCopy determines first a relative path that is lexically equivalent to
@@ -305,145 +329,4 @@ func PathRelCopy(srcBase, path, dstBase string) (string, error) {
 // E.g. Trunk("/home/test/abc.mp3") return "/home/test/abc"
 func PathTrunk(p string) string {
 	return p[0 : len(p)-len(path.Ext(p))]
-}
-
-// ProgressStr shows and moves a bar '...' on the command line. It can be used
-// to show that an activity is ongoing. The parameter 'interval' steers the
-// refresh rate (in milli seconds). The text in 'msg' is displayed in form of
-// '...'. The progress bar is stopped by sending an empty struct to the
-// returned channel:
-//	 chan <- struct{}{}
-//	 close(chan)
-func ProgressStr(msg string, interval time.Duration) (chan<- struct{}, <-chan struct{}) {
-	// create channel to receive stop signal
-	stop := make(chan struct{})
-
-	// create channel to send stop confirmation
-	confirm := make(chan struct{})
-
-	go func() {
-		var (
-			ticker  = time.NewTicker(interval * time.Millisecond)
-			bar     = "   ...  "
-			i       = 5
-			isFirst = true
-			ticked  = false
-		)
-
-		for {
-			select {
-			case <-ticker.C:
-				// at the very first tick, the output switches to the next row.
-				// At all subsequent ticks, the output is printed into that
-				// same row.
-				if isFirst {
-					fmt.Println()
-					isFirst = false
-				}
-				// print message and progress indicator
-				fmt.Printf("\r%s %s ", msg, bar[i:i+3])
-				// increase progress indicator counter for next tick
-				if i--; i < 0 {
-					i = 5
-				}
-				// ticker has ticked: set flag accordingly
-				ticked = true
-			case <-stop:
-				// stop ticker ...
-				ticker.Stop()
-				// if the ticker had displayed at least once, move to next row
-				if ticked {
-					fmt.Println()
-				}
-				// send stop confirmation
-				confirm <- struct{}{}
-				close(confirm)
-				// and return
-				return
-			}
-		}
-	}()
-
-	return stop, confirm
-}
-
-// SplitDuration disaggregates a duration and returns it splitted into hours,
-// minutes, seconds and nanoseconds
-func SplitDuration(d time.Duration) map[time.Duration]time.Duration {
-	var (
-		out  = make(map[time.Duration]time.Duration)
-		cmps = []time.Duration{time.Hour, time.Minute, time.Second, time.Nanosecond}
-	)
-
-	for _, cmp := range cmps {
-		out[cmp] = d / cmp
-		d -= out[cmp] * cmp
-	}
-
-	return out
-}
-
-// SplitMulti slices s into all substrings separated by any character of sep
-// and returns a slice of the substrings between those separators.
-// If s does not contain any character of sep and sep is not empty, SplitMulti
-// returns a slice of length 1 whose only element is s.
-// If sep is empty, SplitMulti splits after each UTF-8 sequence. If both s and
-// sep are empty, SplitMulti returns an empty slice.
-func SplitMulti(s string, sep string) []string {
-	var a []string
-
-	// handle special cases: if sep is empty ...
-	if len(sep) == 0 {
-		//... and s is empty: return an empty slice
-		if len(s) == 0 {
-			return a
-		}
-		// ... else split after each character
-		return strings.Split(s, "")
-	}
-
-	// split s by the characters of sep
-	for i, j := -1, 0; j <= len(s); j++ {
-		if j == len(s) || strings.Contains(sep, string(s[j])) {
-			if i+1 > j-1 {
-				a = append(a, "")
-			} else {
-				a = append(a, s[i+1:j])
-			}
-			i = j
-		}
-	}
-
-	// if s does not contain any charachter of sep: return a slice that only
-	// contains s
-	if len(a) == 0 {
-		a = append(a, s)
-	}
-
-	return a
-}
-
-// UserOK print the message s followed by " (Y/n)?" on stdout and askes the
-// user to press either Y (to continue) or n (to stop). Y is treated as
-// default. I.e. if the user only presses return, that's interpreted as if
-// he has pressed Y.
-func UserOK(s string) bool {
-	var input string
-
-	for {
-		fmt.Printf("\r%s (Y/n)? ", s)
-		if _, err := fmt.Scanln(&input); err != nil {
-			if err.Error() != "unexpected newline" {
-				return false
-			}
-			input = "Y"
-		}
-		switch {
-		case input == "Y":
-			return true
-		case input == "n":
-			return false
-		}
-		fmt.Println()
-	}
 }

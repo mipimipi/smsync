@@ -56,12 +56,12 @@ func cleanUp(cfg *Config) error {
 // deleteObsoleteFiles deletes directories and files that are available in the
 // target directory tree but not in the source directory tree. It is called
 // for all source directories that have been changes since the last sync
-func deleteObsoleteFiles(cfg *Config, srcDirPath string) error {
+func deleteObsoleteFiles(cfg *Config, srcDir lhlp.FileInfo) error {
 	log.Debug("deleteOnsoleteFiles: START")
 	defer log.Debug("deleteOnsoleteFiles: END")
 
 	// assemble target directory path
-	trgDirPath, err := lhlp.PathRelCopy(cfg.SrcDirPath, srcDirPath, cfg.TrgDirPath)
+	trgDirPath, err := lhlp.PathRelCopy(cfg.SrcDirPath, srcDir.Path(), cfg.TrgDirPath)
 	if err != nil {
 		log.Errorf("Target path cannot be assembled: %v", err)
 		return err
@@ -78,7 +78,7 @@ func deleteObsoleteFiles(cfg *Config, srcDirPath string) error {
 	for _, trgEntr := range trgEntrs {
 		if trgEntr.IsDir() {
 			// if entry is a directory ...
-			b, _ := lhlp.FileExists(filepath.Join(srcDirPath, trgEntr.Name()))
+			b, _ := lhlp.FileExists(filepath.Join(srcDir.Path(), trgEntr.Name()))
 			if err != nil {
 				log.Errorf("HALO %v", err)
 			}
@@ -102,9 +102,9 @@ func deleteObsoleteFiles(cfg *Config, srcDirPath string) error {
 			}
 			// check if counterpart file on source side exists
 			tr := lhlp.PathTrunk(trgEntr.Name())
-			fs, err := filepath.Glob(lhlp.EscapePattern(filepath.Join(srcDirPath, tr)) + ".*")
+			fs, err := filepath.Glob(lhlp.EscapePattern(filepath.Join(srcDir.Path(), tr)) + ".*")
 			if err != nil {
-				log.Errorf("Error from Glob('%s'): %v", lhlp.EscapePattern(filepath.Join(srcDirPath, tr))+".*", err)
+				log.Errorf("Error from Glob('%s'): %v", lhlp.EscapePattern(filepath.Join(srcDir.Path(), tr))+".*", err)
 				return err
 			}
 			// if counterpart does not exist: ...
@@ -159,7 +159,7 @@ func deleteTrg(cfg *Config) error {
 }
 
 // GetSyncFiles determines which directories and files need to be synched
-func GetSyncFiles(cfg *Config, init bool) (*[]*string, *[]*string) {
+func GetSyncFiles(cfg *Config, init bool) (*[]lhlp.FileInfo, *[]lhlp.FileInfo) {
 	// filter function needed for FindFiles
 	filter := func(srcFile string) (bool, bool) {
 		fi, err := os.Stat(srcFile)
@@ -206,15 +206,6 @@ func GetSyncFiles(cfg *Config, init bool) (*[]*string, *[]*string) {
 			}
 		}
 
-		/*
-			if !fi.IsDir() {
-				_, ok := cfg.getCv(srcFile)
-				if !ok {
-					return false, false
-				}
-			}
-		*/
-
 		// if the last call smsync has been interrupted ('work in progress',
 		// WIP) and command line option 'initialize' hasn't been set, files on
 		// source side are only relevant for sync, if no counterpart is
@@ -259,30 +250,4 @@ func GetSyncFiles(cfg *Config, init bool) (*[]*string, *[]*string) {
 // removeErrDir deletes the error directory
 func removeErrDir() error {
 	return os.RemoveAll(filepath.Join(".", errDir))
-}
-
-// size returns the size of a file
-func size(f string) uint64 {
-	if f == "" {
-		return 0
-	}
-
-	fi, err := os.Stat(f)
-	if err != nil {
-		log.Errorf("%v", err)
-		return 0
-	}
-	if fi.IsDir() {
-		return 0
-	}
-	return uint64(fi.Size())
-}
-
-// totalSize returns the aggregated size of a list of files
-func totalSize(fs []*string) uint64 {
-	var sz uint64
-	for _, f := range fs {
-		sz += size(*f)
-	}
-	return sz
 }

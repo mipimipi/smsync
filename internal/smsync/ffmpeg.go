@@ -61,11 +61,10 @@ func execFFMPEG(srcFile string, trgFile string, params *[]string) error {
 		log.Errorf("FFmpeg command: ffmpeg %s", strings.Join(args, " "))
 
 		// if error directory doesn't exist: create it
-		if _, e0 := os.Stat(filepath.Join(".", errDir)); os.IsNotExist(e0) {
-			if e1 := os.Mkdir(filepath.Join(".", errDir), os.ModeDir|0755); e1 != nil {
-				log.Errorf("Error from Mkdir('%s'): %v", errDir, e1)
-			}
+		if e := lhlp.MkdirAll(filepath.Join(".", errDir), os.ModeDir|0755); e != nil {
+			log.Errorf("Error from MkdirAll('%s'): %v", errDir, e)
 		}
+
 		// assemble error file name
 		errFile := filepath.Join(".", errDir, filepath.Base(lhlp.PathTrunk(trgFile))) + ".log"
 		// write stdout into error file

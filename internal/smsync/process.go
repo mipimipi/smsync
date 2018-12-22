@@ -64,24 +64,28 @@ func (prog *Progress) kickOff() {
 	prog.Start = time.Now()
 }
 
-func newProg(wl *[]*string, space uint64) *Progress {
+func newProg(wl *[]lhlp.FileInfo, space uint64) *Progress {
 	var prog Progress
 
 	prog.TotalNum = len(*wl)
 	prog.Diskspace = space
 	prog.Res = make(chan ProcRes)
 
-	go func() {
-		prog.TotalSize = totalSize(*wl)
-	}()
+	for _, fi := range *wl {
+		prog.TotalSize += uint64(fi.Size())
+	}
 
 	return &prog
 }
 
-func (prog *Progress) update(srcFile, trgFile string, dur time.Duration, err error) {
+func (prog *Progress) update(srcFile, trgFile lhlp.FileInfo, dur time.Duration, err error) {
 	prog.Done++
-	prog.SrcSize += size(srcFile)
-	prog.TrgSize += size(trgFile)
+	if srcFile != nil {
+		prog.SrcSize += uint64(srcFile.Size())
+	}
+	if trgFile != nil {
+		prog.TrgSize += uint64(trgFile.Size())
+	}
 	prog.Comp = float64(prog.TrgSize) / float64(prog.SrcSize)
 	prog.Size = uint64(prog.Comp * float64(prog.TotalSize))
 	prog.Avail = int64(prog.Diskspace) - int64(prog.Size)
@@ -98,7 +102,7 @@ func (prog *Progress) update(srcFile, trgFile string, dur time.Duration, err err
 }
 
 // Process
-func Process(cfg *Config, dirs *[]*string, files *[]*string, init bool) (*Progress, *Progress, <-chan error, error) {
+func Process(cfg *Config, dirs *[]lhlp.FileInfo, files *[]lhlp.FileInfo, init bool) (*Progress, *Progress, <-chan error, error) {
 	var (
 		dirProg  = newProg(dirs, 0)                                            // progress structure for directories
 		fileProg = newProg(files, du.NewDiskUsage(cfg.TrgDirPath).Available()) // progress structure for files
@@ -178,7 +182,7 @@ func Process(cfg *Config, dirs *[]*string, files *[]*string, init bool) (*Progre
 // processDirs creates new and deletes obsolete directories. processDirs
 // returns a channel that it uses to return the processing status/result
 // continuously after a directory has been processed.
-func processDirs(cfg *Config, prog *Progress, dirs *[]*string) {
+func processDirs(cfg *Config, prog *Progress, dirs *[]lhlp.FileInfo) {
 	log.Debug("ProcessDirs: START")
 	defer log.Debug("ProcessDirs: END")
 
@@ -197,7 +201,7 @@ func processDirs(cfg *Config, prog *Progress, dirs *[]*string) {
 
 	for _, d := range *dirs {
 		// assemble full path of new directory (source & target)
-		trgDirPath, err = lhlp.PathRelCopy(cfg.SrcDirPath, *d, cfg.TrgDirPath)
+		trgDirPath, err = lhlp.PathRelCopy(cfg.SrcDirPath, d.Path(), cfg.TrgDirPath)
 		if err != nil {
 			log.Errorf("Target path cannot be assembled: %v", err)
 			return
@@ -213,14 +217,14 @@ func processDirs(cfg *Config, prog *Progress, dirs *[]*string) {
 
 		if exists {
 			// if it exists: check if there are obsolete files and delete them
-			if err = deleteObsoleteFiles(cfg, *d); err != nil {
+			if err = deleteObsoleteFiles(cfg, d); err != nil {
 				return
 			}
 		}
 		log.Debug("D")
 
 		// update progress
-		prog.update(*d, "", 0, err)
+		prog.update(d, nil, 0, err)
 	}
 }
 
@@ -228,7 +232,7 @@ func processDirs(cfg *Config, prog *Progress, dirs *[]*string) {
 // are processed in parallel using the package github.com/mipimipi/go-worker.
 // It returns a channel that it uses to return the processing status/result
 // continuously after a file has been processed.
-func processFiles(cfg *Config, prog *Progress, files *[]*string) {
+func processFiles(cfg *Config, prog *Progress, files *[]lhlp.FileInfo) {
 	log.Debug("ProcessFiles: START")
 	defer log.Debug("ProcessFiles: END")
 
@@ -243,7 +247,7 @@ func processFiles(cfg *Config, prog *Progress, files *[]*string) {
 	// fill worklist with files and close worklist channel
 	go func() {
 		for _, f := range *files {
-			wl <- cvInput{cfg, *f}
+			wl <- cvInput{cfg: cfg, srcFile: f}
 		}
 		close(wl)
 	}()
