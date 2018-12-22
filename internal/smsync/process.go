@@ -101,7 +101,11 @@ func (prog *Progress) update(srcFile, trgFile lhlp.FileInfo, dur time.Duration, 
 	}
 }
 
-// Process
+// Process is the main "backend" function to control the conversion.
+// Essentially, it gets the list of directories and files to be processed and
+// returns corresponding handles to Progress instances. Via these instances,
+// the calling UI (be it a cli or some other UI) can retrieve progress
+// information
 func Process(cfg *Config, dirs *[]lhlp.FileInfo, files *[]lhlp.FileInfo, init bool) (*Progress, *Progress, <-chan error, error) {
 	var (
 		dirProg  = newProg(dirs, 0)                                            // progress structure for directories

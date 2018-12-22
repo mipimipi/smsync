@@ -39,7 +39,7 @@ func printDirProgress(prog *smsync.Progress, first bool) {
 	if first {
 		func() {
 			var (
-				line    = "------------------------------" // lenght=30
+				line    = "------------------------------" // length=30
 				durNull = "--:--:--"                       // "null" string for display of durations
 			)
 
@@ -77,7 +77,7 @@ func printFileProgress(prog *smsync.Progress, first bool) {
 	if first {
 		func() {
 			var (
-				line    = "------------------------------------------------------------------------------" // lenght=77
+				line    = "------------------------------------------------------------------------------" // length=77
 				durNull = "--:--:--"                                                                       // "null" string for display of durations
 			)
 

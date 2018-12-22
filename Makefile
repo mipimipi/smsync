@@ -40,7 +40,6 @@ lint:
 		--enable=unparam \
 		--disable=gocyclo \
 		--vendor \
-		--errors \
 		--deadline=30s \
 		./...
 
