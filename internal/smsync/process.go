@@ -61,10 +61,16 @@ func (prog *Progress) close() {
 }
 
 func (prog *Progress) kickOff() {
+	log.Debug("smsync.Progress.kickOff: START")
+	defer log.Debug("smsync.Progress.kickOff: END")
+
 	prog.Start = time.Now()
 }
 
 func newProg(wl *[]lhlp.FileInfo, space uint64) *Progress {
+	log.Debug("smsync.newProg: START")
+	defer log.Debug("smsync.newProg: END")
+
 	var prog Progress
 
 	prog.TotalNum = len(*wl)
@@ -107,6 +113,9 @@ func (prog *Progress) update(srcFile, trgFile lhlp.FileInfo, dur time.Duration, 
 // the calling UI (be it a cli or some other UI) can retrieve progress
 // information
 func Process(cfg *Config, dirs *[]lhlp.FileInfo, files *[]lhlp.FileInfo, init bool) (*Progress, *Progress, <-chan error, error) {
+	log.Debug("smsync.Process: START")
+	defer log.Debug("smsync.Process: END")
+
 	var (
 		dirProg  = newProg(dirs, 0)                                            // progress structure for directories
 		fileProg = newProg(files, du.NewDiskUsage(cfg.TrgDirPath).Available()) // progress structure for files
@@ -187,8 +196,8 @@ func Process(cfg *Config, dirs *[]lhlp.FileInfo, files *[]lhlp.FileInfo, init bo
 // returns a channel that it uses to return the processing status/result
 // continuously after a directory has been processed.
 func processDirs(cfg *Config, prog *Progress, dirs *[]lhlp.FileInfo) {
-	log.Debug("ProcessDirs: START")
-	defer log.Debug("ProcessDirs: END")
+	log.Debug("smsync.processDirs: START")
+	defer log.Debug("smsync.processDirs: END")
 
 	defer prog.close()
 
@@ -237,8 +246,8 @@ func processDirs(cfg *Config, prog *Progress, dirs *[]lhlp.FileInfo) {
 // It returns a channel that it uses to return the processing status/result
 // continuously after a file has been processed.
 func processFiles(cfg *Config, prog *Progress, files *[]lhlp.FileInfo) {
-	log.Debug("ProcessFiles: START")
-	defer log.Debug("ProcessFiles: END")
+	log.Debug("smsync.processFiles: START")
+	defer log.Debug("smsync.processFiles: END")
 
 	// nothing to do in case of empty files array
 	if len(*files) == 0 {

@@ -81,6 +81,9 @@ type cvm struct {
 // Get reads the smsync configuration from the file ./SMSYNC.yaml and stores
 // the configuration values in the structure *config.
 func (cfg *Config) Get(init bool) error {
+	log.Debug("smsync.Config.Get: START")
+	defer log.Debug("smsync.Config.Get: END")
+
 	var (
 		cfgY cfgYml
 		err  error
@@ -174,6 +177,9 @@ func (cfg *Config) Get(init bool) error {
 // retrieved, a pointer to the cvm structure and true is returned, otherwise
 // nil and false
 func (cfg *Config) getCv(f string) (*cvm, bool) {
+	log.Debug("smsync.Config.getCv: START")
+	defer log.Debug("smsync.Config.getCv: END")
+
 	if _, ok := cfg.Cvs[lhlp.FileSuffix(f)]; ok {
 		return cfg.Cvs[lhlp.FileSuffix(f)], true
 	}
@@ -186,6 +192,9 @@ func (cfg *Config) getCv(f string) (*cvm, bool) {
 // getExcludes expands the directories specified in the config file (which) can
 // contain wildcards
 func (cfg *Config) getExcludes(excls *[]string) error {
+	log.Debug("smsync.Config.getExcludes: START")
+	defer log.Debug("smsync.Config.getExcludes: END")
+
 	for _, excl := range *excls {
 		if excl == "" {
 			continue
@@ -205,6 +214,9 @@ func (cfg *Config) getExcludes(excls *[]string) error {
 // getRule verifies that r represents a valid rule and create the
 // corresponding mapping structure cvm
 func (cfg *Config) getRule(r *rule, i int) (*cvm, error) {
+	log.Debug("smsync.Config.getRule: START")
+	defer log.Debug("smsync.Config.getRule: END")
+
 	var (
 		normCvStr string
 		err       error
@@ -283,6 +295,9 @@ func (cfg *Config) getRule(r *rule, i int) (*cvm, error) {
 // successfully. It sets the last sync time and removes the "wip" (work in
 // progress).
 func (cfg *Config) setProcEnd() error {
+	log.Debug("smsync.Config.setProcEnd: START")
+	defer log.Debug("smsync.Config.setProcEnd: END")
+
 	var (
 		cfgY cfgYml
 		err  error
@@ -313,6 +328,9 @@ func (cfg *Config) setProcEnd() error {
 // "wip" (= work is progress). This status is valid as long as smsync is
 // processing / converting files
 func (cfg *Config) setProcStatWIP() error {
+	log.Debug("smsync.Config.setProcStatWIP: START")
+	defer log.Debug("smsync.Config.setProcStatWIP: END")
+
 	var (
 		cfgY cfgYml
 		err  error
@@ -338,6 +356,9 @@ func (cfg *Config) setProcStatWIP() error {
 
 // readCfg read the configuration from the file smsync.yaml in the current directory
 func (cfgY *cfgYml) read() error {
+	log.Debug("smsync.cfgYml.read: START")
+	defer log.Debug("smsync.cfgYml.read: END")
+
 	// read config file
 	cfgFile, err := ioutil.ReadFile(filepath.Join(".", cfgFileName))
 	if err != nil {
@@ -360,6 +381,9 @@ func (cfgY *cfgYml) read() error {
 
 // write writes the configuration to the file smsync.yaml in the current directory
 func (cfgY *cfgYml) write() error {
+	log.Debug("smsync.cfgYml.write: START")
+	defer log.Debug("smsync.cfgYml.write: END")
+
 	var (
 		out []byte
 		err error
@@ -381,6 +405,9 @@ func (cfgY *cfgYml) write() error {
 
 // checkDir checks if the source directory exists and if it's a directory
 func checkDir(srcDir string) error {
+	log.Debug("smsync.checkDir: START")
+	defer log.Debug("smsync.checkDir: END")
+
 	if len(srcDir) == 0 {
 		log.Errorf("No source directory specified in config file")
 		return fmt.Errorf("No source directory specified in config file")
@@ -404,6 +431,9 @@ func checkDir(srcDir string) error {
 
 // getLastSync determines the time of the last synchronization
 func getLastSync(s string) (time.Time, error) {
+	log.Debug("smsync.getLastSync: START")
+	defer log.Debug("smsync.getLastSync: END")
+
 	var (
 		t   time.Time
 		err error

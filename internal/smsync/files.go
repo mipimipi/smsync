@@ -33,6 +33,9 @@ const errDir = "smsync.err"
 // cleanUp removes temporary files and directories from smsync that are
 // obsolete
 func cleanUp(cfg *Config) error {
+	log.Debug("smsync.cleanUp: START")
+	defer log.Debug("smsync.cleanUp: END")
+
 	var (
 		b       bool
 		err     error
@@ -57,8 +60,8 @@ func cleanUp(cfg *Config) error {
 // target directory tree but not in the source directory tree. It is called
 // for all source directories that have been changes since the last sync
 func deleteObsoleteFiles(cfg *Config, srcDir lhlp.FileInfo) error {
-	log.Debug("deleteOnsoleteFiles: START")
-	defer log.Debug("deleteOnsoleteFiles: END")
+	log.Debug("smsync.deleteOnsoleteFiles: START")
+	defer log.Debug("smsync.deleteOnsoleteFiles: END")
 
 	// assemble target directory path
 	trgDirPath, err := lhlp.PathRelCopy(cfg.SrcDirPath, srcDir.Path(), cfg.TrgDirPath)
@@ -123,6 +126,9 @@ func deleteObsoleteFiles(cfg *Config, srcDir lhlp.FileInfo) error {
 
 // DeleteTrg deletes all entries of the target directory
 func deleteTrg(cfg *Config) error {
+	log.Debug("smsync.deleteTrg: START")
+	defer log.Debug("smsync.deleteTrg: END")
+
 	// open target directory
 	trgDir, err := os.Open(cfg.TrgDirPath)
 	if err != nil {
@@ -160,6 +166,9 @@ func deleteTrg(cfg *Config) error {
 
 // GetSyncFiles determines which directories and files need to be synched
 func GetSyncFiles(cfg *Config, init bool) (*[]lhlp.FileInfo, *[]lhlp.FileInfo) {
+	log.Debug("smsync.GetSyncFiles: START")
+	defer log.Debug("smsync.GetSyncFiles: END")
+
 	// filter function needed for FindFiles
 	filter := func(srcFile string) (bool, bool) {
 		fi, err := os.Stat(srcFile)
@@ -249,5 +258,8 @@ func GetSyncFiles(cfg *Config, init bool) (*[]lhlp.FileInfo, *[]lhlp.FileInfo) {
 
 // removeErrDir deletes the error directory
 func removeErrDir() error {
+	log.Debug("smsync.removeErrDir: START")
+	defer log.Debug("smsync.removeErrDir: END")
+
 	return os.RemoveAll(filepath.Join(".", errDir))
 }

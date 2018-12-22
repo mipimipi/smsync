@@ -43,6 +43,9 @@ var rootCmd = &cobra.Command{
 	SilenceErrors:         true,
 	Args:                  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		log.Debug("cli.cobra.Command.RunE: START")
+		defer log.Debug("cli.cobra.Command.RunE: END")
+
 		// retrieve flags
 		if err := cmd.ParseFlags(args); err != nil {
 			if _, e := fmt.Fprintf(os.Stderr, "Error during parsing of flags: %v", err); e != nil {
@@ -73,6 +76,9 @@ var cli struct {
 }
 
 func init() {
+	log.Debug("cli.init: START")
+	defer log.Debug("cli.init: END")
+
 	// set custom help template
 	rootCmd.SetHelpTemplate(helpTemplate)
 
@@ -89,5 +95,8 @@ func init() {
 
 // Execute executes the root command
 func execute() error {
+	log.Debug("cli.execute: START")
+	defer log.Debug("cli.execute: END")
+
 	return rootCmd.Execute()
 }

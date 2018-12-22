@@ -206,6 +206,9 @@ func printVerbose(cfg *smsync.Config, pRes smsync.ProcRes) {
 // process is a wrapper around the specific functions for processing dirs or files.
 // These functions are passed to process in the function parameter.
 func process(cfg *smsync.Config, prog *smsync.Progress, wl *[]lhlp.FileInfo, print func(*smsync.Progress, bool), verbose bool) error {
+	log.Debug("cli.process: START")
+	defer log.Debug("cli.process: END")
+
 	var (
 		procRes = prog.Res                    // channel to receive processing results
 		res     smsync.ProcRes                // processing result
@@ -264,6 +267,9 @@ func process(cfg *smsync.Config, prog *smsync.Progress, wl *[]lhlp.FileInfo, pri
 // (2) determine directories and files to be synched
 // (3) start processing of these directories and files
 func synchronize(level log.Level, verbose bool) error {
+	log.Debug("cli.synchronize: START")
+	defer log.Debug("cli.synchronize: END")
+
 	var (
 		cfg      smsync.Config
 		dirProg  *smsync.Progress
