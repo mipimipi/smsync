@@ -81,10 +81,10 @@ func printFileProgress(prog *smsync.Progress, first bool) {
 				durNull = "--:--:--"                                                                       // "null" string for display of durations
 			)
 
-			fmt.Printf(format+"\n", "", "Elapsed", "Remain", "#Conv", "Avg", "Avg", "Estimated", "Estimated", "")             // nolint, headline 1
-			fmt.Printf(format+"\n", "#TODO", "Time", "Time", "p.min", "Dur", "Compr", "Target Size", "Free Space", "#Errors") // nolint, headline 2
-			fmt.Println(line)                                                                                                 // separator
-			fmt.Printf(format, "-", durNull, durNull, "-", "-", " -%", "- MB", "- MB", "-")                                   // nolint
+			fmt.Printf(format+"\n", "", "Elapsed", "Remain", "#Conv", "Avg", "Avg", "Estimated", "Estimated", "")               // nolint, headline 1
+			fmt.Printf(format+"\n", "#TODO", "Time", "Time", "/ min", "Durat", "Compr", "Target Size", "Free Space", "#Errors") // nolint, headline 2
+			fmt.Println(line)                                                                                                   // separator
+			fmt.Printf(format, "-", durNull, durNull, "-", "- s", "- %", "- MB", "- MB", "-")                                   // nolint
 		}()
 
 		return
@@ -100,8 +100,8 @@ func printFileProgress(prog *smsync.Progress, first bool) {
 		size = "- MB"
 		avail = "- MB"
 	} else {
-		size = fmt.Sprintf("%d MB", prog.Size/mb)
-		avail = fmt.Sprintf("%d MB", prog.Avail/int64(mb))
+		size = fmt.Sprintf("%dMB", prog.Size/mb)
+		avail = fmt.Sprintf("%dMB", prog.Avail/int64(mb))
 	}
 
 	// print progress (updates the same screen row)
@@ -110,7 +110,7 @@ func printFileProgress(prog *smsync.Progress, first bool) {
 		split(prog.Elapsed),
 		split(prog.Remaining),
 		fmt.Sprintf("%2.1f", prog.Throughput),
-		fmt.Sprintf("%2.3f", prog.AvgDur.Seconds()),
+		fmt.Sprintf("%2.2fs", prog.AvgDur.Seconds()),
 		fmt.Sprintf("%3.1f%%", prog.Comp*100),
 		size,
 		avail,
