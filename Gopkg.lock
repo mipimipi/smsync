@@ -2,12 +2,12 @@
 
 
 [[projects]]
-  digest = "1:19ea97688477f0c05ef94e9ddf48c5a2d8837b4ba781a1014c068293dcca2e5b"
+  digest = "1:c914c5f07b45352e70e55d147661667b45e69f01e4ba94ddd260d62a4c0b1aa9"
   name = "github.com/go-ini/ini"
   packages = ["."]
   pruneopts = "UT"
-  revision = "f55231ca73a76c1d61eb05fe0d64a1ccebf93cba"
-  version = "v1.39.3"
+  revision = "a9da9309fb4822643ceebb765f80025c35ac19a1"
+  version = "v1.40.0"
 
 [[projects]]
   digest = "1:870d441fe217b8e689d7949fef6e43efbc787e50f200cb1e70dbca9204a1d6be"
@@ -26,11 +26,11 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:6cbaf31c1ef531aa9494440ecb06a2c5ac2ab48c720d09fcab25bbc5a47d52f3"
+  digest = "1:0982b157c7e57e4456718647c9f66b17de46365ea565e45faf7a1a55a2d25107"
   name = "github.com/mipimipi/go-lhlp"
   packages = ["."]
   pruneopts = "UT"
-  revision = "ea0ca9ca2bc23cbbc13f710e97543f99970b65a5"
+  revision = "eb7318a660b558b7fb95ad7d5ce0395e69e3df38"
   version = "1.9"
 
 [[projects]]

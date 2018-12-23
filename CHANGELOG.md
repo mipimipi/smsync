@@ -1,3 +1,17 @@
+# [Release 3.2.0](https://github.com/mipimipi/smsync/releases/tag/3.2.0) (2018-12-23)
+
+## Added
+
+* Store output of FFMPEG in case of error ([#11](https://github.com/mipimipi/smsync/issues/11))
+* Optimization of determination of new/changed directories and files
+* Reorganization of code/responsibility between backend and UI
+* Improvement of status display
+
+## Fixed
+
+* Empty folders ([#10](https://github.com/mipimipi/smsync/issues/10))
+* Empty log file ([#12](https://github.com/mipimipi/smsync/issues/12))
+
 # [Release 3.1.1](https://github.com/mipimipi/smsync/releases/tag/3.1.1) (2018-12-20)
 
 ## Added

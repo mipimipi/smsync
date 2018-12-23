@@ -202,11 +202,11 @@ func FileSuffix(f string) string {
 // book "The Go Programming Language" by Alan A. A. Donovan & Brian W.
 // Kernighan.
 // See: https://github.com/adonovan/gopl.io/blob/master/ch8/du4/main.go
-func FindFiles(roots []string, filter func(string) (bool, bool), numWorkers int) (*[]FileInfo, *[]FileInfo) {
+func FindFiles(roots []string, filter func(FileInfo) (bool, bool), numWorkers int) (*[]FileInfo, *[]FileInfo) {
 	var (
 		dirs    []FileInfo     // list of directories to be returned
 		files   []FileInfo     // list of files to be returned
-		descend func(string)   // func needs to be declared here since it calls itself recursively
+		descend func(FileInfo) // func needs to be declared here since it calls itself recursively
 		wg      sync.WaitGroup // waiting group for the concurrent traversal
 	)
 
@@ -215,13 +215,13 @@ func FindFiles(roots []string, filter func(string) (bool, bool), numWorkers int)
 	defer close(sema)
 
 	// function to retrieve the entries of a directory
-	entries := func(dir string) []os.FileInfo {
+	entries := func(dir FileInfo) []os.FileInfo {
 		// send to limited buffer and retrieve from buffer at the end
 		sema <- struct{}{}
 		defer func() { <-sema }()
 
 		// retrieve directory entries
-		entrs, err := ioutil.ReadDir(dir)
+		entrs, err := ioutil.ReadDir(dir.Path())
 		if err != nil {
 			return nil
 		}
@@ -230,7 +230,7 @@ func FindFiles(roots []string, filter func(string) (bool, bool), numWorkers int)
 	}
 
 	// function to traverse the directory tree. Calls itself recursively
-	descend = func(dir string) {
+	descend = func(dir FileInfo) {
 		defer wg.Done()
 
 		// loop at the entries of dir
@@ -240,16 +240,16 @@ func FindFiles(roots []string, filter func(string) (bool, bool), numWorkers int)
 			// corresponding array (either dirs or files)
 			if entr.IsDir() {
 				// filter and add entry to dirs
-				subDir := filepath.Join(dir, entr.Name())
-				isValid, goDown := filter(subDir)
+				fi := newFI(entr, filepath.Join(dir.Path(), entr.Name()))
+				isValid, goDown := filter(fi)
 				if isValid {
 					// create extended FileInfo and append it to dirs array
-					dirs = append(dirs, newFI(entr, subDir))
+					dirs = append(dirs, fi)
 				}
 				// traverse the next level
 				if goDown {
 					wg.Add(1)
-					go descend(subDir)
+					go descend(fi)
 				}
 			} else {
 				// only regular files are relevant
@@ -257,10 +257,10 @@ func FindFiles(roots []string, filter func(string) (bool, bool), numWorkers int)
 					continue
 				}
 				// filter and add entry to files
-				file := filepath.Join(dir, entr.Name())
-				if valid, _ := filter(file); valid {
+				fi := newFI(entr, filepath.Join(dir.Path(), entr.Name()))
+				if valid, _ := filter(fi); valid {
 					// create extended FileInfo and append it to dirs array
-					files = append(files, newFI(entr, file))
+					files = append(files, fi)
 				}
 			}
 		}
@@ -279,7 +279,7 @@ func FindFiles(roots []string, filter func(string) (bool, bool), numWorkers int)
 		}
 		// start traversal for this directory
 		wg.Add(1)
-		go descend(root)
+		go descend(newFI(fi, root))
 	}
 
 	// wait for traversals to be finalized

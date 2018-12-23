@@ -337,8 +337,11 @@ func synchronize(level log.Level, verbose bool) error {
 		return err
 	}
 
-	// process directories
-	if len(*dirs) > 0 {
+	// process directories.	This is only necessary, if ...
+	// - at least one directory has been changed and
+	// - smsync hasn't been called in initialize mode and
+	// - there was at least one sync before
+	if len(*dirs) > 0 && !cli.init && !cfg.LastSync.IsZero() {
 		fmt.Println("\n:: Process directories")
 		if err = process(&cfg, dirProg, dirs, printDirProgress, verbose); err != nil {
 			return err

@@ -150,8 +150,11 @@ func Process(cfg *Config, dirs *[]lhlp.FileInfo, files *[]lhlp.FileInfo, init bo
 		// register closure of done channel
 		defer close(done)
 
-		// process directories
-		if len(*dirs) > 0 {
+		// process directories. This is only necessary, if ...
+		// - at least one directory has been changed and
+		// - smsync hasn't been called in initialize mode and
+		// - there was at least one sync before
+		if len(*dirs) > 0 && !init && !cfg.LastSync.IsZero() {
 			dirProg.kickOff()
 			processDirs(cfg, dirProg, dirs)
 		}
@@ -219,14 +222,12 @@ func processDirs(cfg *Config, prog *Progress, dirs *[]lhlp.FileInfo) {
 			log.Errorf("Target path cannot be assembled: %v", err)
 			return
 		}
-		log.Debug("B")
 
 		// determine if directory exists
 		exists, err = lhlp.FileExists(trgDirPath)
 		if err != nil {
 			return
 		}
-		log.Debug("C")
 
 		if exists {
 			// if it exists: check if there are obsolete files and delete them
@@ -234,7 +235,6 @@ func processDirs(cfg *Config, prog *Progress, dirs *[]lhlp.FileInfo) {
 				return
 			}
 		}
-		log.Debug("D")
 
 		// update progress
 		prog.update(d, nil, 0, err)

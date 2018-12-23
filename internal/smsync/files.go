@@ -170,31 +170,25 @@ func GetSyncFiles(cfg *Config, init bool) (*[]lhlp.FileInfo, *[]lhlp.FileInfo) {
 	defer log.Debug("smsync.GetSyncFiles: END")
 
 	// filter function needed for FindFiles
-	filter := func(srcFile string) (bool, bool) {
-		fi, err := os.Stat(srcFile)
-		if err != nil {
-			log.Errorf("Error from os.Stat('%s'): %v", srcFile, err)
-			return false, true
-		}
-
+	filter := func(srcFile lhlp.FileInfo) (bool, bool) {
 		// check if file is relevant for smsync (i.e. its suffix is contained
 		// in the symsync config). If not: Return false
-		if !fi.IsDir() {
-			_, ok := cfg.getCv(srcFile)
+		if !srcFile.IsDir() {
+			_, ok := cfg.getCv(srcFile.Path())
 			if !ok {
 				return false, false
 			}
 		}
 
 		// check if the directory needs to be excluded
-		if fi.IsDir() && lhlp.Contains(cfg.Excludes, srcFile) {
+		if srcFile.IsDir() && lhlp.Contains(cfg.Excludes, srcFile.Path()) {
 			return false, false
 		}
 
 		// check if the file/directory has been changed since last sync.
 		// If not: Return false
-		if fi.ModTime().Before(cfg.LastSync) {
-			if fi.IsDir() {
+		if srcFile.ModTime().Before(cfg.LastSync) {
+			if srcFile.IsDir() {
 				return false, true
 			}
 			// in case, srcFile is a file (and no directory), another check
@@ -205,9 +199,9 @@ func GetSyncFiles(cfg *Config, init bool) (*[]lhlp.FileInfo, *[]lhlp.FileInfo) {
 			// Therefore, in addition, it is checked whether the modification
 			// time of the directory of the file has changed since last sync.
 			// If that's the case, the file is relevant for the synchronization.
-			fiDir, err := os.Stat(filepath.Dir(srcFile))
+			fiDir, err := os.Stat(filepath.Dir(srcFile.Path()))
 			if err != nil {
-				log.Errorf("Error from os.Stat('%s'): %v", filepath.Dir(srcFile), err)
+				log.Errorf("Error from os.Stat('%s'): %v", filepath.Dir(srcFile.Path()), err)
 				return false, false
 			}
 			if fiDir.ModTime().Before(cfg.LastSync) {
@@ -221,7 +215,7 @@ func GetSyncFiles(cfg *Config, init bool) (*[]lhlp.FileInfo, *[]lhlp.FileInfo) {
 		// existing on target side. That's checked in the next if statement
 		if cfg.WIP && !init {
 			// assemble target file path
-			trgFile, err := lhlp.PathRelCopy(cfg.SrcDirPath, srcFile, cfg.TrgDirPath)
+			trgFile, err := lhlp.PathRelCopy(cfg.SrcDirPath, srcFile.Path(), cfg.TrgDirPath)
 			if err != nil {
 				log.Errorf("Target path cannot be assembled: %v", err)
 				return false, true
@@ -229,7 +223,7 @@ func GetSyncFiles(cfg *Config, init bool) (*[]lhlp.FileInfo, *[]lhlp.FileInfo) {
 
 			// if source file is a directory, check it the counterpart on
 			// target side exists
-			if fi.IsDir() {
+			if srcFile.IsDir() {
 				var exists bool
 				exists, err = lhlp.FileExists(trgFile)
 				if err != nil {
