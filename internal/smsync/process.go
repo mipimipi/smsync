@@ -18,6 +18,8 @@
 package smsync
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	lhlp "github.com/mipimipi/go-lhlp"
@@ -130,7 +132,10 @@ func Process(cfg *Config, dirs *[]lhlp.FileInfo, files *[]lhlp.FileInfo, init bo
 	}
 
 	// remove potentially existing error directory from last run
-	removeErrDir()
+	if err := os.RemoveAll(errDir); err != nil {
+		log.Errorf("Couldn't delete error directory: %v", err)
+		return nil, nil, nil, fmt.Errorf("Couldn't delete error directory: %v", err)
+	}
 
 	// set processing status to "work in progress" in smsync.yaml
 	if err := cfg.setProcStatWIP(); err != nil {

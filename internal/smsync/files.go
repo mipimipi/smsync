@@ -249,11 +249,3 @@ func GetSyncFiles(cfg *Config, init bool) (*[]lhlp.FileInfo, *[]lhlp.FileInfo) {
 	// call FindFiles with the smsync filter function to get the directories and files
 	return lhlp.FindFiles([]string{cfg.SrcDirPath}, filter, 20)
 }
-
-// removeErrDir deletes the error directory
-func removeErrDir() error {
-	log.Debug("smsync.removeErrDir: START")
-	defer log.Debug("smsync.removeErrDir: END")
-
-	return os.RemoveAll(filepath.Join(".", errDir))
-}

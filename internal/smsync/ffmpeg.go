@@ -66,7 +66,7 @@ func execFFMPEG(srcFile string, trgFile string, params *[]string) error {
 		}
 
 		// assemble error file name
-		errFile := filepath.Join(".", errDir, filepath.Base(lhlp.PathTrunk(trgFile))) + ".log"
+		errFile := filepath.Join(errDir, filepath.Base(lhlp.PathTrunk(trgFile))) + ".log"
 		// write stdout into error file
 		if e := ioutil.WriteFile(errFile, out, 0644); e != nil {
 			log.Errorf("Couldn't write FFMPEG error file '%s's: %v", errFile, e)
