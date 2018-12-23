@@ -193,13 +193,15 @@ func printCfgSummary(cfg *smsync.Config) {
 // printVerbose displays a file name relative to the source directory (from
 // the configuration). This function is used if the user called smsync with the
 // option --verbose / -v
-func printVerbose(cfg *smsync.Config, pRes smsync.ProcRes) {
-	srcFile, err := filepath.Rel(cfg.SrcDirPath, pRes.SrcFile)
+func printVerbose(cfg *smsync.Config, res smsync.ProcRes) {
+	srcFile, err := filepath.Rel(cfg.SrcDirPath, res.SrcFile.Path())
 	if err != nil {
 		log.Error(err)
 
 	} else {
-		fmt.Printf("%s -> DONE\n", srcFile)
+		fmt.Println("----------")
+		fmt.Printf("CONVERTED: %s\n", srcFile)
+		fmt.Printf("DURATION : %2.2fs\n", res.Dur.Seconds())
 	}
 }
 
@@ -238,6 +240,7 @@ func process(cfg *smsync.Config, prog *smsync.Progress, wl *[]lhlp.FileInfo, pri
 				if !ticked && !verbose {
 					print(prog, false)
 				}
+
 				// if the user wants smsync to be verbose, display file (that
 				// has been processed) ...
 				if verbose {

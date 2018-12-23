@@ -30,9 +30,9 @@ import (
 
 // ProcRes is the result structure for directory or file processing
 type ProcRes struct {
-	SrcFile string        // source file or directory
-	TrgFile string        // target file or directory
-	dur     time.Duration // duration of a conversion
+	SrcFile lhlp.FileInfo // source file or directory
+	TrgFile lhlp.FileInfo // target file or directory
+	Dur     time.Duration // duration of a conversion
 	Err     error         // error (that occurred during processing)
 }
 
@@ -107,6 +107,12 @@ func (prog *Progress) update(srcFile, trgFile lhlp.FileInfo, dur time.Duration, 
 	if err != nil {
 		prog.Errors++
 	}
+
+	// send conversion information to whoever is interested
+	prog.Res <- ProcRes{SrcFile: srcFile,
+		TrgFile: trgFile,
+		Dur:     dur,
+		Err:     err}
 }
 
 // Process is the main "backend" function to control the conversion.
