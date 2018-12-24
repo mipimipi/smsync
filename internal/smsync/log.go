@@ -37,9 +37,6 @@ type smsyncTextFormatter struct{}
 
 // Format prints one log line in smsync specific format
 func (f *smsyncTextFormatter) Format(entry *log.Entry) ([]byte, error) {
-	log.Debug("smsync.smsyncTextFormatter.Format: START")
-	defer log.Debug("smsync.smsyncTextFormatter.Format: END")
-
 	var b *bytes.Buffer
 
 	// initialize buffer
@@ -106,9 +103,6 @@ func (f *smsyncTextFormatter) Format(entry *log.Entry) ([]byte, error) {
 
 // CreateLogger creates and initializes the logger for smsync
 func CreateLogger(level log.Level) error {
-	log.Debug("smsync.CreateLogger: START")
-	defer log.Debug("smsync.CreateLogger: END")
-
 	// set log file
 	fp, err := filepath.Abs(filepath.Join(".", logFileName))
 	if err != nil {

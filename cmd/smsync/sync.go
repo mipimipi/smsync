@@ -100,8 +100,8 @@ func printFileProgress(prog *smsync.Progress, first bool) {
 		size = "- MB"
 		avail = "- MB"
 	} else {
-		size = fmt.Sprintf("%dMB", prog.Size/mb)
-		avail = fmt.Sprintf("%dMB", prog.Avail/int64(mb))
+		size = fmt.Sprintf("%d MB", prog.Size/mb)
+		avail = fmt.Sprintf("%d MB", prog.Avail/int64(mb))
 	}
 
 	// print progress (updates the same screen row)
@@ -270,6 +270,14 @@ func process(cfg *smsync.Config, prog *smsync.Progress, wl *[]lhlp.FileInfo, pri
 // (2) determine directories and files to be synched
 // (3) start processing of these directories and files
 func synchronize(level log.Level, verbose bool) error {
+	// logger needs to be created before the first log entry is generated!!!
+	if err := smsync.CreateLogger(level); err != nil {
+		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
+			return e
+		}
+		return err
+	}
+
 	log.Debug("cli.synchronize: START")
 	defer log.Debug("cli.synchronize: END")
 
@@ -280,13 +288,6 @@ func synchronize(level log.Level, verbose bool) error {
 		errors   <-chan error
 		err      error
 	)
-
-	if err := smsync.CreateLogger(level); err != nil {
-		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
-			return e
-		}
-		return err
-	}
 
 	// print copyright etc. on command line
 	fmt.Println(preamble)

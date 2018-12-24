@@ -177,9 +177,6 @@ func (cfg *Config) Get(init bool) error {
 // retrieved, a pointer to the cvm structure and true is returned, otherwise
 // nil and false
 func (cfg *Config) getCv(f string) (*cvm, bool) {
-	log.Debug("smsync.Config.getCv: START")
-	defer log.Debug("smsync.Config.getCv: END")
-
 	if _, ok := cfg.Cvs[lhlp.FileSuffix(f)]; ok {
 		return cfg.Cvs[lhlp.FileSuffix(f)], true
 	}

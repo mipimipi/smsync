@@ -43,9 +43,6 @@ var rootCmd = &cobra.Command{
 	SilenceErrors:         true,
 	Args:                  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		log.Debug("cli.cobra.Command.RunE: START")
-		defer log.Debug("cli.cobra.Command.RunE: END")
-
 		// retrieve flags
 		if err := cmd.ParseFlags(args); err != nil {
 			if _, e := fmt.Fprintf(os.Stderr, "Error during parsing of flags: %v", err); e != nil {
@@ -56,7 +53,7 @@ var rootCmd = &cobra.Command{
 
 		// set up logging
 		var level log.Level
-		if cli.doLog {
+		if cli.log {
 			level = log.DebugLevel
 		} else {
 			level = log.ErrorLevel
@@ -69,16 +66,13 @@ var rootCmd = &cobra.Command{
 
 // variables to store command line flags
 var cli struct {
-	doLog     bool // do logging
+	log       bool // switch on logging
 	init      bool // initialize
 	noConfirm bool // don't ask for confirmation
 	verbose   bool // print detailed progress
 }
 
 func init() {
-	log.Debug("cli.init: START")
-	defer log.Debug("cli.init: END")
-
 	// set custom help template
 	rootCmd.SetHelpTemplate(helpTemplate)
 
@@ -86,7 +80,7 @@ func init() {
 	// - initialize
 	rootCmd.Flags().BoolVarP(&cli.init, "initialize", "i", false, "delete content of target directory and do initial sync")
 	// - logging
-	rootCmd.Flags().BoolVarP(&cli.doLog, "log", "l", false, "switch on logging")
+	rootCmd.Flags().BoolVarP(&cli.log, "log", "l", false, "switch on logging")
 	// - print detailed progress
 	rootCmd.Flags().BoolVarP(&cli.verbose, "verbose", "v", false, "print detailed progress")
 	// - no confirmation
@@ -95,8 +89,5 @@ func init() {
 
 // Execute executes the root command
 func execute() error {
-	log.Debug("cli.execute: START")
-	defer log.Debug("cli.execute: END")
-
 	return rootCmd.Execute()
 }

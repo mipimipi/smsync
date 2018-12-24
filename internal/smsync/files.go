@@ -60,8 +60,8 @@ func cleanUp(cfg *Config) error {
 // target directory tree but not in the source directory tree. It is called
 // for all source directories that have been changes since the last sync
 func deleteObsoleteFiles(cfg *Config, srcDir lhlp.FileInfo) error {
-	log.Debug("smsync.deleteOnsoleteFiles: START")
-	defer log.Debug("smsync.deleteOnsoleteFiles: END")
+	log.Debugf("smsync.deleteObsoleteFiles(%s): START", srcDir.Path())
+	defer log.Debugf("smsync.deleteObsoleteFiles(%s): END", srcDir.Path())
 
 	// assemble target directory path
 	trgDirPath, err := lhlp.PathRelCopy(cfg.SrcDirPath, srcDir.Path(), cfg.TrgDirPath)
@@ -79,16 +79,19 @@ func deleteObsoleteFiles(cfg *Config, srcDir lhlp.FileInfo) error {
 
 	// loop over all entries of target directory
 	for _, trgEntr := range trgEntrs {
+		log.Debugf("processing %s", trgEntr.Name())
+
 		if trgEntr.IsDir() {
 			// if entry is a directory ...
-			b, _ := lhlp.FileExists(filepath.Join(srcDir.Path(), trgEntr.Name()))
+			b, err := lhlp.FileExists(filepath.Join(srcDir.Path(), trgEntr.Name()))
 			if err != nil {
-				log.Errorf("HALO %v", err)
+				log.Errorf("%v", err)
 			}
 			// ... and the counterpart on source side doesn't exists: ...
 			if !b {
+				log.Debug("is directory and src counterpart doesn't exist: DELETE")
 				// ... delete entry
-				if err = os.Remove(filepath.Join(trgDirPath, trgEntr.Name())); err != nil {
+				if err = os.RemoveAll(filepath.Join(trgDirPath, trgEntr.Name())); err != nil {
 					log.Errorf("Cannot remove '%s': %v", filepath.Join(trgDirPath, trgEntr.Name()), err)
 					return err
 				}
@@ -112,6 +115,7 @@ func deleteObsoleteFiles(cfg *Config, srcDir lhlp.FileInfo) error {
 			}
 			// if counterpart does not exist: ...
 			if fs == nil {
+				log.Debug("is file and src counterpart doesn't exist: DELETE")
 				// ... delete entry
 				if err = os.Remove(filepath.Join(trgDirPath, trgEntr.Name())); err != nil {
 					log.Errorf("Cannot remove '%s': %v", filepath.Join(trgDirPath, trgEntr.Name()), err)
@@ -119,6 +123,7 @@ func deleteObsoleteFiles(cfg *Config, srcDir lhlp.FileInfo) error {
 				}
 			}
 		}
+		log.Debug("src counterpart exists: DON'T DELETE")
 	}
 
 	return nil
@@ -170,80 +175,67 @@ func GetSyncFiles(cfg *Config, init bool) (*[]lhlp.FileInfo, *[]lhlp.FileInfo) {
 	defer log.Debug("smsync.GetSyncFiles: END")
 
 	// filter function needed for FindFiles
-	filter := func(srcFile lhlp.FileInfo) (bool, bool) {
+	filter := func(srcFile lhlp.FileInfo, propagated bool) (bool, bool) {
+		log.Debugf("smsync.GetSyncFiles.filter(%s): START", srcFile.Path())
+		defer log.Debugf("smsync.GetSyncFiles.filter(%s): END", srcFile.Path())
+
+		var (
+			trgFile string
+			err     error
+		)
+
 		// check if file is relevant for smsync (i.e. its suffix is contained
-		// in the symsync config). If not: Return false
+		// in the smsync config). If not: Return false
 		if !srcFile.IsDir() {
 			_, ok := cfg.getCv(srcFile.Path())
 			if !ok {
+				log.Debug("suffix is not contained smsync config: INVALID, NO PROPAGATE")
 				return false, false
 			}
+			if propagated {
+				log.Debug("suffix is contained smsync config and propagated: VALID, NO PROPAGATE")
+				return true, false
+			}
+			log.Debug("suffix is contained smsync config, but not propagated: GO AHEAD")
 		}
 
 		// check if the directory needs to be excluded
 		if srcFile.IsDir() && lhlp.Contains(cfg.Excludes, srcFile.Path()) {
+			log.Debug("directory excluded: INVALID, NO PROPAGATE")
 			return false, false
 		}
 
+		// assemble target file/directory path
+		if srcFile.IsDir() {
+			trgFile, err = lhlp.PathRelCopy(cfg.SrcDirPath, srcFile.Path(), cfg.TrgDirPath)
+		} else {
+			trgFile, _ = assembleTrgFile(cfg, srcFile.Path())
+		}
+		if err != nil {
+			log.Errorf("Target path cannot be assembled: %v", err)
+			return false, false
+		}
+		// if file/directory doesn't exists: return true
+		if exists, _ := lhlp.FileExists(trgFile); !exists {
+			log.Debug("target file doesn't exist:: VALID, PROPAGATE")
+			return true, true
+		}
+
 		// check if the file/directory has been changed since last sync.
-		// If not: Return false
-		if srcFile.ModTime().Before(cfg.LastSync) {
-			if srcFile.IsDir() {
-				return false, true
-			}
-			// in case, srcFile is a file (and no directory), another check
-			// is necessary since the modification time of downloaded music
-			// files is sometimes earlier then the download time (i.e. the
-			// modification time is not updated during download). That's the
-			// case if an entire album is downloaded as zip file, for instance.
-			// Therefore, in addition, it is checked whether the modification
-			// time of the directory of the file has changed since last sync.
-			// If that's the case, the file is relevant for the synchronization.
-			fiDir, err := os.Stat(filepath.Dir(srcFile.Path()))
-			if err != nil {
-				log.Errorf("Error from os.Stat('%s'): %v", filepath.Dir(srcFile.Path()), err)
-				return false, false
-			}
-			if fiDir.ModTime().Before(cfg.LastSync) {
-				return false, false
-			}
+		if srcFile.ModTime().After(cfg.LastSync) && !cfg.WIP {
+			log.Debug("source file has been changed and not WIP: VALID, NO PROPAGATE")
+			return true, false
 		}
 
-		// if the last call smsync has been interrupted ('work in progress',
-		// WIP) and command line option 'initialize' hasn't been set, files on
-		// source side are only relevant for sync, if no counterpart is
-		// existing on target side. That's checked in the next if statement
-		if cfg.WIP && !init {
-			// assemble target file path
-			trgFile, err := lhlp.PathRelCopy(cfg.SrcDirPath, srcFile.Path(), cfg.TrgDirPath)
-			if err != nil {
-				log.Errorf("Target path cannot be assembled: %v", err)
-				return false, true
-			}
-
-			// if source file is a directory, check it the counterpart on
-			// target side exists
-			if srcFile.IsDir() {
-				var exists bool
-				exists, err = lhlp.FileExists(trgFile)
-				if err != nil {
-					log.Errorf("A %v", err)
-					return false, true
-				}
-				return !exists, true
-			}
-
-			// otherwise (if it's a file): check if counterpart exists on
-			// target side as well
-			fs, err := filepath.Glob(lhlp.EscapePattern(lhlp.PathTrunk(trgFile)) + ".*")
-			if err != nil {
-				log.Errorf("Error from Glob('%s'): %v", lhlp.EscapePattern(lhlp.PathTrunk(trgFile))+".*", err)
-				return false, false
-			}
-			return false, (fs == nil)
+		// if init: file/directory is relevant
+		if init {
+			log.Debug("init: VALID, PROPAGATE")
+			return true, true
 		}
 
-		return true, true
+		log.Debug("nothing applied: INVALID, NO PROPAGATE")
+
+		return false, false
 	}
 
 	// call FindFiles with the smsync filter function to get the directories and files
