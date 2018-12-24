@@ -30,6 +30,7 @@ New music is typically added to the master only. If that happened you want to up
             - [OGG (Vorbis)](#ogg)
             - [OPUS](#opus)
     * [Synchronization Process](#syncproc)
+        - [FFMPEG errors](#errors)
     * [Command Line Options](#command)
 
 ## <a name="features"></a>Features
@@ -114,7 +115,11 @@ smsync interprets the configuration file. In the example, the root folder of the
 
 #### <a name="exclude"></a>Exclude Folders
 
-`exclude` allows to exclude a list of source folders from the conversion. The folder paths in that list are interpreted relative to the source directory. Wildcards are supported. In the example, all folders fitting to the pattern `/home/musiclover/Music/MASTER/Rock/Eric*` are excluded, i.e. `/home/musiclover/Music/MASTER/Rock/Eric Clapton`, `/home/musiclover/Music/MASTER/Rock/Eric Burden` etc. are excluded. The exclusion feature can be helpful if the target disk space is not big enough. In such a case, some artists or even entire genres can be excluded. Another option to deal with insufficient disk space would be to 
+`exclude` allows to exclude a list of source folders from the conversion. The folder paths in that list are interpreted relative to the source directory. Wildcards are supported. In the example, all folders fitting to the pattern `/home/musiclover/Music/MASTER/Rock/Eric*` are excluded, i.e. `/home/musiclover/Music/MASTER/Rock/Eric Clapton`, `/home/musiclover/Music/MASTER/Rock/Eric Burden` etc. are excluded. The exclusion feature can be helpful if the target disk space is not big enough. In such a case, some artists or even entire genres can be excluded. Another option to deal with insufficient disk space would be to configure a higher compression rate.
+
+Once you have exclude a directory, but after some time you want to include it, remove the corresponding exclusion row from the configuration file and excute
+
+    find <directory-you-want-to-include> -exec touch {} \;
 
 #### <a name="rules"></a>Conversion Rules
 
@@ -152,31 +157,31 @@ Basically, two things can be determined with a conversion parameter string:
 
 The available or supported conversion parameters depend on the target format. The following sections describe the different possibilities.
 
-##### <a name="flac">FLAC
+##### <a name="flac"></a>FLAC
 
 FLAC only supports a compression level (parameter `cl`). Possible values are: 0, ..., 12 where 0 means the highest quality. 5 is the default. Thus, for a conversion to FLAC, if no conversion rule is specified in `smsync.yaml`, `cl:5` is assumed. 
 
 See also: [FFMpeg Codec Documentation](http://ffmpeg.org/ffmpeg-codecs.html#flac-2)
 
-##### <a name="mp3">MP3
+##### <a name="mp3"></a>MP3
 
 MP3 supports ABR, CBR, both with bit rates from 8 to 500 kbps (kilo bit per second), and VBR with a quality from 0 to 9 (where 0 means highest quality). In addition, MP3 supports a compression level (parameter `cl`), which can have values 0, ..., 9 where 0 means the highest quality. Thus, the conversion `abr:192|cl:3` in the example above specifies an average bit rate of 192 kbps and a compression level of 3.
 
 See also: [FFMpeg Codec Documentation](http://ffmpeg.org/ffmpeg-codecs.html#libmp3lame-1)
 
-##### <a name="ogg">OGG (Vorbis)
+##### <a name="ogg"></a>OGG (Vorbis)
 
 This format supports conversions with average and variable bit rate. For AVR, bit rates from 8 to 500 kbps are supported. For VBR, possible values are -1.0, ..., 10.0 where 10.0 means the best quality. VBR with quality 3.0 is the default. Thus, for a conversion to OGG (Vorbis), if no conversion rule is specified in `smsync.yaml`, `vbr:3.0` is assumed. OGG (Vorbis) doesn't support compression levels.
 
 See also: [FFMpeg Codec Documentation](http://ffmpeg.org/ffmpeg-codecs.html#libvorbis)
 
-##### <a name="opus">OPUS
+##### <a name="opus"></a>OPUS
 
 OPUS supports conversions with average, constant and hard constant bit rate. The latter guarantees that all frames have the same size. Allowed values are 6 to 510 kbps. In addition, OPUS supports a compression level that ranges from 0 to 10, where 10 is the highest quality. If no compression level is specified, `cl:10`is assumed.
 
 See also: [FFMpeg Codec Documentation](http://ffmpeg.org/ffmpeg-codecs.html#libopus-1)
 
-### <a name="syncproc">Synchronization Process
+### <a name="syncproc"></a>Synchronization Process
 
 Coming back to the [example above](#config). Let's assume the config file `smsync.yaml` is stored in `/home/musiclover/Music/SLAVE`. To execute smsync for the slave, open a terminal and enter
 
@@ -192,19 +197,20 @@ The synchronization process is executed in the following steps:
 1. The replication / conversion of files and directories is executed. smsync shows the progress:
 
     ```
-    :: Process files
-               Elapsed   Remain.     Avg.    Estimated     Estimated         
-       #TODO      Time      Time   Compr.  Target Size    Free Space  #Errors
-    -------------------------------------------------------------------------
-       37290  00:06:06  13:50:10    9.4 %    126069 MB      79075 MB        0
+            Elapsed   Remain #Conv    Avg    Avg    Estimated    Estimated        
+     #TODO     Time     Time / min  Durat  Compr  Target Size   Free Space #Errors
+    ------------------------------------------------------------------------------
+     37290 00:06:06 13:50:10  38.8 11.36s   9.4%    126069 MB     79075 MB       0
+
     ```
 
     Besides the number of files that still need to be converted, not only the elapsed and the remaining time is displayed, but also 
-     * the average compression rate,
-     * the estimated target size
-     * and the estimated free diskspace.
-     
-    The latter is an estimation of the available diskspace on the target device *AFTER* all files will have been converted. That's very helpful to see at an early stage if the available space will be suffient. 
+
+    * the number of conversions per minute (which represents the "throughput" of smsync and can be used to optimize the number of assigned cpu's and the number of workers in the configuration file)
+    * the average duration of a conversion
+    * the average compression rate,
+    * the estimated target size
+    * and the estimated free diskspace (which is an estimation of the available diskspace on the target device *AFTER* all files will have been converted and can be very helpful to see at an early stage if the available space will be suffient). 
 
     With the command line option `--verbose` the progress is displayed in more detail, i.e. each file is displayed after it has been converted.  
 
@@ -248,7 +254,11 @@ to such a slave folder structure:
 
 The folder "/home/musiclover/Music/MASTER/Rock/Eric Clapton" hasn't been converted because the directoty fits to the exclusion pattern.
 
-### <a name="command">Command Line Options
+### <a name="errors"></a>FFMPEG errors
+
+During the conversion with FFMPEG, errors can occur. Unfortunately, there's not much information about the exit codes of FFMPEG (all I could find is [this](https://lists.ffmpeg.org/pipermail/ffmpeg-user/2013-July/016245.html). In particular, it seems to be impossible to find out if an error occured during the audio conversion or if it only had to do with the cover art. Therefore, smsync reports an error every time the exit code of FFMPEG is not zero. In addition to that, a file with the detailed log information of FFMPEG ([`-loglevel verbose`](http://ffmpeg.org/ffmpeg.html#Generic-options)) is stored in the directory `smsync.err`. This file is named `<name-of-the-music-file-that-was-converted>.log`.
+
+### <a name="command"></a>Command Line Options
 
 smsync has only a few options:
 

@@ -1,4 +1,4 @@
-# [Release 3.2.0](https://github.com/mipimipi/smsync/releases/tag/3.2.0) (2018-12-23)
+# [Release 3.2.0](https://github.com/mipimipi/smsync/releases/tag/3.2.0) (2018-12-24)
 
 ## Added
 
@@ -11,6 +11,8 @@
 
 * Empty folders ([#10](https://github.com/mipimipi/smsync/issues/10))
 * Empty log file ([#12](https://github.com/mipimipi/smsync/issues/12))
+* Added source directories are not recognized ([#13](https://github.com/mipimipi/smsync/issues/13))
+* Renaming of source directories not handled properly ([#14](https://github.com/mipimipi/smsync/issues/14))
 
 # [Release 3.1.1](https://github.com/mipimipi/smsync/releases/tag/3.1.1) (2018-12-20)
 
