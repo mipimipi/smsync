@@ -22,7 +22,7 @@ import (
 	"os"
 	"time"
 
-	lhlp "github.com/mipimipi/go-lhlp"
+	"github.com/mipimipi/go-lhlp/file"
 	worker "github.com/mipimipi/go-worker"
 	"github.com/ricochet2200/go-disk-usage/du"
 	log "github.com/sirupsen/logrus"
@@ -30,8 +30,8 @@ import (
 
 // ProcRes is the result structure for directory or file processing
 type ProcRes struct {
-	SrcFile lhlp.FileInfo // source file or directory
-	TrgFile lhlp.FileInfo // target file or directory
+	SrcFile file.Info     // source file or directory
+	TrgFile file.Info     // target file or directory
 	Dur     time.Duration // duration of a conversion
 	Err     error         // error (that occurred during processing)
 }
@@ -69,7 +69,7 @@ func (prog *Progress) kickOff() {
 	prog.Start = time.Now()
 }
 
-func newProg(wl *[]lhlp.FileInfo, space uint64) *Progress {
+func newProg(wl *[]file.Info, space uint64) *Progress {
 	log.Debug("smsync.newProg: START")
 	defer log.Debug("smsync.newProg: END")
 
@@ -86,7 +86,7 @@ func newProg(wl *[]lhlp.FileInfo, space uint64) *Progress {
 	return &prog
 }
 
-func (prog *Progress) update(srcFile, trgFile lhlp.FileInfo, dur time.Duration, err error) {
+func (prog *Progress) update(srcFile, trgFile file.Info, dur time.Duration, err error) {
 	prog.Done++
 	if srcFile != nil {
 		prog.SrcSize += uint64(srcFile.Size())
@@ -120,7 +120,7 @@ func (prog *Progress) update(srcFile, trgFile lhlp.FileInfo, dur time.Duration, 
 // returns corresponding handles to Progress instances. Via these instances,
 // the calling UI (be it a cli or some other UI) can retrieve progress
 // information
-func Process(cfg *Config, dirs *[]lhlp.FileInfo, files *[]lhlp.FileInfo, init bool) (*Progress, *Progress, <-chan error, error) {
+func Process(cfg *Config, dirs *[]file.Info, files *[]file.Info, init bool) (*Progress, *Progress, <-chan error, error) {
 	log.Debug("smsync.Process: START")
 	defer log.Debug("smsync.Process: END")
 
@@ -209,7 +209,7 @@ func Process(cfg *Config, dirs *[]lhlp.FileInfo, files *[]lhlp.FileInfo, init bo
 // processDirs creates new and deletes obsolete directories. processDirs
 // returns a channel that it uses to return the processing status/result
 // continuously after a directory has been processed.
-func processDirs(cfg *Config, prog *Progress, dirs *[]lhlp.FileInfo) {
+func processDirs(cfg *Config, prog *Progress, dirs *[]file.Info) {
 	log.Debug("smsync.processDirs: START")
 	defer log.Debug("smsync.processDirs: END")
 
@@ -228,14 +228,14 @@ func processDirs(cfg *Config, prog *Progress, dirs *[]lhlp.FileInfo) {
 
 	for _, d := range *dirs {
 		// assemble full path of new directory (source & target)
-		trgDirPath, err = lhlp.PathRelCopy(cfg.SrcDirPath, d.Path(), cfg.TrgDirPath)
+		trgDirPath, err = file.PathRelCopy(cfg.SrcDirPath, d.Path(), cfg.TrgDirPath)
 		if err != nil {
 			log.Errorf("Target path cannot be assembled: %v", err)
 			return
 		}
 
 		// determine if directory exists
-		exists, err = lhlp.FileExists(trgDirPath)
+		exists, err = file.Exists(trgDirPath)
 		if err != nil {
 			return
 		}
@@ -256,7 +256,7 @@ func processDirs(cfg *Config, prog *Progress, dirs *[]lhlp.FileInfo) {
 // are processed in parallel using the package github.com/mipimipi/go-worker.
 // It returns a channel that it uses to return the processing status/result
 // continuously after a file has been processed.
-func processFiles(cfg *Config, prog *Progress, files *[]lhlp.FileInfo) {
+func processFiles(cfg *Config, prog *Progress, files *[]file.Info) {
 	log.Debug("smsync.processFiles: START")
 	defer log.Debug("smsync.processFiles: END")
 

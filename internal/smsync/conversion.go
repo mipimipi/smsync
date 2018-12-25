@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"time"
 
-	lhlp "github.com/mipimipi/go-lhlp"
+	"github.com/mipimipi/go-lhlp/file"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -39,14 +39,14 @@ type (
 
 	// input structure of a conversion:
 	cvInput struct {
-		cfg     *Config       // configuration
-		srcFile lhlp.FileInfo // source file
+		cfg     *Config   // configuration
+		srcFile file.Info // source file
 	}
 
 	// output structure of a conversion
 	cvOutput struct {
-		srcFile lhlp.FileInfo // source file
-		trgFile lhlp.FileInfo // target file
+		srcFile file.Info     // source file
+		trgFile file.Info     // target file
 		dur     time.Duration // duration of conversion
 		err     error         // error (that occurred during the conversion)
 	}
@@ -124,13 +124,13 @@ func assembleTrgFile(cfg *Config, srcFilePath string) (string, error) {
 	// if corresponding conversion rule is for '*' ...
 	if cvm.TrgSuffix == suffixStar {
 		// ... target suffix is same as source suffix
-		trgSuffix = lhlp.FileSuffix(srcFilePath)
+		trgSuffix = file.Suffix(srcFilePath)
 	} else {
 		// ... otherwise take target suffix from conversion rule
 		trgSuffix = cvm.TrgSuffix
 	}
 
-	trgFilePath, err := lhlp.PathRelCopy(cfg.SrcDirPath, lhlp.PathTrunk(srcFilePath)+"."+trgSuffix, cfg.TrgDirPath)
+	trgFilePath, err := file.PathRelCopy(cfg.SrcDirPath, file.PathTrunk(srcFilePath)+"."+trgSuffix, cfg.TrgDirPath)
 	if err != nil {
 		log.Errorf("Target path cannot be assembled: %v", err)
 		return "", err
@@ -142,7 +142,7 @@ func assembleTrgFile(cfg *Config, srcFilePath string) (string, error) {
 func convert(i cvInput) cvOutput {
 	var (
 		trgFile string
-		trgFI   lhlp.FileInfo
+		trgFI   file.Info
 		cv      conversion
 		err     error
 	)
@@ -161,7 +161,7 @@ func convert(i cvInput) cvOutput {
 	}
 
 	// if error directory doesn't exist: create it
-	if err := lhlp.MkdirAll(filepath.Dir(trgFile), os.ModeDir|0755); err != nil {
+	if err := file.MkdirAll(filepath.Dir(trgFile), os.ModeDir|0755); err != nil {
 		log.Errorf("Error from MkdirAll('%s'): %v", errDir, err)
 		return cvOutput{srcFile: i.srcFile, trgFile: nil, err: err}
 	}
@@ -171,7 +171,7 @@ func convert(i cvInput) cvOutput {
 		cv = cp
 	} else {
 		// determine transformation function for srcSuffix -> trgSuffix
-		cv = validCvs[cvKey{srcSuffix: lhlp.FileSuffix(i.srcFile.Path()), trgSuffix: cvm.TrgSuffix}]
+		cv = validCvs[cvKey{srcSuffix: file.Suffix(i.srcFile.Path()), trgSuffix: cvm.TrgSuffix}]
 	}
 
 	// execute conversion
@@ -179,7 +179,7 @@ func convert(i cvInput) cvOutput {
 	err = cv.exec(i.srcFile.Path(), trgFile, cvm.NormCvStr)
 
 	if err == nil {
-		trgFI, err = lhlp.FileStat(trgFile)
+		trgFI, err = file.Stat(trgFile)
 	}
 
 	// call transformation function and return result

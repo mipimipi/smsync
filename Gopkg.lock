@@ -26,12 +26,15 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:b918f758742fd7dbded48d32da191bd5677d78495e68b726a441e5363e317889"
+  digest = "1:90e82264821b58b0bd6a9055defcc9f31038dee70814e2b8606ac17d9c1f952f"
   name = "github.com/mipimipi/go-lhlp"
-  packages = ["."]
+  packages = [
+    ".",
+    "file",
+  ]
   pruneopts = "UT"
-  revision = "cd0d528d4a5cc68593a7a5d081eb5d251c8f305f"
-  version = "1.10"
+  revision = "2176b3b49838b3d756880f825c78e001a5e3b9e4"
+  version = "2.1"
 
 [[projects]]
   digest = "1:524f78fa28adabeb9882d5126c16a58ad0291a693264653ea06d930b376e557c"
@@ -106,6 +109,7 @@
   input-imports = [
     "github.com/go-ini/ini",
     "github.com/mipimipi/go-lhlp",
+    "github.com/mipimipi/go-lhlp/file",
     "github.com/mipimipi/go-worker",
     "github.com/ricochet2200/go-disk-usage/du",
     "github.com/sirupsen/logrus",

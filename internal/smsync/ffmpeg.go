@@ -28,7 +28,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mipimipi/go-lhlp"
+	"github.com/mipimipi/go-lhlp/file"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -61,12 +61,12 @@ func execFFMPEG(srcFile string, trgFile string, params *[]string) error {
 		log.Errorf("FFmpeg command: ffmpeg %s", strings.Join(args, " "))
 
 		// if error directory doesn't exist: create it
-		if e := lhlp.MkdirAll(filepath.Join(".", errDir), os.ModeDir|0755); e != nil {
+		if e := file.MkdirAll(filepath.Join(".", errDir), os.ModeDir|0755); e != nil {
 			log.Errorf("Error from MkdirAll('%s'): %v", errDir, e)
 		}
 
 		// assemble error file name
-		errFile := filepath.Join(errDir, filepath.Base(lhlp.PathTrunk(trgFile))) + ".log"
+		errFile := filepath.Join(errDir, filepath.Base(file.PathTrunk(trgFile))) + ".log"
 		// write stdout into error file
 		if e := ioutil.WriteFile(errFile, out, 0644); e != nil {
 			log.Errorf("Couldn't write FFMPEG error file '%s's: %v", errFile, e)

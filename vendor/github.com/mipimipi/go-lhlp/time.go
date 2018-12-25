@@ -15,8 +15,6 @@
 // You should have received a copy of the GNU General Public License
 // along with go-lhlp. If not, see <http://www.gnu.org/licenses/>.
 
-// Package lhlp contains practical and handy functions that are useful in many
-// Go projects, but which are not part of the standards Go libraries.
 package lhlp
 
 import "time"

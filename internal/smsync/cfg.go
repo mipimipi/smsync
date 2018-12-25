@@ -30,7 +30,7 @@ import (
 	"runtime"
 	"time"
 
-	lhlp "github.com/mipimipi/go-lhlp"
+	"github.com/mipimipi/go-lhlp/file"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -177,8 +177,8 @@ func (cfg *Config) Get(init bool) error {
 // retrieved, a pointer to the cvm structure and true is returned, otherwise
 // nil and false
 func (cfg *Config) getCv(f string) (*cvm, bool) {
-	if _, ok := cfg.Cvs[lhlp.FileSuffix(f)]; ok {
-		return cfg.Cvs[lhlp.FileSuffix(f)], true
+	if _, ok := cfg.Cvs[file.Suffix(f)]; ok {
+		return cfg.Cvs[file.Suffix(f)], true
 	}
 	if _, ok := cfg.Cvs[suffixStar]; ok {
 		return cfg.Cvs[suffixStar], true

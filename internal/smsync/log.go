@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	lhlp "github.com/mipimipi/go-lhlp"
+	"github.com/mipimipi/go-lhlp/file"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -113,7 +113,7 @@ func CreateLogger(level log.Level) error {
 	}
 
 	// delete log file if it already exists
-	exists, err := lhlp.FileExists(fp)
+	exists, err := file.Exists(fp)
 	if err != nil {
 		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
 			panic(e.Error())

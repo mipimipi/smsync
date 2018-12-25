@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	lhlp "github.com/mipimipi/go-lhlp"
+	"github.com/mipimipi/go-lhlp/file"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -37,20 +38,13 @@ func cleanUp(cfg *Config) error {
 	defer log.Debug("smsync.cleanUp: END")
 
 	var (
-		b       bool
 		err     error
 		logFile = filepath.Join(cfg.TrgDirPath, logFileName)
 	)
 
 	// remove log file if it's empty
-	if b, err = lhlp.FileIsEmpty(logFile); err != nil {
+	if err = file.RemoveEmpty(logFile); err != nil {
 		return err
-	}
-	if b {
-		if err = os.Remove(logFile); err != nil {
-			log.Errorf("Cannot remove '%s': %v", logFile, err)
-			return err
-		}
 	}
 
 	return nil
@@ -59,12 +53,12 @@ func cleanUp(cfg *Config) error {
 // deleteObsoleteFiles deletes directories and files that are available in the
 // target directory tree but not in the source directory tree. It is called
 // for all source directories that have been changes since the last sync
-func deleteObsoleteFiles(cfg *Config, srcDir lhlp.FileInfo) error {
+func deleteObsoleteFiles(cfg *Config, srcDir file.Info) error {
 	log.Debugf("smsync.deleteObsoleteFiles(%s): START", srcDir.Path())
 	defer log.Debugf("smsync.deleteObsoleteFiles(%s): END", srcDir.Path())
 
 	// assemble target directory path
-	trgDirPath, err := lhlp.PathRelCopy(cfg.SrcDirPath, srcDir.Path(), cfg.TrgDirPath)
+	trgDirPath, err := file.PathRelCopy(cfg.SrcDirPath, srcDir.Path(), cfg.TrgDirPath)
 	if err != nil {
 		log.Errorf("Target path cannot be assembled: %v", err)
 		return err
@@ -83,7 +77,7 @@ func deleteObsoleteFiles(cfg *Config, srcDir lhlp.FileInfo) error {
 
 		if trgEntr.IsDir() {
 			// if entry is a directory ...
-			b, err := lhlp.FileExists(filepath.Join(srcDir.Path(), trgEntr.Name()))
+			b, err := file.Exists(filepath.Join(srcDir.Path(), trgEntr.Name()))
 			if err != nil {
 				log.Errorf("%v", err)
 			}
@@ -107,10 +101,10 @@ func deleteObsoleteFiles(cfg *Config, srcDir lhlp.FileInfo) error {
 				continue
 			}
 			// check if counterpart file on source side exists
-			tr := lhlp.PathTrunk(trgEntr.Name())
-			fs, err := filepath.Glob(lhlp.EscapePattern(filepath.Join(srcDir.Path(), tr)) + ".*")
+			tr := file.PathTrunk(trgEntr.Name())
+			fs, err := filepath.Glob(file.EscapePattern(filepath.Join(srcDir.Path(), tr)) + ".*")
 			if err != nil {
-				log.Errorf("Error from Glob('%s'): %v", lhlp.EscapePattern(filepath.Join(srcDir.Path(), tr))+".*", err)
+				log.Errorf("Error from Glob('%s'): %v", file.EscapePattern(filepath.Join(srcDir.Path(), tr))+".*", err)
 				return err
 			}
 			// if counterpart does not exist: ...
@@ -170,12 +164,12 @@ func deleteTrg(cfg *Config) error {
 }
 
 // GetSyncFiles determines which directories and files need to be synched
-func GetSyncFiles(cfg *Config, init bool) (*[]lhlp.FileInfo, *[]lhlp.FileInfo) {
+func GetSyncFiles(cfg *Config, init bool) (*[]file.Info, *[]file.Info) {
 	log.Debug("smsync.GetSyncFiles: START")
 	defer log.Debug("smsync.GetSyncFiles: END")
 
 	// filter function needed for FindFiles
-	filter := func(srcFile lhlp.FileInfo, propagated bool) (bool, bool) {
+	filter := func(srcFile file.Info, propagated bool) (bool, bool) {
 		log.Debugf("smsync.GetSyncFiles.filter(%s): START", srcFile.Path())
 		defer log.Debugf("smsync.GetSyncFiles.filter(%s): END", srcFile.Path())
 
@@ -207,7 +201,7 @@ func GetSyncFiles(cfg *Config, init bool) (*[]lhlp.FileInfo, *[]lhlp.FileInfo) {
 
 		// assemble target file/directory path
 		if srcFile.IsDir() {
-			trgFile, err = lhlp.PathRelCopy(cfg.SrcDirPath, srcFile.Path(), cfg.TrgDirPath)
+			trgFile, err = file.PathRelCopy(cfg.SrcDirPath, srcFile.Path(), cfg.TrgDirPath)
 		} else {
 			trgFile, _ = assembleTrgFile(cfg, srcFile.Path())
 		}
@@ -216,7 +210,7 @@ func GetSyncFiles(cfg *Config, init bool) (*[]lhlp.FileInfo, *[]lhlp.FileInfo) {
 			return false, false
 		}
 		// if file/directory doesn't exists: return true
-		if exists, _ := lhlp.FileExists(trgFile); !exists {
+		if exists, _ := file.Exists(trgFile); !exists {
 			log.Debug("target file doesn't exist:: VALID, PROPAGATE")
 			return true, true
 		}
@@ -239,5 +233,5 @@ func GetSyncFiles(cfg *Config, init bool) (*[]lhlp.FileInfo, *[]lhlp.FileInfo) {
 	}
 
 	// call FindFiles with the smsync filter function to get the directories and files
-	return lhlp.FindFiles([]string{cfg.SrcDirPath}, filter, 20)
+	return file.Find([]string{cfg.SrcDirPath}, filter, 20)
 }

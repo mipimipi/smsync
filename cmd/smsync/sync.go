@@ -26,6 +26,7 @@ import (
 	"time"
 
 	lhlp "github.com/mipimipi/go-lhlp"
+	"github.com/mipimipi/go-lhlp/file"
 	"github.com/mipimipi/smsync/internal/smsync"
 	log "github.com/sirupsen/logrus"
 )
@@ -207,7 +208,7 @@ func printVerbose(cfg *smsync.Config, res smsync.ProcRes) {
 
 // process is a wrapper around the specific functions for processing dirs or files.
 // These functions are passed to process in the function parameter.
-func process(cfg *smsync.Config, prog *smsync.Progress, wl *[]lhlp.FileInfo, print func(*smsync.Progress, bool), verbose bool) error {
+func process(cfg *smsync.Config, prog *smsync.Progress, wl *[]file.Info, print func(*smsync.Progress, bool), verbose bool) error {
 	log.Debug("cli.process: START")
 	defer log.Debug("cli.process: END")
 
