@@ -30,7 +30,7 @@ import (
 )
 
 // errDir is the directory that stores error logs from conversion
-const errDir = "smsync.err"
+const errDir = "smsync.cnv.errs"
 
 // cleanUp removes temporary files and directories from smsync that are
 // obsolete
