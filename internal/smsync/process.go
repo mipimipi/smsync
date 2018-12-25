@@ -69,7 +69,7 @@ func (prog *Progress) kickOff() {
 	prog.Start = time.Now()
 }
 
-func newProg(wl *[]file.Info, space uint64) *Progress {
+func newProg(wl *file.InfoSlice, space uint64) *Progress {
 	log.Debug("smsync.newProg: START")
 	defer log.Debug("smsync.newProg: END")
 
@@ -120,7 +120,7 @@ func (prog *Progress) update(srcFile, trgFile file.Info, dur time.Duration, err 
 // returns corresponding handles to Progress instances. Via these instances,
 // the calling UI (be it a cli or some other UI) can retrieve progress
 // information
-func Process(cfg *Config, dirs *[]file.Info, files *[]file.Info, init bool) (*Progress, *Progress, <-chan error, error) {
+func Process(cfg *Config, dirs *file.InfoSlice, files *file.InfoSlice, init bool) (*Progress, *Progress, <-chan error, error) {
 	log.Debug("smsync.Process: START")
 	defer log.Debug("smsync.Process: END")
 
@@ -209,7 +209,7 @@ func Process(cfg *Config, dirs *[]file.Info, files *[]file.Info, init bool) (*Pr
 // processDirs creates new and deletes obsolete directories. processDirs
 // returns a channel that it uses to return the processing status/result
 // continuously after a directory has been processed.
-func processDirs(cfg *Config, prog *Progress, dirs *[]file.Info) {
+func processDirs(cfg *Config, prog *Progress, dirs *file.InfoSlice) {
 	log.Debug("smsync.processDirs: START")
 	defer log.Debug("smsync.processDirs: END")
 
@@ -256,7 +256,7 @@ func processDirs(cfg *Config, prog *Progress, dirs *[]file.Info) {
 // are processed in parallel using the package github.com/mipimipi/go-worker.
 // It returns a channel that it uses to return the processing status/result
 // continuously after a file has been processed.
-func processFiles(cfg *Config, prog *Progress, files *[]file.Info) {
+func processFiles(cfg *Config, prog *Progress, files *file.InfoSlice) {
 	log.Debug("smsync.processFiles: START")
 	defer log.Debug("smsync.processFiles: END")
 

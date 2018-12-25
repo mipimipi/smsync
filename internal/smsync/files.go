@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	lhlp "github.com/mipimipi/go-lhlp"
@@ -164,7 +165,7 @@ func deleteTrg(cfg *Config) error {
 }
 
 // GetSyncFiles determines which directories and files need to be synched
-func GetSyncFiles(cfg *Config, init bool) (*[]file.Info, *[]file.Info) {
+func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice) {
 	log.Debug("smsync.GetSyncFiles: START")
 	defer log.Debug("smsync.GetSyncFiles: END")
 
@@ -233,5 +234,11 @@ func GetSyncFiles(cfg *Config, init bool) (*[]file.Info, *[]file.Info) {
 	}
 
 	// call FindFiles with the smsync filter function to get the directories and files
-	return file.Find([]string{cfg.SrcDirPath}, filter, 20)
+	dirs, files := file.Find([]string{cfg.SrcDirPath}, filter, 20)
+
+	// sort arrays to allow more efficient processing later
+	sort.Sort(*dirs)
+	sort.Sort(*files)
+
+	return dirs, files
 }

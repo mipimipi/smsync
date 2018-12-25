@@ -67,17 +67,19 @@ func printDirProgress(prog *smsync.Progress, first bool) {
 
 // printFileProgress displays the progress of the file conversion
 func printFileProgress(prog *smsync.Progress, first bool) {
-	var (
+	const (
 		format = "%6s %8s %8s %5s %6s %6s %12s %12s %7s" // format string for progress display
 		mb     = uint64(1024 * 1024)                     // one megabyte
-		size   string
-		avail  string
+	)
+	var (
+		size  string
+		avail string
 	)
 
 	// print headlines for progress display
 	if first {
 		func() {
-			var (
+			const (
 				line    = "------------------------------------------------------------------------------" // length=77
 				durNull = "--:--:--"                                                                       // "null" string for display of durations
 			)
@@ -122,9 +124,9 @@ func printFileProgress(prog *smsync.Progress, first bool) {
 // configuration files is taken as basis, and it's enriched by additional
 //information
 func printCfgSummary(cfg *smsync.Config) {
+	const fmGen = "   %-12s: %s\n" // format string for general config values
 	var (
-		fmGen   = "   %-12s: %s\n" // format string for general config values
-		fmRl    string             // format string for conversion rules
+		fmRl    string // format string for conversion rules
 		hasStar bool
 	)
 
@@ -208,7 +210,7 @@ func printVerbose(cfg *smsync.Config, res smsync.ProcRes) {
 
 // process is a wrapper around the specific functions for processing dirs or files.
 // These functions are passed to process in the function parameter.
-func process(cfg *smsync.Config, prog *smsync.Progress, wl *[]file.Info, print func(*smsync.Progress, bool), verbose bool) error {
+func process(cfg *smsync.Config, prog *smsync.Progress, wl *file.InfoSlice, print func(*smsync.Progress, bool), verbose bool) error {
 	log.Debug("cli.process: START")
 	defer log.Debug("cli.process: END")
 

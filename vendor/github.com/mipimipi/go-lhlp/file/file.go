@@ -178,10 +178,10 @@ func Exists(filePath string) (bool, error) {
 // book "The Go Programming Language" by Alan A. A. Donovan & Brian W.
 // Kernighan.
 // See: https://github.com/adonovan/gopl.io/blob/master/ch8/du4/main.go
-func Find(roots []string, filter func(Info, bool) (bool, bool), numWorkers int) (*[]Info, *[]Info) {
+func Find(roots []string, filter func(Info, bool) (bool, bool), numWorkers int) (*InfoSlice, *InfoSlice) {
 	var (
-		dirs    []Info           // list of directories to be returned
-		files   []Info           // list of files to be returned
+		dirs    InfoSlice        // list of directories to be returned
+		files   InfoSlice        // list of files to be returned
 		descend func(Info, bool) // func needs to be declared here since it calls itself recursively
 		wg      sync.WaitGroup   // waiting group for the concurrent traversal
 	)
