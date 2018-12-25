@@ -151,7 +151,7 @@ func printCfgSummary(cfg *smsync.Config) {
 	fmt.Println("\n:: Configuration")
 
 	// source directory
-	fmt.Printf(fmGen, "Source", cfg.SrcDirPath) // nolint
+	fmt.Printf(fmGen, "Source", cfg.SrcDir) // nolint
 
 	// directories to exclude
 	if len(cfg.Excludes) > 0 {
@@ -162,7 +162,7 @@ func printCfgSummary(cfg *smsync.Config) {
 	}
 
 	// target directory
-	fmt.Printf(fmGen, "Destination", cfg.TrgDirPath) // nolint
+	fmt.Printf(fmGen, "Destination", cfg.TrgDir) // nolint
 
 	// last sync time
 	if cfg.LastSync.IsZero() {
@@ -197,7 +197,7 @@ func printCfgSummary(cfg *smsync.Config) {
 // the configuration). This function is used if the user called smsync with the
 // option --verbose / -v
 func printVerbose(cfg *smsync.Config, res smsync.ProcRes) {
-	srcFile, err := filepath.Rel(cfg.SrcDirPath, res.SrcFile.Path())
+	srcFile, err := filepath.Rel(cfg.SrcDir, res.SrcFile.Path())
 	if err != nil {
 		log.Error(err)
 

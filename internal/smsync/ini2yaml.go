@@ -82,7 +82,7 @@ func ini2yaml() error {
 	// get source directory and check if it exists and if it's a directory
 	key, err := getKey(sec, iniKeySrcDir, false)
 	if err == nil {
-		cfgY.SourceDir = key.Value()
+		cfgY.SrcDir = key.Value()
 	}
 
 	// get number of CPU's

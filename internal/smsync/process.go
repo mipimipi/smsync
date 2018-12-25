@@ -125,10 +125,10 @@ func Process(cfg *Config, dirs *file.InfoSlice, files *file.InfoSlice, init bool
 	defer log.Debug("smsync.Process: END")
 
 	var (
-		dirProg  = newProg(dirs, 0)                                            // progress structure for directories
-		fileProg = newProg(files, du.NewDiskUsage(cfg.TrgDirPath).Available()) // progress structure for files
-		done     = make(chan struct{})                                         // channel processing go routine to report that it's done
-		errors   = make(chan error)                                            // error channel
+		dirProg  = newProg(dirs, 0)                                        // progress structure for directories
+		fileProg = newProg(files, du.NewDiskUsage(cfg.TrgDir).Available()) // progress structure for files
+		done     = make(chan struct{})                                     // channel processing go routine to report that it's done
+		errors   = make(chan error)                                        // error channel
 	)
 
 	// if no directories and no files need to be synchec: exit
@@ -215,36 +215,10 @@ func processDirs(cfg *Config, prog *Progress, dirs *file.InfoSlice) {
 
 	defer prog.close()
 
-	// nothing to do in case of empty directory array
-	if len(*dirs) == 0 {
-		return
-	}
-
-	var (
-		trgDirPath string
-		exists     bool
-		err        error
-	)
-
 	for _, d := range *dirs {
-		// assemble full path of new directory (source & target)
-		trgDirPath, err = file.PathRelCopy(cfg.SrcDirPath, d.Path(), cfg.TrgDirPath)
-		if err != nil {
-			log.Errorf("Target path cannot be assembled: %v", err)
+		var err error
+		if err = deleteObsoleteFiles(cfg, d); err != nil {
 			return
-		}
-
-		// determine if directory exists
-		exists, err = file.Exists(trgDirPath)
-		if err != nil {
-			return
-		}
-
-		if exists {
-			// if it exists: check if there are obsolete files and delete them
-			if err = deleteObsoleteFiles(cfg, d); err != nil {
-				return
-			}
 		}
 
 		// update progress

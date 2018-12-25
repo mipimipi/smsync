@@ -51,25 +51,25 @@ type rule struct {
 
 // cfgYml is used to read from and write to the config yaml file
 type cfgYml struct {
-	ProcStat  string   `yaml:"processing_status,omitempty"` // work in progress flag
-	SourceDir string   `yaml:"source_dir"`                  // source directory
-	Excludes  []string `yaml:"exclude,omitempty"`           // exclude these directories
-	LastSync  string   `yaml:"last_sync,omitempty"`         // timestamp when the last sync happened
-	NumCPUs   uint     `yaml:"num_cpus,omitempty"`          // number of CPUs that gool is allowed to use
-	NumWrkrs  uint     `yaml:"num_wrkrs,omitempty"`         // number of worker Go routines to be created
-	Rules     []rule   `yaml:"rules"`                       // conversion rules
+	ProcStat string   `yaml:"processing_status,omitempty"` // work in progress flag
+	SrcDir   string   `yaml:"source_dir"`                  // source directory
+	Excludes []string `yaml:"exclude,omitempty"`           // exclude these directories
+	LastSync string   `yaml:"last_sync,omitempty"`         // timestamp when the last sync happened
+	NumCPUs  uint     `yaml:"num_cpus,omitempty"`          // number of CPUs that gool is allowed to use
+	NumWrkrs uint     `yaml:"num_wrkrs,omitempty"`         // number of worker Go routines to be created
+	Rules    []rule   `yaml:"rules"`                       // conversion rules
 }
 
 // Config contains the enriched data that has been read from the config file
 type Config struct {
-	LastSync   time.Time       // timestamp when the last sync happened
-	WIP        bool            // work in progress flag
-	SrcDirPath string          // source directory
-	TrgDirPath string          // target directory
-	Excludes   []string        // exclude these directories
-	NumCpus    uint            // number of CPUs that gool is allowed to use
-	NumWrkrs   uint            // number of worker Go routines to be created
-	Cvs        map[string]*cvm // conversion rules
+	LastSync time.Time       // timestamp when the last sync happened
+	WIP      bool            // work in progress flag
+	SrcDir   string          // source directory
+	TrgDir   string          // target directory
+	Excludes []string        // exclude these directories
+	NumCpus  uint            // number of CPUs that gool is allowed to use
+	NumWrkrs uint            // number of worker Go routines to be created
+	Cvs      map[string]*cvm // conversion rules
 }
 
 // mapping of target suffix to conversion parameter string
@@ -107,10 +107,10 @@ func (cfg *Config) Get(init bool) error {
 	}
 
 	// check if the configured source dir exists and is a directory
-	if err = checkDir(cfgY.SourceDir); err != nil {
+	if err = checkDir(cfgY.SrcDir); err != nil {
 		return err
 	}
-	cfg.SrcDirPath = cfgY.SourceDir
+	cfg.SrcDir = cfgY.SrcDir
 
 	// get directories that shall be excluded
 	if len(cfgY.Excludes) > 0 {
@@ -164,7 +164,7 @@ func (cfg *Config) Get(init bool) error {
 	}
 
 	// set target directory
-	if cfg.TrgDirPath, err = os.Getwd(); err != nil {
+	if cfg.TrgDir, err = os.Getwd(); err != nil {
 		log.Errorf("Cannot determine working directory: %v", err)
 		return fmt.Errorf("Cannot determine working directory: %v", err)
 	}
@@ -198,7 +198,7 @@ func (cfg *Config) getExcludes(excls *[]string) error {
 		}
 
 		// expand directory
-		a, err := filepath.Glob(filepath.Join(cfg.SrcDirPath, excl))
+		a, err := filepath.Glob(filepath.Join(cfg.SrcDir, excl))
 		if err != nil {
 			return err
 		}

@@ -40,7 +40,7 @@ func cleanUp(cfg *Config) error {
 
 	var (
 		err     error
-		logFile = filepath.Join(cfg.TrgDirPath, logFileName)
+		logFile = filepath.Join(cfg.TrgDir, logFileName)
 	)
 
 	// remove log file if it's empty
@@ -58,17 +58,31 @@ func deleteObsoleteFiles(cfg *Config, srcDir file.Info) error {
 	log.Debugf("smsync.deleteObsoleteFiles(%s): START", srcDir.Path())
 	defer log.Debugf("smsync.deleteObsoleteFiles(%s): END", srcDir.Path())
 
+	var (
+		trgDir string
+		exists bool
+		err    error
+	)
+
 	// assemble target directory path
-	trgDirPath, err := file.PathRelCopy(cfg.SrcDirPath, srcDir.Path(), cfg.TrgDirPath)
+	trgDir, err = file.PathRelCopy(cfg.SrcDir, srcDir.Path(), cfg.TrgDir)
 	if err != nil {
 		log.Errorf("Target path cannot be assembled: %v", err)
 		return err
 	}
 
+	// nothing to do if target directory doesn't exist
+	if exists, err = file.Exists(trgDir); err != nil {
+		return err
+	}
+	if !exists {
+		return nil
+	}
+
 	// read entries of target directory
-	trgEntrs, err := ioutil.ReadDir(trgDirPath)
+	trgEntrs, err := ioutil.ReadDir(trgDir)
 	if err != nil {
-		log.Errorf("Cannot read directory '%s': %v", trgDirPath, err)
+		log.Errorf("Cannot read directory '%s': %v", trgDir, err)
 		return err
 	}
 
@@ -86,8 +100,8 @@ func deleteObsoleteFiles(cfg *Config, srcDir file.Info) error {
 			if !b {
 				log.Debug("is directory and src counterpart doesn't exist: DELETE")
 				// ... delete entry
-				if err = os.RemoveAll(filepath.Join(trgDirPath, trgEntr.Name())); err != nil {
-					log.Errorf("Cannot remove '%s': %v", filepath.Join(trgDirPath, trgEntr.Name()), err)
+				if err = os.RemoveAll(filepath.Join(trgDir, trgEntr.Name())); err != nil {
+					log.Errorf("Cannot remove '%s': %v", filepath.Join(trgDir, trgEntr.Name()), err)
 					return err
 				}
 			}
@@ -112,8 +126,8 @@ func deleteObsoleteFiles(cfg *Config, srcDir file.Info) error {
 			if fs == nil {
 				log.Debug("is file and src counterpart doesn't exist: DELETE")
 				// ... delete entry
-				if err = os.Remove(filepath.Join(trgDirPath, trgEntr.Name())); err != nil {
-					log.Errorf("Cannot remove '%s': %v", filepath.Join(trgDirPath, trgEntr.Name()), err)
+				if err = os.Remove(filepath.Join(trgDir, trgEntr.Name())); err != nil {
+					log.Errorf("Cannot remove '%s': %v", filepath.Join(trgDir, trgEntr.Name()), err)
 					return err
 				}
 			}
@@ -130,15 +144,15 @@ func deleteTrg(cfg *Config) error {
 	defer log.Debug("smsync.deleteTrg: END")
 
 	// open target directory
-	trgDir, err := os.Open(cfg.TrgDirPath)
+	trgDir, err := os.Open(cfg.TrgDir)
 	if err != nil {
-		log.Errorf("Cannot open '%s': %v", cfg.TrgDirPath, err)
+		log.Errorf("Cannot open '%s': %v", cfg.TrgDir, err)
 		return err
 	}
 	// close target directory (deferred)
 	defer func() {
 		if err = trgDir.Close(); err != nil {
-			log.Errorf("%s can't be closed: %v", cfg.TrgDirPath, err)
+			log.Errorf("%s can't be closed: %v", cfg.TrgDir, err)
 		}
 	}()
 	// read entries of target directory
@@ -155,8 +169,8 @@ func deleteTrg(cfg *Config) error {
 			continue
 		}
 		// delete entry
-		if err = os.RemoveAll(filepath.Join(cfg.TrgDirPath, trgEntr.Name())); err != nil {
-			log.Errorf("Cannot remove '%s': %v", filepath.Join(cfg.TrgDirPath, trgEntr.Name()), err)
+		if err = os.RemoveAll(filepath.Join(cfg.TrgDir, trgEntr.Name())); err != nil {
+			log.Errorf("Cannot remove '%s': %v", filepath.Join(cfg.TrgDir, trgEntr.Name()), err)
 			return err
 		}
 	}
@@ -202,7 +216,7 @@ func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice) {
 
 		// assemble target file/directory path
 		if srcFile.IsDir() {
-			trgFile, err = file.PathRelCopy(cfg.SrcDirPath, srcFile.Path(), cfg.TrgDirPath)
+			trgFile, err = file.PathRelCopy(cfg.SrcDir, srcFile.Path(), cfg.TrgDir)
 		} else {
 			trgFile, _ = assembleTrgFile(cfg, srcFile.Path())
 		}
@@ -234,7 +248,7 @@ func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice) {
 	}
 
 	// call FindFiles with the smsync filter function to get the directories and files
-	dirs, files := file.Find([]string{cfg.SrcDirPath}, filter, 20)
+	dirs, files := file.Find([]string{cfg.SrcDir}, filter, 20)
 
 	// sort arrays to allow more efficient processing later
 	sort.Sort(*dirs)
