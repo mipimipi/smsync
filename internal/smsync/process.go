@@ -20,6 +20,8 @@ package smsync
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/mipimipi/go-lhlp/file"
@@ -49,12 +51,11 @@ type Progress struct {
 	Avail      int64         // estimated free diskspace
 	Size       uint64        // estimated target size
 	Comp       float64       // average compression
-	Throughput float64       // throughput (= conversion per time)
+	throughput float64       // throughput (= conversion per time)
 	Errors     int           // number of errors
 	Dur        time.Duration // cumulated duration
 	AvgDur     time.Duration // average duration per minute
-	Elapsed    time.Duration // elapsed time
-	Remaining  time.Duration // remaining time
+	elapsed    time.Duration // elapsed time
 	Res        chan ProcRes  // channel to report intermediate results
 }
 
@@ -86,6 +87,28 @@ func newProg(wl *file.InfoSlice, space uint64) *Progress {
 	return &prog
 }
 
+// Elapsed calculates the elapsed time since prog.Start
+func (prog *Progress) Elapsed() time.Duration {
+	prog.elapsed = time.Since(prog.Start)
+	return prog.elapsed
+}
+
+// Remaining calculates the estimated remaining processing time
+func (prog *Progress) Remaining() time.Duration {
+	if prog.Done == 0 {
+		return 0
+	}
+	return time.Duration(int64(prog.elapsed) / int64(prog.Done) * int64(prog.TotalNum-prog.Done))
+}
+
+// Throughput average number of conversions per minute
+func (prog *Progress) Throughput() float64 {
+	if prog.elapsed == 0 {
+		return 0
+	}
+	return float64(prog.Done) / prog.elapsed.Minutes()
+}
+
 func (prog *Progress) update(srcFile, trgFile file.Info, dur time.Duration, err error) {
 	prog.Done++
 	if srcFile != nil {
@@ -97,13 +120,9 @@ func (prog *Progress) update(srcFile, trgFile file.Info, dur time.Duration, err 
 	prog.Comp = float64(prog.TrgSize) / float64(prog.SrcSize)
 	prog.Size = uint64(prog.Comp * float64(prog.TotalSize))
 	prog.Avail = int64(prog.Diskspace) - int64(prog.Size)
-	prog.Elapsed = time.Since(prog.Start)
-	prog.Remaining = time.Duration(int64(prog.Elapsed) / int64(prog.Done) * int64(prog.TotalNum-prog.Done))
 	prog.Dur += dur
 	prog.AvgDur = time.Duration(int(prog.Dur) / prog.Done)
-	if prog.Elapsed > 0 {
-		prog.Throughput = float64(prog.Done) / prog.Elapsed.Minutes()
-	}
+	prog.elapsed = time.Since(prog.Start)
 	if err != nil {
 		prog.Errors++
 	}
@@ -120,15 +139,16 @@ func (prog *Progress) update(srcFile, trgFile file.Info, dur time.Duration, err 
 // returns corresponding handles to Progress instances. Via these instances,
 // the calling UI (be it a cli or some other UI) can retrieve progress
 // information
-func Process(cfg *Config, dirs *file.InfoSlice, files *file.InfoSlice, init bool) (*Progress, *Progress, <-chan error, error) {
+func Process(cfg *Config, dirs *file.InfoSlice, files *file.InfoSlice, init bool) (*Progress, <-chan error, <-chan struct{}, error) {
 	log.Debug("smsync.Process: START")
 	defer log.Debug("smsync.Process: END")
 
 	var (
-		dirProg  = newProg(dirs, 0)                                        // progress structure for directories
-		fileProg = newProg(files, du.NewDiskUsage(cfg.TrgDir).Available()) // progress structure for files
-		done     = make(chan struct{})                                     // channel processing go routine to report that it's done
-		errors   = make(chan error)                                        // error channel
+		prog   = newProg(files, du.NewDiskUsage(cfg.TrgDir).Available()) // progress structure for files
+		cvDone = make(chan struct{}, 2)                                  // channel for processing go routine to report that it's done
+		errors = make(chan error)                                        // error channel
+		done   = make(chan struct{})                                     // done channel
+		wg     sync.WaitGroup
 	)
 
 	// if no directories and no files need to be synchec: exit
@@ -156,73 +176,36 @@ func Process(cfg *Config, dirs *file.InfoSlice, files *file.InfoSlice, init bool
 		}
 	}
 
-	// the actual processing of directories and files
-	go func() {
-		// register closure of done channel
-		defer close(done)
+	// fork processing of directories
+	go processDirs(cfg, dirs, cvDone, errors)
 
-		// process directories. This is only necessary, if ...
-		// - at least one directory has been changed and
-		// - smsync hasn't been called in initialize mode and
-		// - there was at least one sync before
-		if len(*dirs) > 0 && !init && !cfg.LastSync.IsZero() {
-			dirProg.kickOff()
-			processDirs(cfg, dirProg, dirs)
-		}
-
-		// process files
-		if len(*files) > 0 {
-			fileProg.kickOff()
-			processFiles(cfg, fileProg, files)
-		}
-
-		// done
-		done <- struct{}{}
-	}()
+	// fork processing of and files
+	go processFiles(cfg, prog, files, cvDone, errors)
 
 	// clean up
-	go func() {
-		// register closure of error channel
-		defer close(errors)
+	wg.Add(1)
+	go cleanUp(cfg, cvDone, &wg, errors)
 
-		// wait for processing to be done
-		_ = <-done
+	// wait cleanUp is finisheduntil parallel sub processes are finished
+	wg.Wait()
 
-		// remove obsolete stuff
-		if err := cleanUp(cfg); err != nil {
-			errors <- err
-			return
-		}
-
-		// update config file
-		if err := cfg.setProcEnd(); err != nil {
-			errors <- err
-			return
-		}
-
-		errors <- nil
-	}()
-
-	return dirProg, fileProg, errors, nil
+	return prog, errors, done, nil
 }
 
 // processDirs creates new and deletes obsolete directories. processDirs
 // returns a channel that it uses to return the processing status/result
 // continuously after a directory has been processed.
-func processDirs(cfg *Config, prog *Progress, dirs *file.InfoSlice) {
+func processDirs(cfg *Config, dirs *file.InfoSlice, done chan<- struct{}, errors chan<- error) {
 	log.Debug("smsync.processDirs: START")
 	defer log.Debug("smsync.processDirs: END")
 
-	defer prog.close()
+	defer func() { done <- struct{}{} }()
 
 	for _, d := range *dirs {
-		var err error
-		if err = deleteObsoleteFiles(cfg, d); err != nil {
-			return
-		}
 
-		// update progress
-		prog.update(d, nil, 0, err)
+		if err := deleteObsoleteFiles(cfg, d); err != nil {
+			errors <- err
+		}
 	}
 }
 
@@ -230,14 +213,20 @@ func processDirs(cfg *Config, prog *Progress, dirs *file.InfoSlice) {
 // are processed in parallel using the package github.com/mipimipi/go-worker.
 // It returns a channel that it uses to return the processing status/result
 // continuously after a file has been processed.
-func processFiles(cfg *Config, prog *Progress, files *file.InfoSlice) {
+func processFiles(cfg *Config, prog *Progress, files *file.InfoSlice, done chan<- struct{}, errors chan<- error) {
 	log.Debug("smsync.processFiles: START")
 	defer log.Debug("smsync.processFiles: END")
+
+	defer func() { done <- struct{}{} }()
 
 	// nothing to do in case of empty files array
 	if len(*files) == 0 {
 		return
 	}
+
+	// start  progress tracking
+	prog.kickOff()
+	defer prog.close()
 
 	// setup worker Go routine and get worklist and result channels
 	wl, res := worker.Setup(func(i interface{}) interface{} { return convert(i.(cvInput)) }, cfg.NumWrkrs)
@@ -254,7 +243,31 @@ func processFiles(cfg *Config, prog *Progress, files *file.InfoSlice) {
 	for r := range res {
 		// update progress
 		prog.update(r.(cvOutput).srcFile, r.(cvOutput).trgFile, r.(cvOutput).dur, r.(cvOutput).err)
-	}
 
-	prog.close()
+		if r.(cvOutput).err != nil {
+			errors <- r.(cvOutput).err
+		}
+	}
+}
+
+// cleanUp removes temporary files and directories from smsync that are
+// obsolete
+func cleanUp(cfg *Config, cvDone <-chan struct{}, wg *sync.WaitGroup, errors chan<- error) {
+	log.Debug("smsync.cleanUp: START")
+	defer log.Debug("smsync.cleanUp: END")
+
+	defer wg.Done()
+
+	// wait for conversion to be done
+	_ = <-cvDone
+	_ = <-cvDone
+
+	// remove log file if it's empty
+	file.RemoveEmpty(filepath.Join(cfg.TrgDir, LogFile))
+
+	// update config file
+	if err := cfg.setProcEnd(); err != nil {
+		errors <- err
+		return
+	}
 }

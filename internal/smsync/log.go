@@ -30,7 +30,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const logFileName = "smsync.log" // smsync always logs into ./smsync.log
+// LogFile is the log file. smsync always logs into ./smsync.log
+const LogFile = "smsync.log"
 
 // text formatting structure for gool
 type smsyncTextFormatter struct{}
@@ -104,7 +105,7 @@ func (f *smsyncTextFormatter) Format(entry *log.Entry) ([]byte, error) {
 // CreateLogger creates and initializes the logger for smsync
 func CreateLogger(level log.Level) error {
 	// set log file
-	fp, err := filepath.Abs(filepath.Join(".", logFileName))
+	fp, err := filepath.Abs(filepath.Join(".", LogFile))
 	if err != nil {
 		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
 			panic(e.Error())

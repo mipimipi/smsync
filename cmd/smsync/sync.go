@@ -31,95 +31,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// printDirProgress displays the progress of the directory processing
-func printDirProgress(prog *smsync.Progress, first bool) {
-	// format string for progress display
-	var format = "  %6s  %9s  %9s"
-
-	// print headlines for progress display
-	if first {
-		func() {
-			var (
-				line    = "------------------------------" // length=30
-				durNull = "--:--:--"                       // "null" string for display of durations
-			)
-
-			fmt.Printf(format+"\n", "", "Elapsed", "Remaining") // nolint, headline 1
-			fmt.Printf(format+"\n", "#TODO", "Time", "Time")    // nolint, headline 2
-			fmt.Println(line)                                   // separator
-			fmt.Printf(format, "0", durNull, durNull)           // nolint
-		}()
-
-		return
-	}
-
-	// local function to print durations as formatted string (HH:MM:SS)
-	split := func(d time.Duration) string {
-		sp := lhlp.SplitDuration(d)
-		return fmt.Sprintf("%02d:%02d:%02d", sp[time.Hour], sp[time.Minute], sp[time.Second])
-	}
-
-	fmt.Printf("\r"+format,
-		strconv.Itoa(prog.TotalNum-prog.Done),
-		split(prog.Elapsed),
-		split(prog.Remaining)) //nolint
-}
-
-// printFileProgress displays the progress of the file conversion
-func printFileProgress(prog *smsync.Progress, first bool) {
-	const (
-		format = "%6s %8s %8s %5s %6s %6s %12s %12s %7s" // format string for progress display
-		mb     = uint64(1024 * 1024)                     // one megabyte
-	)
-	var (
-		size  string
-		avail string
-	)
-
-	// print headlines for progress display
-	if first {
-		func() {
-			const (
-				line    = "------------------------------------------------------------------------------" // length=77
-				durNull = "--:--:--"                                                                       // "null" string for display of durations
-			)
-
-			fmt.Printf(format+"\n", "", "Elapsed", "Remain", "#Conv", "Avg", "Avg", "Estimated", "Estimated", "")               // nolint, headline 1
-			fmt.Printf(format+"\n", "#TODO", "Time", "Time", "/ min", "Durat", "Compr", "Target Size", "Free Space", "#Errors") // nolint, headline 2
-			fmt.Println(line)                                                                                                   // separator
-			fmt.Printf(format, "-", durNull, durNull, "-", "- s", "- %", "- MB", "- MB", "-")                                   // nolint
-		}()
-
-		return
-	}
-
-	// local function to print durations as formatted string (HH:MM:SS)
-	split := func(d time.Duration) string {
-		sp := lhlp.SplitDuration(d)
-		return fmt.Sprintf("%02d:%02d:%02d", sp[time.Hour], sp[time.Minute], sp[time.Second])
-	}
-
-	if prog.Size == 0 {
-		size = "- MB"
-		avail = "- MB"
-	} else {
-		size = fmt.Sprintf("%d MB", prog.Size/mb)
-		avail = fmt.Sprintf("%d MB", prog.Avail/int64(mb))
-	}
-
-	// print progress (updates the same screen row)
-	fmt.Printf("\r"+format,
-		strconv.Itoa(prog.TotalNum-prog.Done),
-		split(prog.Elapsed),
-		split(prog.Remaining),
-		fmt.Sprintf("%2.1f", prog.Throughput),
-		fmt.Sprintf("%2.2fs", prog.AvgDur.Seconds()),
-		fmt.Sprintf("%3.1f%%", prog.Comp*100),
-		size,
-		avail,
-		strconv.Itoa(prog.Errors)) //nolint
-}
-
 // printCfgSummary display a summary of the configuration. The content of the
 // configuration files is taken as basis, and it's enriched by additional
 //information
@@ -193,6 +104,61 @@ func printCfgSummary(cfg *smsync.Config) {
 	}
 }
 
+// printProgress displays the progress of the file conversion
+func printProgress(prog *smsync.Progress, first bool) {
+	const (
+		format = "%6s %8s %8s %5s %6s %6s %12s %12s %7s" // format string for progress display
+		mb     = uint64(1024 * 1024)                     // one megabyte
+	)
+	var (
+		size  string
+		avail string
+	)
+
+	// print headlines for progress display
+	if first {
+		func() {
+			const (
+				line    = "------------------------------------------------------------------------------" // length=77
+				durNull = "--:--:--"                                                                       // "null" string for display of durations
+			)
+
+			fmt.Printf(format+"\n", "", "Elapsed", "Remain", "#Conv", "Avg", "Avg", "Estimated", "Estimated", "")               // nolint, headline 1
+			fmt.Printf(format+"\n", "#TODO", "Time", "Time", "/ min", "Durat", "Compr", "Target Size", "Free Space", "#Errors") // nolint, headline 2
+			fmt.Println(line)                                                                                                   // separator
+			fmt.Printf(format, "-", durNull, durNull, "-", "- s", "- %", "- MB", "- MB", "-")                                   // nolint
+		}()
+
+		return
+	}
+
+	// local function to print durations as formatted string (HH:MM:SS)
+	split := func(d time.Duration) string {
+		sp := lhlp.SplitDuration(d)
+		return fmt.Sprintf("%02d:%02d:%02d", sp[time.Hour], sp[time.Minute], sp[time.Second])
+	}
+
+	if prog.Size == 0 {
+		size = "- MB"
+		avail = "- MB"
+	} else {
+		size = fmt.Sprintf("%d MB", prog.Size/mb)
+		avail = fmt.Sprintf("%d MB", prog.Avail/int64(mb))
+	}
+
+	// print progress (updates the same screen row)
+	fmt.Printf("\r"+format,
+		strconv.Itoa(prog.TotalNum-prog.Done),
+		split(prog.Elapsed()),
+		split(prog.Remaining()),
+		fmt.Sprintf("%2.1f", prog.Throughput()),
+		fmt.Sprintf("%2.2fs", prog.AvgDur.Seconds()),
+		fmt.Sprintf("%3.1f%%", prog.Comp*100),
+		size,
+		avail,
+		strconv.Itoa(prog.Errors)) //nolint
+}
+
 // printVerbose displays a file name relative to the source directory (from
 // the configuration). This function is used if the user called smsync with the
 // option --verbose / -v
@@ -210,21 +176,31 @@ func printVerbose(cfg *smsync.Config, res smsync.ProcRes) {
 
 // process is a wrapper around the specific functions for processing dirs or files.
 // These functions are passed to process in the function parameter.
-func process(cfg *smsync.Config, prog *smsync.Progress, wl *file.InfoSlice, print func(*smsync.Progress, bool), verbose bool) error {
+func process(cfg *smsync.Config, dirs *file.InfoSlice, files *file.InfoSlice, init bool, verbose bool) (time.Duration, error) {
 	log.Debug("cli.process: START")
 	defer log.Debug("cli.process: END")
 
 	var (
-		procRes = prog.Res                    // channel to receive processing results
-		res     smsync.ProcRes                // processing result
-		ticker  = time.NewTicker(time.Second) // ticker to update progress on screen every second
-		ticked  = false
-		ok      = true
+		res         smsync.ProcRes                // processing result
+		ticker      = time.NewTicker(time.Second) // ticker to update progress on screen every second
+		ticked      = false
+		prog        *smsync.Progress
+		err         error
+		ok          = true
+		errOccurred = false
+		errors      <-chan error
+		done        <-chan struct{}
 	)
+
+	// start processing
+	if prog, errors, done, err = smsync.Process(cfg, dirs, files, init); err != nil {
+		errOccurred = true
+		return 0, nil
+	}
 
 	// print header (if the user doesn't want smsync to be verbose)
 	if !verbose {
-		print(prog, true)
+		printProgress(prog, true)
 	}
 
 	// retrieve results and ticks
@@ -234,14 +210,14 @@ func process(cfg *smsync.Config, prog *smsync.Progress, wl *file.InfoSlice, prin
 			ticked = true
 			// print progress (if the user doesn't want smsync to be verbose)
 			if !verbose {
-				print(prog, false)
+				printProgress(prog, false)
 			}
-		case res, ok = <-procRes:
+		case res, ok = <-prog.Res:
 			if ok {
 				// if ticker hasn't ticked so far: print progress (if the user
 				// doesn't want smsync to be verbose)
 				if !ticked && !verbose {
-					print(prog, false)
+					printProgress(prog, false)
 				}
 
 				// if the user wants smsync to be verbose, display file (that
@@ -253,18 +229,26 @@ func process(cfg *smsync.Config, prog *smsync.Progress, wl *file.InfoSlice, prin
 				// if there is no more file to process, the final progress data
 				// is displayed (if the user desn't want smsync to be verbose)
 				if !verbose {
-					print(prog, false)
+					printProgress(prog, false)
 					fmt.Println()
 				}
 
 				// if all files have been transformed: stop trigger
 				ticker.Stop()
 			}
+		case err, ok = <-errors:
+			if err != nil {
+				errOccurred = true
+			}
+		case _ = <-done:
 		}
 	}
 
-	// everything's fine
-	return nil
+	if errOccurred {
+		return prog.Elapsed(), fmt.Errorf("At least one error occurred during processing")
+	}
+
+	return prog.Elapsed(), nil
 }
 
 // synchronize is the main function of smsync. It triggers the entire sync
@@ -285,19 +269,27 @@ func synchronize(level log.Level, verbose bool) error {
 	defer log.Debug("cli.synchronize: END")
 
 	var (
-		cfg      smsync.Config
-		dirProg  *smsync.Progress
-		fileProg *smsync.Progress
-		errors   <-chan error
-		err      error
+		cfg         smsync.Config
+		dirs        *file.InfoSlice
+		files       *file.InfoSlice
+		elapsed     time.Duration
+		err         error
+		errOccurred = false
 	)
+
+	defer func() {
+		if errOccurred {
+			fmt.Printf("At least one error occured. Check %s", smsync.LogFile)
+		}
+	}()
 
 	// print copyright etc. on command line
 	fmt.Println(preamble)
 
 	// read configuration
 	if err := cfg.Get(cli.init); err != nil {
-		return err
+		errOccurred = true
+		return nil
 	}
 
 	// print summary and ask user for OK
@@ -316,7 +308,10 @@ func synchronize(level log.Level, verbose bool) error {
 	stop, confirm := lhlp.ProgressStr(":: Find differences (this can take a few minutes)", 1000)
 
 	// get list of directories and files for sync
-	dirs, files := smsync.GetSyncFiles(&cfg, cli.init)
+	if dirs, files, err = smsync.GetSyncFiles(&cfg, cli.init); err != nil {
+		errOccurred = true
+		return nil
+	}
 
 	// stop progress string and receive stop confirmation. The confirmation is necessary to not
 	// scramble the command line output
@@ -339,33 +334,18 @@ func synchronize(level log.Level, verbose bool) error {
 		}
 	}
 
-	// start processing
-	if dirProg, fileProg, errors, err = smsync.Process(&cfg, dirs, files, cli.init); err != nil {
-		return err
-	}
-
-	// process directories.	This is only necessary, if ...
-	// - at least one directory has been changed and
-	// - smsync hasn't been called in initialize mode and
-	// - there was at least one sync before
-	if len(*dirs) > 0 && !cli.init && !cfg.LastSync.IsZero() {
-		fmt.Println("\n:: Process directories")
-		if err = process(&cfg, dirProg, dirs, printDirProgress, verbose); err != nil {
-			return err
-		}
-	}
-
 	// process files
 	if len(*files) > 0 {
 		fmt.Println("\n:: Process files")
-		if err = process(&cfg, fileProg, files, printFileProgress, verbose); err != nil {
-			return err
+		if elapsed, err = process(&cfg, dirs, files, cli.init, cli.verbose); err != nil {
+			errOccurred = true
+			return nil
 		}
 	}
 
 	// print final success message
 	fmt.Println("\n:: Done :)")
-	split := lhlp.SplitDuration(dirProg.Elapsed + fileProg.Elapsed)
+	split := lhlp.SplitDuration(elapsed)
 	fmt.Printf("   Processed %d directories and %d files in %s\n",
 		len(*dirs),
 		len(*files),
@@ -373,12 +353,6 @@ func synchronize(level log.Level, verbose bool) error {
 			split[time.Hour],
 			split[time.Minute],
 			split[time.Second]))
-
-	// receive potential error from smsync.Process
-	err = <-errors
-	if err != nil {
-		return err
-	}
 
 	// everything's fine
 	return nil

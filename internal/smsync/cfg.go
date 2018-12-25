@@ -38,7 +38,7 @@ import (
 
 // Constants for smsync configuration
 const (
-	cfgFileName = "smsync.yaml" // file name of config file
+	cfgFile     = "smsync.yaml" // file name of config file
 	suffixStar  = "*"           // wildcard for music file suffix
 	procStatWIP = "wip"         // work in progress
 )
@@ -358,7 +358,7 @@ func (cfgY *cfgYml) read() error {
 	defer log.Debug("smsync.cfgYml.read: END")
 
 	// read config file
-	cfgFile, err := ioutil.ReadFile(filepath.Join(".", cfgFileName))
+	cfgFile, err := ioutil.ReadFile(filepath.Join(".", cfgFile))
 	if err != nil {
 		// determine working directory for error message
 		wd, err0 := os.Getwd()
@@ -399,9 +399,9 @@ func (cfgY *cfgYml) write() error {
 		return fmt.Errorf("Config struct could not be marshalled: %v", err)
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(".", cfgFileName), out, 0777); err != nil {
-		log.Errorf("Configuration file '%s' cannot be updated: %v", filepath.Join(".", cfgFileName), err)
-		return fmt.Errorf("Configuration file '%s' cannot be updated: %v", filepath.Join(".", cfgFileName), err)
+	if err := ioutil.WriteFile(filepath.Join(".", cfgFile), out, 0777); err != nil {
+		log.Errorf("Configuration file '%s' cannot be updated: %v", filepath.Join(".", cfgFile), err)
+		return fmt.Errorf("Configuration file '%s' cannot be updated: %v", filepath.Join(".", cfgFile), err)
 	}
 
 	return nil

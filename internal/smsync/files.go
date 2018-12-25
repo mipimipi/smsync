@@ -18,6 +18,7 @@
 package smsync
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -31,25 +32,6 @@ import (
 
 // errDir is the directory that stores error logs from conversion
 const errDir = "smsync.cnv.errs"
-
-// cleanUp removes temporary files and directories from smsync that are
-// obsolete
-func cleanUp(cfg *Config) error {
-	log.Debug("smsync.cleanUp: START")
-	defer log.Debug("smsync.cleanUp: END")
-
-	var (
-		err     error
-		logFile = filepath.Join(cfg.TrgDir, logFileName)
-	)
-
-	// remove log file if it's empty
-	if err = file.RemoveEmpty(logFile); err != nil {
-		return err
-	}
-
-	return nil
-}
 
 // deleteObsoleteFiles deletes directories and files that are available in the
 // target directory tree but not in the source directory tree. It is called
@@ -100,7 +82,9 @@ func deleteObsoleteFiles(cfg *Config, srcDir file.Info) error {
 			if !b {
 				log.Debug("is directory and src counterpart doesn't exist: DELETE")
 				// ... delete entry
-				if err = os.RemoveAll(filepath.Join(trgDir, trgEntr.Name())); err != nil {
+				fmt.Println("HALLO1")
+				if err = os.Remove(filepath.Join(trgDir, trgEntr.Name())); err != nil {
+					fmt.Println("HALLO2")
 					log.Errorf("Cannot remove '%s': %v", filepath.Join(trgDir, trgEntr.Name()), err)
 					return err
 				}
@@ -112,7 +96,7 @@ func deleteObsoleteFiles(cfg *Config, srcDir file.Info) error {
 				continue
 			}
 			// exclude smsync files (smsync.log or smsync.yaml) from deletion logic
-			if strings.Contains(trgEntr.Name(), logFileName) || strings.Contains(trgEntr.Name(), cfgFileName) {
+			if strings.Contains(trgEntr.Name(), LogFile) || strings.Contains(trgEntr.Name(), cfgFile) {
 				continue
 			}
 			// check if counterpart file on source side exists
@@ -165,7 +149,7 @@ func deleteTrg(cfg *Config) error {
 	// loop over all entries of target directory
 	for _, trgEntr := range trgEntrs {
 		// don't delete smsync files (smsync.log or SMSYNC.yaml)
-		if !trgEntr.IsDir() && (strings.Contains(trgEntr.Name(), logFileName) || strings.Contains(trgEntr.Name(), cfgFileName)) {
+		if !trgEntr.IsDir() && (strings.Contains(trgEntr.Name(), LogFile) || strings.Contains(trgEntr.Name(), cfgFile)) {
 			continue
 		}
 		// delete entry
@@ -179,11 +163,13 @@ func deleteTrg(cfg *Config) error {
 }
 
 // GetSyncFiles determines which directories and files need to be synched
-func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice) {
+func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice, error) {
 	log.Debug("smsync.GetSyncFiles: START")
 	defer log.Debug("smsync.GetSyncFiles: END")
 
-	// filter function needed for FindFiles
+	var errOccurred bool
+
+	// filter function needed for file.Find(...)
 	filter := func(srcFile file.Info, propagated bool) (bool, bool) {
 		log.Debugf("smsync.GetSyncFiles.filter(%s): START", srcFile.Path())
 		defer log.Debugf("smsync.GetSyncFiles.filter(%s): END", srcFile.Path())
@@ -193,9 +179,23 @@ func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice) {
 			err     error
 		)
 
-		// check if file is relevant for smsync (i.e. its suffix is contained
-		// in the smsync config). If not: Return false
-		if !srcFile.IsDir() {
+		if srcFile.IsDir() {
+			// if there was no sync run before, there cannot be directories on
+			// target side. If smsync was called with the option 'init',
+			// directories on target side are not relevant
+			if init || cfg.LastSync.IsZero() {
+				log.Debug("--initialize or is first sync: INVALID, NO PROPAGATE")
+				return false, false
+			}
+
+			// check if the directory needs to be excluded
+			if lhlp.Contains(cfg.Excludes, srcFile.Path()) {
+				log.Debug("directory excluded: INVALID, NO PROPAGATE")
+				return false, false
+			}
+		} else {
+			// check if file is relevant for smsync (i.e. its suffix is contained
+			// in the smsync config). If not: Return false
 			_, ok := cfg.getCv(srcFile.Path())
 			if !ok {
 				log.Debug("suffix is not contained smsync config: INVALID, NO PROPAGATE")
@@ -208,12 +208,6 @@ func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice) {
 			log.Debug("suffix is contained smsync config, but not propagated: GO AHEAD")
 		}
 
-		// check if the directory needs to be excluded
-		if srcFile.IsDir() && lhlp.Contains(cfg.Excludes, srcFile.Path()) {
-			log.Debug("directory excluded: INVALID, NO PROPAGATE")
-			return false, false
-		}
-
 		// assemble target file/directory path
 		if srcFile.IsDir() {
 			trgFile, err = file.PathRelCopy(cfg.SrcDir, srcFile.Path(), cfg.TrgDir)
@@ -222,6 +216,7 @@ func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice) {
 		}
 		if err != nil {
 			log.Errorf("Target path cannot be assembled: %v", err)
+			errOccurred = true
 			return false, false
 		}
 		// if file/directory doesn't exists: return true
@@ -254,5 +249,9 @@ func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice) {
 	sort.Sort(*dirs)
 	sort.Sort(*files)
 
-	return dirs, files
+	if errOccurred {
+		return nil, nil, fmt.Errorf("Error during GetSyncFiles")
+	}
+
+	return dirs, files, nil
 }
