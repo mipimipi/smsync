@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -371,6 +372,12 @@ func (cfgY *cfgYml) read() error {
 	if err = yaml.Unmarshal(cfgFile, &cfgY); err != nil {
 		log.Errorf("Error during unmarshaling of config file: %v", err)
 		return fmt.Errorf("Error during unmarshaling of config file: %v", err)
+	}
+
+	// clean directory names
+	cfgY.SrcDir = path.Clean(cfgY.SrcDir)
+	for i := range cfgY.Excludes {
+		cfgY.Excludes[i] = path.Clean(cfgY.Excludes[i])
 	}
 
 	return nil
