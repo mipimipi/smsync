@@ -51,11 +51,12 @@ type Progress struct {
 	Avail      int64         // estimated free diskspace
 	Size       uint64        // estimated target size
 	Comp       float64       // average compression
-	throughput float64       // throughput (= conversion per time)
+	Throughput float64       // throughput (= conversion per time)
 	Errors     int           // number of errors
 	Dur        time.Duration // cumulated duration
 	AvgDur     time.Duration // average duration per minute
-	elapsed    time.Duration // elapsed time
+	Elapsed    time.Duration // elapsed time
+	Remaining  time.Duration // elapsed time
 	Res        chan ProcRes  // channel to report intermediate results
 }
 
@@ -87,26 +88,10 @@ func newProg(wl *file.InfoSlice, space uint64) *Progress {
 	return &prog
 }
 
-// Elapsed calculates the elapsed time since prog.Start
-func (prog *Progress) Elapsed() time.Duration {
-	prog.elapsed = time.Since(prog.Start)
-	return prog.elapsed
-}
-
-// Remaining calculates the estimated remaining processing time
-func (prog *Progress) Remaining() time.Duration {
-	if prog.Done == 0 {
-		return 0
-	}
-	return time.Duration(int64(prog.elapsed) / int64(prog.Done) * int64(prog.TotalNum-prog.Done))
-}
-
-// Throughput average number of conversions per minute
-func (prog *Progress) Throughput() float64 {
-	if prog.elapsed == 0 {
-		return 0
-	}
-	return float64(prog.Done) / prog.elapsed.Minutes()
+// Tick triggers the update of the elapsed time and depending attributes
+// attributes
+func (prog *Progress) Tick() {
+	prog.updElapsed()
 }
 
 func (prog *Progress) update(srcFile, trgFile file.Info, dur time.Duration, err error) {
@@ -122,7 +107,7 @@ func (prog *Progress) update(srcFile, trgFile file.Info, dur time.Duration, err 
 	prog.Avail = int64(prog.Diskspace) - int64(prog.Size)
 	prog.Dur += dur
 	prog.AvgDur = time.Duration(int(prog.Dur) / prog.Done)
-	prog.elapsed = time.Since(prog.Start)
+	prog.updElapsed()
 	if err != nil {
 		prog.Errors++
 	}
@@ -132,6 +117,20 @@ func (prog *Progress) update(srcFile, trgFile file.Info, dur time.Duration, err 
 		TrgFile: trgFile,
 		Dur:     dur,
 		Err:     err}
+}
+
+// updElapsed calculates the elapsed time since prog.Start and updates depending
+// attributes
+func (prog *Progress) updElapsed() {
+	prog.Elapsed = time.Since(prog.Start)
+
+	if prog.Elapsed > 0 {
+		prog.Throughput = float64(prog.Done) / prog.Elapsed.Minutes()
+	}
+	if prog.Done > 0 {
+		prog.Remaining = time.Duration(int64(prog.Elapsed) / int64(prog.Done) * int64(prog.TotalNum-prog.Done))
+	}
+
 }
 
 // Process is the main "backend" function to control the conversion.
@@ -145,7 +144,6 @@ func Process(cfg *Config, dirs *file.InfoSlice, files *file.InfoSlice, init bool
 
 	var (
 		prog   = newProg(files, du.NewDiskUsage(cfg.TrgDir).Available()) // progress structure for files
-		cvDone = make(chan struct{}, 2)                                  // channel for processing go routine to report that it's done
 		errors = make(chan error)                                        // error channel
 		done   = make(chan struct{})                                     // done channel
 		wg     sync.WaitGroup
@@ -177,17 +175,15 @@ func Process(cfg *Config, dirs *file.InfoSlice, files *file.InfoSlice, init bool
 	}
 
 	// fork processing of directories
-	go processDirs(cfg, dirs, cvDone, errors)
+	wg.Add(1)
+	go processDirs(cfg, dirs, &wg, errors)
 
 	// fork processing of and files
-	go processFiles(cfg, prog, files, cvDone, errors)
+	wg.Add(1)
+	go processFiles(cfg, prog, files, &wg, errors)
 
 	// clean up
-	wg.Add(1)
-	go cleanUp(cfg, cvDone, &wg, errors)
-
-	// wait cleanUp is finisheduntil parallel sub processes are finished
-	wg.Wait()
+	go cleanUp(cfg, &wg, done, errors)
 
 	return prog, errors, done, nil
 }
@@ -195,11 +191,11 @@ func Process(cfg *Config, dirs *file.InfoSlice, files *file.InfoSlice, init bool
 // processDirs creates new and deletes obsolete directories. processDirs
 // returns a channel that it uses to return the processing status/result
 // continuously after a directory has been processed.
-func processDirs(cfg *Config, dirs *file.InfoSlice, done chan<- struct{}, errors chan<- error) {
+func processDirs(cfg *Config, dirs *file.InfoSlice, wg *sync.WaitGroup, errors chan<- error) {
 	log.Debug("smsync.processDirs: START")
 	defer log.Debug("smsync.processDirs: END")
 
-	defer func() { done <- struct{}{} }()
+	defer wg.Done()
 
 	for _, d := range *dirs {
 
@@ -213,11 +209,11 @@ func processDirs(cfg *Config, dirs *file.InfoSlice, done chan<- struct{}, errors
 // are processed in parallel using the package github.com/mipimipi/go-worker.
 // It returns a channel that it uses to return the processing status/result
 // continuously after a file has been processed.
-func processFiles(cfg *Config, prog *Progress, files *file.InfoSlice, done chan<- struct{}, errors chan<- error) {
+func processFiles(cfg *Config, prog *Progress, files *file.InfoSlice, wg *sync.WaitGroup, errors chan<- error) {
 	log.Debug("smsync.processFiles: START")
 	defer log.Debug("smsync.processFiles: END")
 
-	defer func() { done <- struct{}{} }()
+	defer wg.Done()
 
 	// nothing to do in case of empty files array
 	if len(*files) == 0 {
@@ -243,27 +239,23 @@ func processFiles(cfg *Config, prog *Progress, files *file.InfoSlice, done chan<
 	for r := range res {
 		// update progress
 		prog.update(r.(cvOutput).srcFile, r.(cvOutput).trgFile, r.(cvOutput).dur, r.(cvOutput).err)
-
-		if r.(cvOutput).err != nil {
-			errors <- r.(cvOutput).err
-		}
 	}
 }
 
 // cleanUp removes temporary files and directories from smsync that are
 // obsolete
-func cleanUp(cfg *Config, cvDone <-chan struct{}, wg *sync.WaitGroup, errors chan<- error) {
+func cleanUp(cfg *Config, wg *sync.WaitGroup, done chan<- struct{}, errors chan<- error) {
+	// wait for processing of dirs and files to be done
+	wg.Wait()
+
 	log.Debug("smsync.cleanUp: START")
 	defer log.Debug("smsync.cleanUp: END")
 
-	defer wg.Done()
-
-	// wait for conversion to be done
-	_ = <-cvDone
-	_ = <-cvDone
+	defer func() { done <- struct{}{} }()
 
 	// remove log file if it's empty
 	file.RemoveEmpty(filepath.Join(cfg.TrgDir, LogFile))
+	log.Debug("Removed log files (at least tried to do that)")
 
 	// update config file
 	if err := cfg.setProcEnd(); err != nil {

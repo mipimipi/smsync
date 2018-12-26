@@ -149,9 +149,9 @@ func printProgress(prog *smsync.Progress, first bool) {
 	// print progress (updates the same screen row)
 	fmt.Printf("\r"+format,
 		strconv.Itoa(prog.TotalNum-prog.Done),
-		split(prog.Elapsed()),
-		split(prog.Remaining()),
-		fmt.Sprintf("%2.1f", prog.Throughput()),
+		split(prog.Elapsed),
+		split(prog.Remaining),
+		fmt.Sprintf("%2.1f", prog.Throughput),
 		fmt.Sprintf("%2.2fs", prog.AvgDur.Seconds()),
 		fmt.Sprintf("%3.1f%%", prog.Comp*100),
 		size,
@@ -210,6 +210,7 @@ func process(cfg *smsync.Config, dirs *file.InfoSlice, files *file.InfoSlice, in
 			ticked = true
 			// print progress (if the user doesn't want smsync to be verbose)
 			if !verbose {
+				prog.Tick()
 				printProgress(prog, false)
 			}
 		case res, ok = <-prog.Res:
@@ -232,23 +233,25 @@ func process(cfg *smsync.Config, dirs *file.InfoSlice, files *file.InfoSlice, in
 					printProgress(prog, false)
 					fmt.Println()
 				}
-
-				// if all files have been transformed: stop trigger
-				ticker.Stop()
 			}
 		case err, ok = <-errors:
 			if err != nil {
 				errOccurred = true
 			}
-		case _ = <-done:
 		}
 	}
 
+	// if processing has finished: stop ticker
+	ticker.Stop()
+
+	// wait for cleanup to be done
+	_ = <-done
+
 	if errOccurred {
-		return prog.Elapsed(), fmt.Errorf("At least one error occurred during processing")
+		return prog.Elapsed, fmt.Errorf("At least one error occurred during processing")
 	}
 
-	return prog.Elapsed(), nil
+	return prog.Elapsed, nil
 }
 
 // synchronize is the main function of smsync. It triggers the entire sync
@@ -279,7 +282,7 @@ func synchronize(level log.Level, verbose bool) error {
 
 	defer func() {
 		if errOccurred {
-			fmt.Printf("At least one error occured. Check %s", smsync.LogFile)
+			fmt.Printf("\nAt least one error occured. Check %s\n", smsync.LogFile)
 		}
 	}()
 
@@ -334,13 +337,10 @@ func synchronize(level log.Level, verbose bool) error {
 		}
 	}
 
-	// process files
-	if len(*files) > 0 {
-		fmt.Println("\n:: Process files")
-		if elapsed, err = process(&cfg, dirs, files, cli.init, cli.verbose); err != nil {
-			errOccurred = true
-			return nil
-		}
+	// do synchronization / conversion
+	fmt.Println("\n:: Synchronization / conversion")
+	if elapsed, err = process(&cfg, dirs, files, cli.init, cli.verbose); err != nil {
+		errOccurred = true
 	}
 
 	// print final success message

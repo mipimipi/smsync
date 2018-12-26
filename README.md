@@ -256,7 +256,7 @@ The folder "/home/musiclover/Music/MASTER/Rock/Eric Clapton" hasn't been convert
 
 ### <a name="errors"></a>FFMPEG errors
 
-During the conversion with FFMPEG, errors can occur. Unfortunately, there's not much information about the exit codes of FFMPEG (all I could find is [this](https://lists.ffmpeg.org/pipermail/ffmpeg-user/2013-July/016245.html). In particular, it seems to be impossible to find out if an error occured during the audio conversion or if it only had to do with the cover art. Therefore, smsync reports an error every time the exit code of FFMPEG is not zero. In addition to that, a file with the detailed log information of FFMPEG ([`-loglevel verbose`](http://ffmpeg.org/ffmpeg.html#Generic-options)) is stored in the directory `smsync.err`. This file is named `<name-of-the-music-file-that-was-converted>.log`.
+During the conversion with FFMPEG, errors can occur. Unfortunately, there's not much information about the exit codes of FFMPEG (all I could find is [this](https://lists.ffmpeg.org/pipermail/ffmpeg-user/2013-July/016245.html). In particular, it seems to be impossible to find out if an error occured during the audio conversion or if it only had to do with the cover art. Therefore, smsync reports an error every time the exit code of FFMPEG is not zero. In addition to that, a file with the detailed log information of FFMPEG ([`-loglevel verbose`](http://ffmpeg.org/ffmpeg.html#Generic-options)) is stored in the directory `smsync.cv.err`. This file is named `<name-of-the-music-file-that-was-converted>.log`.
 
 ### <a name="command"></a>Command Line Options
 

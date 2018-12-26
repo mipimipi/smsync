@@ -31,7 +31,7 @@ import (
 )
 
 // errDir is the directory that stores error logs from conversion
-const errDir = "smsync.cnv.errs"
+const errDir = "smsync.cv.errs"
 
 // deleteObsoleteFiles deletes directories and files that are available in the
 // target directory tree but not in the source directory tree. It is called
@@ -82,9 +82,7 @@ func deleteObsoleteFiles(cfg *Config, srcDir file.Info) error {
 			if !b {
 				log.Debug("is directory and src counterpart doesn't exist: DELETE")
 				// ... delete entry
-				fmt.Println("HALLO1")
-				if err = os.Remove(filepath.Join(trgDir, trgEntr.Name())); err != nil {
-					fmt.Println("HALLO2")
+				if err = os.RemoveAll(filepath.Join(trgDir, trgEntr.Name())); err != nil {
 					log.Errorf("Cannot remove '%s': %v", filepath.Join(trgDir, trgEntr.Name()), err)
 					return err
 				}
