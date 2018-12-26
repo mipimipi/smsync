@@ -43,7 +43,7 @@ func (cv cvAll2OPUS) exec(srcFile string, trgFile string, cvStr string) error {
 
 	// set vbr type
 	switch a[0] {
-	case abr:
+	case vbr:
 		params = append(params, "-vbr", "on")
 	case cbr:
 		params = append(params, "-vbr", "off")
@@ -79,7 +79,7 @@ func (cvAll2OPUS) normCvStr(s string) (string, error) {
 		if len(b) != 2 {
 			isValid = false
 		} else {
-			isValid = b[0] == "abr" || b[0] == "cbr" || b[0] == "hcbr"
+			isValid = b[0] == "vbr" || b[0] == "cbr" || b[0] == "hcbr"
 
 			if isValid {
 				if !isValidBitrate(b[1], 6, 510) {

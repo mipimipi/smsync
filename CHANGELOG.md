@@ -1,3 +1,13 @@
+# [Release 3.2.1](https://github.com/mipimipi/smsync/releases/tag/3.2.1) (2018-12-26)
+
+## Added
+
+* Extended documentation (README.md)
+
+## Fixed
+
+* conversion to opus: 'vbr:128' is not a valid conversion ([#21](https://github.com/mipimipi/smsync/issues/21))
+
 # [Release 3.2.0](https://github.com/mipimipi/smsync/releases/tag/3.2.0) (2018-12-24)
 
 ## Added
