@@ -78,7 +78,7 @@ func init() {
 
 	// define flag ...
 	// - initialize
-	rootCmd.Flags().BoolVarP(&cli.init, "initialize", "i", false, "delete content of target directory and do initial sync")
+	rootCmd.Flags().BoolVarP(&cli.init, "init", "i", false, "delete content of target directory and do initial sync ignoring the change times on source side")
 	// - logging
 	rootCmd.Flags().BoolVarP(&cli.log, "log", "l", false, "switch on logging")
 	// - print detailed progress

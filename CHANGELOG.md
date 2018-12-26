@@ -10,6 +10,7 @@
 ### Changed
 
 * Rename smsync.err ([#19](https://github.com/mipimipi/smsync/issues/19))
+* Changed cli option `--initialize` to `--init`
 
 ### Fixed
 
