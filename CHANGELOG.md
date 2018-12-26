@@ -1,3 +1,20 @@
+## [Release 3.3.0](https://github.com/mipimipi/smsync/releases/tag/3.3.0) (2018-12-30)
+
+### Added
+
+* Rename Config.SrcDirPath to Config SrcDir (same for Config.TrgDirPath) ([#20](https://github.com/mipimipi/smsync/issues/20))
+* Clean filenames that are read from config ([#18](https://github.com/mipimipi/smsync/issues/18))
+* Enhance docu wrt. conversion modes ([#22](https://github.com/mipimipi/smsync/issues/19))
+* Explain what to do if the conversion scope has been extended per config file ([#17](https://github.com/mipimipi/smsync/issues/17))
+
+### Changed
+
+* Rename smsync.err ([#19](https://github.com/mipimipi/smsync/issues/19))
+
+### Fixed
+
+* Display indication that errors occurred ([#15](https://github.com/mipimipi/smsync/issues/15))
+
 ## [Release 3.2.1](https://github.com/mipimipi/smsync/releases/tag/3.2.1) (2018-12-26)
 
 ### Added

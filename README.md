@@ -4,11 +4,11 @@
 
 keeps huge music collections in sync and is takes care of conversions between different formats. It's an easy-to-use command line application for Linux. 
 
-smsync is made for use cases where you have a folder structure for your high quality lossless or lossy but high bit rate music that acts as a "master". From this master you replicate your music to "slaves", such as a smartphone or an SD card / hard drive for your car etc. On a smartphone or in the car you either don't have or you don't want to spend that much storage capacity that you might have for you master music storage. Thus, the replication step from the master to the slaves is not a simple copy, it's in fact a conversion step. For instance, music that is stored on the master in the lossless [FLAC format](https://en.wikipedia.org/wiki/FLAC) shall be converted to [MP3](https://en.wikipedia.org/wiki/MP3) while being replicated to a slave.
+smsync is made for use cases where you have a folder structure for your high quality lossless or lossy but high bit rate music that acts as a source (aka. "master"). From this source you replicate your music to targets (aka. "slaves"), such as a smartphone or an SD card / hard drive for your car etc. On a smartphone or in the car you either don't have or you don't want to spend that much storage capacity that you might have for you source music storage. Thus, the replication step from the source to the targets is not a simple copy, it's in fact a conversion step. For instance, music that is stored on the source in the lossless [FLAC format](https://en.wikipedia.org/wiki/FLAC) shall be converted to [MP3](https://en.wikipedia.org/wiki/MP3) while being replicated to a target.
 
-Normally, you want to keep the folder structure during replication. I.e. a certain music file on the slave shall have the same relative folder path as its counterpart has on the master.
+Normally, you want to keep the folder structure during replication. I.e. a certain music file on the target shall have the same relative folder path as its counterpart has on the source.
 
-New music is typically added to the master only. If that happened you want to update the slaves accordingly with minimal effort. If you deleted files or folders on the master for whatever reason, these deletions shall be propagated to the slaves as well. And, last not least, as we are talking about huge music collections (several thousands or ten thousands of music files), the whole synchronization and replication process must happen in a highly automated and performant way.
+New music is typically added to the source only. If that happened you want to update the targets accordingly with minimal effort. If you deleted files or folders on the source for whatever reason, these deletions shall be propagated to the targets as well. And, last not least, as we are talking about huge music collections (several thousands or ten thousands of music files), the whole synchronization and replication process must happen in a highly automated and performant way.
 
 ## Contents
 
@@ -32,6 +32,10 @@ New music is typically added to the master only. If that happened you want to up
     * [Synchronization Process](#syncproc)
         - [FFMPEG errors](#errors)
     * [Command Line Options](#command)
+    * [Keeping source and target consist](#consistency)  
+        - [Case 1: Scope has been reduced](#case1)
+        - [Case 2: Scope has been extended](#case2)
+        - [Case 3: Scope is unchanged but conversion rules have been changed](#case3)  
 
 ## <a name="features"></a>Features
 
@@ -39,7 +43,7 @@ smsync takes care of all this:
 
 ### <a name="conversion"></a>Conversion
 
-Conversions can be configurated per slave and file type (i.e. for each file extension/suffix) separately. Currently, smsync supports:
+Conversions can be configurated per target and file type (i.e. for each file extension/suffix) separately. Currently, smsync supports:
 
 * Conversions to FLAC, from [WAV](https://en.wikipedia.org/wiki/WAV) and FLAC.
 
@@ -53,7 +57,7 @@ For all these conversions, [ffmpeg](https://ffmpeg.org/) is used. In addition, a
 
 ### <a name="synchonization"></a>Synchronization
 
-The synchronization between master and slave is done based on timestamps. If new music has been added to the master since the last synchronization, smsync only replicates / converts the added files. If you have deleted files or folders on the master since the last synchronization, smsync deletes its counterparts on the slave.
+The synchronization between source and target is done based on timestamps. If new music has been added to the source since the last synchronization, smsync only replicates / converts the added files. If you have deleted files or folders on the source since the last synchronization, smsync deletes its counterparts on the target.
 
 The synchronization can be done stepwise. That's practical if a huge number of files has to be synchronized. In this case, the synchronization can be interrupted (with e.g. CTRL-C) and continued at a later point in time.
 
@@ -90,11 +94,11 @@ For Arch Linux (and other Linux distros, that can install packages from the Arch
 
 ### <a name="config"></a>Configuration File
 
-A slave has to have a configuration file with the name `smsync.yaml` in its root folder. This file contains the configuration for that slave in [YAML format](https://en.wikipedia.org/wiki/YAML).
+A target has to have a configuration file with the name `smsync.yaml` in its root folder. This file contains the configuration for that target in [YAML format](https://en.wikipedia.org/wiki/YAML).
 
 Example:
 
-    source_dir: /home/musiclover/Music/MASTER
+    source_dir: /home/musiclover/Music/SOURCE
     num_cpus: 4
     num_wrkrs: 4
     exclude:
@@ -111,19 +115,15 @@ In former releases (< smsync 3.0) a configuration file in [INI format](https://e
 
 #### <a name="general"></a>General Configuration
 
-smsync interprets the configuration file. In the example, the root folder of the master is `/home/musiclover/Music/MASTER`. The next two entries are optional. They tell smsync to use 4 cpus and start 4 worker processes for the conversion. Per default, smsync uses all available cpus and starts #cpus worker processes.
+smsync interprets the configuration file. In the example, the root folder of the source is `/home/musiclover/Music/SOURCE`. The next two entries are optional. They tell smsync to use 4 cpus and start 4 worker processes for the conversion. Per default, smsync uses all available cpus and starts #cpus worker processes.
 
 #### <a name="exclude"></a>Exclude Folders
 
-`exclude` allows to exclude a list of source folders from the conversion. The folder paths in that list are interpreted relative to the source directory. Wildcards are supported. In the example, all folders fitting to the pattern `/home/musiclover/Music/MASTER/Rock/Eric*` are excluded, i.e. `/home/musiclover/Music/MASTER/Rock/Eric Clapton`, `/home/musiclover/Music/MASTER/Rock/Eric Burden` etc. are excluded. The exclusion feature can be helpful if the target disk space is not big enough. In such a case, some artists or even entire genres can be excluded. Another option to deal with insufficient disk space would be to configure a higher compression rate.
-
-Once you have exclude a directory, but after some time you want to include it, remove the corresponding exclusion row from the configuration file and excute
-
-    find <directory-you-want-to-include> -exec touch {} \;
+`exclude` allows to exclude a list of source folders from the conversion. The folder paths in that list are interpreted relative to the source directory. Wildcards are supported. In the example, all folders fitting to the pattern `/home/musiclover/Music/SOURCE/Rock/Eric*` are excluded, i.e. `/home/musiclover/Music/SOURCE/Rock/Eric Clapton`, `/home/musiclover/Music/SOURCE/Rock/Eric Burden` etc. are excluded. The exclusion feature can be helpful if the target disk space is not big enough. In such a case, some artists or even entire genres can be excluded. Another option to deal with insufficient disk space would be to configure a higher compression rate.
 
 #### <a name="rules"></a>Conversion Rules
 
-The rules tell smsync what to do with the files stored in the folder structure of the master.
+The rules tell smsync what to do with the files stored in the folder structure of the SOURCE.
 
 In the example, the first rule tells smsync to convert FLAC files (i.e. files with the suffix '.flac') to MP3, using the conversion `vbr:5|cl:3`. These conversion parameters are strings that consist of different parts which are separated by '|'. The supported content of a conversion parameter string depends on the target format - see detailed explanation [below](#format).
 
@@ -159,40 +159,53 @@ The available or supported conversion parameters depend on the target format. Th
 
 ##### <a name="flac"></a>FLAC
 
-FLAC only supports a compression level (parameter `cl`). Possible values are: 0, ..., 12 where 0 means the highest quality. 5 is the default. Thus, for a conversion to FLAC, if no conversion rule is specified in `smsync.yaml`, `cl:5` is assumed. 
+FLAC only supports a compression level (parameter `cl`). Possible values are: 0, ..., 12 where 0 means the highest quality. 5 is the default. Thus, for a conversion to FLAC, if no conversion rule is specified in `smsync.yaml`, `cl:5` is assumed. Consequently, allowed conversions are:
+
+* `cl:<quality>`
 
 See also: [FFMpeg Codec Documentation](http://ffmpeg.org/ffmpeg-codecs.html#flac-2)
 
 ##### <a name="mp3"></a>MP3
 
-MP3 supports ABR, CBR, both with bit rates from 8 to 500 kbps (kilo bit per second), and VBR with a quality from 0 to 9 (where 0 means highest quality). In addition, MP3 supports a compression level (parameter `cl`), which can have values 0, ..., 9 where 0 means the highest quality. Thus, the conversion `abr:192|cl:3` in the example above specifies an average bit rate of 192 kbps and a compression level of 3.
+MP3 supports ABR, CBR, both with bit rates from 8 to 500 kbps (kilo bit per second), and VBR with a quality from 0 to 9 (where 0 means highest quality). In addition, MP3 supports a compression level (parameter `cl`), which can have values 0, ..., 9 where 0 means the highest quality. Thus, the conversion `abr:192|cl:3` in the example above specifies an average bit rate of 192 kbps and a compression level of 3. Consequently, allowed conversions are:
+
+* `abr:<bitrate>|cl:<quality>` for average bitrate conversion
+* `cbr:<bitrate>|cl:<quality>` for constant bitrate conversion
+* `vbr:<quality>|cl:<quality>` for variable bitrate conversion
 
 See also: [FFMpeg Codec Documentation](http://ffmpeg.org/ffmpeg-codecs.html#libmp3lame-1)
 
 ##### <a name="ogg"></a>OGG (Vorbis)
 
-This format supports conversions with average and variable bit rate. For ABR, bit rates from 8 to 500 kbps are supported. For VBR, possible values are -1.0, ..., 10.0 where 10.0 means the best quality. VBR with quality 3.0 is the default. Thus, for a conversion to OGG (Vorbis), if no conversion rule is specified in `smsync.yaml`, `vbr:3.0` is assumed. OGG (Vorbis) doesn't support compression levels.
+This format supports conversions with average and variable bit rate. For ABR, bit rates from 8 to 500 kbps are supported. For VBR, possible values are -1.0, ..., 10.0 where 10.0 means the best quality. VBR with quality 3.0 is the default. Thus, for a conversion to OGG (Vorbis), if no conversion rule is specified in `smsync.yaml`, `vbr:3.0` is assumed. OGG (Vorbis) doesn't support compression levels. Consequently, allowed conversions are:
+
+* `abr:<bitrate>` for average bitrate conversion
+* `vbr:<quality>` for variable bitrate conversion
 
 See also: [FFMpeg Codec Documentation](http://ffmpeg.org/ffmpeg-codecs.html#libvorbis)
 
 ##### <a name="opus"></a>OPUS
 
-OPUS supports conversions with variable (VBR), constant (CBR) and hard constant bit rate (HCBR). The latter guarantees that all frames have the same size. Allowed values are 6 to 510 kbps. In addition, OPUS supports a compression level that ranges from 0 to 10, where 10 is the highest quality. If no compression level is specified, `cl:10`is assumed. 
+OPUS supports conversions with variable (VBR), constant (CBR) and hard constant bit rate (HCBR). The latter guarantees that all frames have the same size. Allowed values are 6 to 510 kbps. In addition, OPUS supports a compression level that ranges from 0 to 10, where 10 is the highest quality. If no compression level is specified, `cl:10`is assumed.  Consequently, allowed conversions are:
+
+* `vbr:<bitrate>|cl:<quality>` for variable bitrate conversion
+* `cbr:<bitrate>|cl:<quality>` for constant bitrate conversion
+* `hcbr:<bitrate>|cl:<quality>` for hard constant bitrate conversion
 
 See also: [FFMpeg Codec Documentation](http://ffmpeg.org/ffmpeg-codecs.html#libopus-1) or [opusenc documentation](https://mf4.xiph.org/jenkins/view/opus/job/opus-tools/ws/man/opusenc.html)
 
 ### <a name="syncproc"></a>Synchronization Process
 
-Coming back to the [example above](#config). Let's assume the config file `smsync.yaml` is stored in `/home/musiclover/Music/SLAVE`. To execute smsync for the slave, open a terminal and enter
+Coming back to the [example above](#config). Let's assume the config file `smsync.yaml` is stored in `/home/musiclover/Music/TARGET`. To execute smsync for the target, open a terminal and enter
 
-    $ cd /home/musiclover/Music/SLAVE
+    $ cd /home/musiclover/Music/TARGET
     $ smsync
 
 The synchronization process is executed in the following steps:
 
-1. smsync reads the configuration file in `/home/musiclover/Music/SLAVE`. A summary of the configuration is shown and (if smsync hasn't been called with the option ' --yes`) the user is asked for confirmation.
+1. smsync reads the configuration file in `/home/musiclover/Music/TARGET`. A summary of the configuration is shown and (if smsync hasn't been called with the option ' --yes`) the user is asked for confirmation.
 
-1. smsync determines all files and directories of the master, that have changed since the last synchronization. In our example, there was no synchronization before (as otherwise the configuration file would have an entry `last_sync` that contained the time stamp of the last synchronization). Depending on the number of files, this could take a few minutes. smsync displays how many directories and files need to be synchronized and again, the user is asked for confirmation (if smsync hasn't been called with the option ' --yes`).
+1. smsync determines all files and directories of the source, that have changed since the last synchronization. In our example, there was no synchronization before (as otherwise the configuration file would have an entry `last_sync` that contained the time stamp of the last synchronization). Depending on the number of files, this could take a few minutes. smsync displays how many directories and files need to be synchronized and again, the user is asked for confirmation (if smsync hasn't been called with the option ' --yes`).
 
 1. The replication / conversion of files and directories is executed. smsync shows the progress:
 
@@ -216,9 +229,9 @@ The synchronization process is executed in the following steps:
 
 1. After the synchronization is done, a success message is displayed and the current time is stored as `last_sync` in the configuration file.
 
-In the example, the synchronization would convert such a master folder structure:
+In the example, the synchronization would convert such a source folder structure:
 
-    /home/musiclover/Music/MASTER
+    /home/musiclover/Music/SOURCE
       |- ...
       |- Rock
           |- ...
@@ -237,9 +250,9 @@ In the example, the synchronization would convert such a master folder structure
                   |- ...
                   |- folder.png
 
-to such a slave folder structure:
+to such a target folder structure:
 
-    /home/musiclover/Music/SLAVE
+    /home/musiclover/Music/TARGET
       |- ...
       |- Rock
           |- ...
@@ -252,7 +265,7 @@ to such a slave folder structure:
           |        |- cover.jpg
           |- ...
 
-The folder "/home/musiclover/Music/MASTER/Rock/Eric Clapton" hasn't been converted because the directoty fits to the exclusion pattern.
+The folder "/home/musiclover/Music/SOURCE/Rock/Eric Clapton" hasn't been converted because the directoty fits to the exclusion pattern.
 
 ### <a name="errors"></a>FFMPEG errors
 
@@ -270,7 +283,7 @@ smsync has only a few options:
 * `--log` / `-l`
   Write a log file.
   
-  The file `smsync.log` is stored in the root folder of the slave. A log file is always written in case of an error.
+  The file `smsync.log` is stored in the root folder of the target. A log file is always written in case of an error.
 
 * `--verbose` / `-v`
   Print detailed progress.
@@ -281,3 +294,40 @@ smsync has only a few options:
   Don't ask for confirmation.
   
   smsync starts directly without asking for user confirmations. With this option, it's possible to run smsync automatically via cron job.
+
+### <a name="consistency"></a>Keeping source and target consist
+
+As long as the configuration file is not changed, smsync keeps track of the consistency between source and target. If it's changed after a synchronization happened, manual steps are necessary. Depending on the changes that have been made to the configuration, different actions need to be taken to keep source and target consistent. Important is the "scope" that is specified in the configuration. In this context, scope means the set of source file types and the source directories.
+
+#### <a name="case1"></a>Case 1: Scope has been reduced
+
+I.e. source file types have been removed from or exclusions have been added to the configuration. In this case, you have to remove the corresponding files and directories from the target manually. Under certain circumstances the [find command](https://linux.die.net/man/1/find) in combination with the [rm command](https://linux.die.net/man/1/rm) can help. The following command removes all MP3 files from the target:
+
+    find <target-directory> -name "*.mp3" -exec rm {} \;
+
+#### <a name="case2"></a>Case 2: Scope has been extended
+
+I.e. source file type have been added to or exclusions have been removed from the configuration. In this case, a feasible apporoach is to update the change time of the "added" (i.e. added to the scope) source files and directories. The next execution of smsync will then update the target accordingly. Also here the `find` command can help, but this time in combination with the [touch command](https://linux.die.net/man/1/touch).
+
+If you have added a conversion rule for WAV files, the following command updates the change time of all WAV files in the source directory tree:
+
+    find <source-directory> -name "*.wav" -exec touch {} \;
+
+If you have removed an exclusion, the following command updates the change time of the corresponding directory:
+
+    find <directory-you-want-to-include> -exec touch {} \;
+
+#### <a name="case3"></a>Case 3: Scope is unchanged but conversion rules have been changed
+
+In this case, the source of a conversion rule remains unchanged.
+
+If also the target remains unchanged but only the conversion is changed (e.g. you still want to convert FLAC to MP3 with average bitrate conversion, but since the capacity of the target device is too small you want to reduce the bitrate),
+
+* touch the corresponding source files (see [Case 2](#case2)) and
+* execute smsync.
+
+If the target is changed (e.g. so far you converted FLAC to MP3, but now you want to convert to OGG instead),
+
+* the corresponding target files (the MP3 files in the example above) need to be removed (see [Case 1](#case1)),
+* the corresponding source files (the FLAC files in the example above) need to be touched (see [Case 2](#case2)) and
+* smsync needs to be executed.

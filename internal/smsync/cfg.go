@@ -199,7 +199,7 @@ func (cfg *Config) getExcludes(excls *[]string) error {
 		}
 
 		// expand directory
-		a, err := filepath.Glob(filepath.Join(cfg.SrcDir, excl))
+		a, err := filepath.Glob(file.EscapePattern(filepath.Join(cfg.SrcDir, excl)))
 		if err != nil {
 			return err
 		}
