@@ -46,7 +46,7 @@ type info struct {
 func (inf info) Path() string { return inf.path }
 
 // create FileInfo from os.FileInfo and a path
-func newFI(fi os.FileInfo, p string) Info { return info{fi, p} }
+func newInfo(fi os.FileInfo, p string) Info { return info{fi, p} }
 
 // implement sort interface for Info:
 
@@ -205,6 +205,22 @@ func Find(roots []string, filter func(Info, bool) (bool, bool), numWorkers int) 
 		return entrs
 	}
 
+	// function to check if a directory is relevant. If yes, descend into that
+	// directory
+	checkDescendDir := func(fi os.FileInfo, dir string) {
+		inf := newInfo(fi, dir)
+		valid, propagate := filter(inf, false)
+		if valid {
+			// append it to dirs array
+			dirs = append(dirs, inf)
+		}
+		// descend into directory
+		if valid || !propagate {
+			wg.Add(1)
+			go descend(inf, propagate)
+		}
+	}
+
 	// function to traverse the directory tree. Calls itself recursively
 	descend = func(dir Info, propagated bool) {
 		defer wg.Done()
@@ -215,37 +231,28 @@ func Find(roots []string, filter func(Info, bool) (bool, bool), numWorkers int) 
 			// filter condition. If they do, the entry is appended to the
 			// corresponding array (either dirs or files)
 			if entr.IsDir() {
-				fi := newFI(entr, filepath.Join(dir.Path(), entr.Name()))
+				inf := newInfo(entr, filepath.Join(dir.Path(), entr.Name()))
 				// if propagated from the parents, filtering is not necessary
 				if propagated {
 					// append it to dirs array
-					dirs = append(dirs, fi)
+					dirs = append(dirs, inf)
 					// descend and continue
 					wg.Add(1)
-					go descend(fi, true)
+					go descend(inf, true)
 					continue
 				}
-				// filter and add entry to dirs
-				valid, propagate := filter(fi, propagated)
-				if valid {
-					// append it to dirs array
-					dirs = append(dirs, fi)
-				}
-				// descend into directory
-				if valid || !propagate {
-					wg.Add(1)
-					go descend(fi, propagate)
-				}
+				// check entr and descend
+				checkDescendDir(entr, filepath.Join(dir.Path(), entr.Name()))
 			} else {
 				// only regular files are relevant
 				if !entr.Mode().IsRegular() {
 					continue
 				}
 				// filter and add entry to files
-				fi := newFI(entr, filepath.Join(dir.Path(), entr.Name()))
-				if valid, _ := filter(fi, propagated); valid {
+				inf := newInfo(entr, filepath.Join(dir.Path(), entr.Name()))
+				if valid, _ := filter(inf, propagated); valid {
 					// create extended FileInfo and append it to dirs array
-					files = append(files, fi)
+					files = append(files, inf)
 				}
 			}
 		}
@@ -262,9 +269,8 @@ func Find(roots []string, filter func(Info, bool) (bool, bool), numWorkers int) 
 		if !fi.IsDir() {
 			continue
 		}
-		// start traversal for this directory
-		wg.Add(1)
-		go descend(newFI(fi, root), false)
+		// check root and descend
+		checkDescendDir(fi, root)
 	}
 
 	// wait for traversals to be finalized
@@ -368,7 +374,7 @@ func Stat(path string) (Info, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newFI(fi, path), nil
+	return newInfo(fi, path), nil
 }
 
 // Suffix return the suffix of a file without the dot. If the file name
