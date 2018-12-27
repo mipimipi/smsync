@@ -147,8 +147,7 @@ func synchronize(level log.Level, verbose bool) error {
 
 	// read configuration
 	if err := cfg.Get(cli.init); err != nil {
-		errOccurred = true
-		return nil
+		return err
 	}
 
 	// print summary and ask user for OK
@@ -168,8 +167,7 @@ func synchronize(level log.Level, verbose bool) error {
 
 	// get list of directories and files for sync
 	if dirs, files, err = smsync.GetSyncFiles(&cfg, cli.init); err != nil {
-		errOccurred = true
-		return nil
+		return err
 	}
 
 	// stop progress string and receive stop confirmation. The confirmation is necessary to not
