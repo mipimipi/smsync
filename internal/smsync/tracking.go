@@ -53,11 +53,11 @@ type Status struct {
 	Todo       int           // number of files that still have to be processed
 	Elapsed    time.Duration // elapsed time
 	Remaining  time.Duration // remaining time
-	Throughput float64       // average number of conversion per minute
+	Throughput float64       // average number of conversions per minute
 	Size       uint64        // estimated total target size
 	Avail      int64         // estimated free diskspace
-	Comp       float64       // average compression
-	AvgDur     time.Duration // average duration of a converion
+	Comp       float64       // average compression rate
+	AvgDur     time.Duration // average duration of a conversion
 	Errors     int           // number of errors
 }
 

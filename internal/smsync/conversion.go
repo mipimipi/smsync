@@ -133,7 +133,7 @@ func assembleTrgFile(cfg *Config, srcFile string) (string, error) {
 	trgFile, err := file.PathRelCopy(cfg.SrcDir, file.PathTrunk(srcFile)+"."+trgSuffix, cfg.TrgDir)
 	if err != nil {
 		log.Errorf("Target path cannot be assembled: %v", err)
-		return "", err
+		return "", fmt.Errorf("Target path cannot be assembled: %v", err)
 	}
 	return trgFile, nil
 }
