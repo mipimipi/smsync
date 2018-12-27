@@ -37,7 +37,7 @@ const errDir = "smsync.cv.errs"
 // target directory tree but not in the source directory tree. It is called
 // for all source directories that have been changes since the last sync
 func deleteObsoleteFiles(cfg *Config, srcDir file.Info) error {
-	log.Debugf("smsync.deleteObsoleteFiles(%s): START", srcDir.Path())
+	log.Debugf("smsync.deleteObsoleteFiles(%s): BEGIN", srcDir.Path())
 	defer log.Debugf("smsync.deleteObsoleteFiles(%s): END", srcDir.Path())
 
 	var (
@@ -122,7 +122,7 @@ func deleteObsoleteFiles(cfg *Config, srcDir file.Info) error {
 
 // DeleteTrg deletes all entries of the target directory
 func deleteTrg(cfg *Config) error {
-	log.Debug("smsync.deleteTrg: START")
+	log.Debug("smsync.deleteTrg: BEGIN")
 	defer log.Debug("smsync.deleteTrg: END")
 
 	// open target directory
@@ -162,14 +162,14 @@ func deleteTrg(cfg *Config) error {
 
 // GetSyncFiles determines which directories and files need to be synched
 func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice, error) {
-	log.Debug("smsync.GetSyncFiles: START")
+	log.Debug("smsync.GetSyncFiles: BEGIN")
 	defer log.Debug("smsync.GetSyncFiles: END")
 
 	var errOccurred bool
 
 	// filter function needed for file.Find(...)
 	filter := func(srcFile file.Info, propagated bool) (bool, bool) {
-		log.Debugf("smsync.GetSyncFiles.filter(%s): START", srcFile.Path())
+		log.Debugf("smsync.GetSyncFiles.filter(%s): BEGIN", srcFile.Path())
 		defer log.Debugf("smsync.GetSyncFiles.filter(%s): END", srcFile.Path())
 
 		var (

@@ -66,10 +66,10 @@ const cvCopyStr = "copy"
 
 // constants for bit rate options
 const (
-	abr  = "abr"  // average bit rate
-	cbr  = "cbr"  // constant bit rate
-	hcbr = "hcbr" // hard constant bit rate
-	vbr  = "vbr"  // variable bit rate
+	abr  = "abr"  // average bitrate
+	cbr  = "cbr"  // constant bitrate
+	hcbr = "hcbr" // hard constant bitrate
+	vbr  = "vbr"  // variable bitrate
 )
 
 // supported conversions
@@ -148,10 +148,10 @@ func convert(i cvInput) cvOutput {
 	)
 
 	// get conversion string for f from config
-	cvm, ok := i.cfg.getCv(i.srcFile.Path())
+	cvm, exists := i.cfg.getCv(i.srcFile.Path())
 
 	// if no string found: exit
-	if !ok {
+	if !exists {
 		return cvOutput{nil, nil, 0, nil}
 	}
 

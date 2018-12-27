@@ -22,7 +22,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
 
 	"github.com/mipimipi/go-lhlp/file"
 	worker "github.com/mipimipi/go-worker"
@@ -30,120 +29,36 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// ProcRes is the result structure for directory or file processing
-type ProcRes struct {
-	SrcFile file.Info     // source file or directory
-	TrgFile file.Info     // target file or directory
-	Dur     time.Duration // duration of a conversion
-	Err     error         // error (that occurred during processing)
-}
+// cleanUp removes temporary files and directories
+func cleanUp(cfg *Config, wg *sync.WaitGroup, done chan<- struct{}, errors chan<- error) {
+	// wait for processing of dirs and files to be done
+	wg.Wait()
 
-// Progress contains attributes that are used to communicate the progress of the
-// conversion
-type Progress struct {
-	Start      time.Time     // start time of processing
-	Done       int           // number of files / dirs that have been processed
-	TotalNum   int           // total number of files / dirs
-	TotalSize  uint64        // total aggregated size of source files
-	SrcSize    uint64        // cumulated size of source files
-	TrgSize    uint64        // cumulated size of target files
-	Diskspace  uint64        // available space on target device
-	Avail      int64         // estimated free diskspace
-	Size       uint64        // estimated target size
-	Comp       float64       // average compression
-	Throughput float64       // throughput (= conversion per time)
-	Errors     int           // number of errors
-	Dur        time.Duration // cumulated duration
-	AvgDur     time.Duration // average duration per minute
-	Elapsed    time.Duration // elapsed time
-	Remaining  time.Duration // elapsed time
-	Res        chan ProcRes  // channel to report intermediate results
-}
+	log.Debug("smsync.cleanUp: BEGIN")
+	defer log.Debug("smsync.cleanUp: END")
 
-func (prog *Progress) close() {
-	close(prog.Res)
-}
+	defer func() { done <- struct{}{} }()
 
-func (prog *Progress) kickOff() {
-	log.Debug("smsync.Progress.kickOff: START")
-	defer log.Debug("smsync.Progress.kickOff: END")
+	// remove log file if it's empty
+	file.RemoveEmpty(filepath.Join(cfg.TrgDir, LogFile))
+	log.Debug("Removed log files (at least tried to do that)")
 
-	prog.Start = time.Now()
-}
-
-func newProg(wl *file.InfoSlice, space uint64) *Progress {
-	log.Debug("smsync.newProg: START")
-	defer log.Debug("smsync.newProg: END")
-
-	var prog Progress
-
-	prog.TotalNum = len(*wl)
-	prog.Diskspace = space
-	prog.Res = make(chan ProcRes)
-
-	for _, fi := range *wl {
-		prog.TotalSize += uint64(fi.Size())
+	// update config file
+	if err := cfg.setProcEnd(); err != nil {
+		errors <- err
+		return
 	}
-
-	return &prog
-}
-
-// Tick triggers the update of the elapsed time and depending attributes
-// attributes
-func (prog *Progress) Tick() {
-	prog.updElapsed()
-}
-
-func (prog *Progress) update(srcFile, trgFile file.Info, dur time.Duration, err error) {
-	prog.Done++
-	if srcFile != nil {
-		prog.SrcSize += uint64(srcFile.Size())
-	}
-	if trgFile != nil {
-		prog.TrgSize += uint64(trgFile.Size())
-	}
-	prog.Comp = float64(prog.TrgSize) / float64(prog.SrcSize)
-	prog.Size = uint64(prog.Comp * float64(prog.TotalSize))
-	prog.Avail = int64(prog.Diskspace) - int64(prog.Size)
-	prog.Dur += dur
-	prog.AvgDur = time.Duration(int(prog.Dur) / prog.Done)
-	prog.updElapsed()
-	if err != nil {
-		prog.Errors++
-	}
-
-	// send conversion information to whoever is interested
-	prog.Res <- ProcRes{SrcFile: srcFile,
-		TrgFile: trgFile,
-		Dur:     dur,
-		Err:     err}
-}
-
-// updElapsed calculates the elapsed time since prog.Start and updates depending
-// attributes
-func (prog *Progress) updElapsed() {
-	prog.Elapsed = time.Since(prog.Start)
-
-	if prog.Elapsed > 0 {
-		prog.Throughput = float64(prog.Done) / prog.Elapsed.Minutes()
-	}
-	if prog.Done > 0 {
-		prog.Remaining = time.Duration(int64(prog.Elapsed) / int64(prog.Done) * int64(prog.TotalNum-prog.Done))
-	}
-
 }
 
 // Process is the main "backend" function to control the conversion.
 // Essentially, it gets the list of directories and files to be processed and
-// returns corresponding handles to Progress instances. Via these instances,
-// the calling UI (be it a cli or some other UI) can retrieve progress
-// information
-func Process(cfg *Config, dirs *file.InfoSlice, files *file.InfoSlice, init bool) (*Progress, <-chan error, <-chan struct{}, error) {
-	log.Debug("smsync.Process: START")
+// returns a Tracking instances, an error channel and a done channel
+func Process(cfg *Config, dirs *file.InfoSlice, files *file.InfoSlice, init bool) (*Tracking, <-chan error, <-chan struct{}, error) {
+	log.Debug("smsync.Process: BEGIN")
 	defer log.Debug("smsync.Process: END")
 
 	var (
-		prog   = newProg(files, du.NewDiskUsage(cfg.TrgDir).Available()) // progress structure for files
+		trck   = newTrck(files, du.NewDiskUsage(cfg.TrgDir).Available()) // tracking
 		errors = make(chan error)                                        // error channel
 		done   = make(chan struct{})                                     // done channel
 		wg     sync.WaitGroup
@@ -180,37 +95,32 @@ func Process(cfg *Config, dirs *file.InfoSlice, files *file.InfoSlice, init bool
 
 	// fork processing of and files
 	wg.Add(1)
-	go processFiles(cfg, prog, files, &wg, errors)
+	go processFiles(cfg, trck, files, &wg, errors)
 
-	// clean up
+	// cleaning up. cleanUp waits for processDirs and processFiles to finish
 	go cleanUp(cfg, &wg, done, errors)
 
-	return prog, errors, done, nil
+	return trck, errors, done, nil
 }
 
-// processDirs creates new and deletes obsolete directories. processDirs
-// returns a channel that it uses to return the processing status/result
-// continuously after a directory has been processed.
+// processDirs creates new and deletes obsolete directories
 func processDirs(cfg *Config, dirs *file.InfoSlice, wg *sync.WaitGroup, errors chan<- error) {
-	log.Debug("smsync.processDirs: START")
+	log.Debug("smsync.processDirs: BEGIN")
 	defer log.Debug("smsync.processDirs: END")
 
 	defer wg.Done()
 
 	for _, d := range *dirs {
-
 		if err := deleteObsoleteFiles(cfg, d); err != nil {
 			errors <- err
 		}
 	}
 }
 
-// ProcessFiles calls the conversion for all new or changes files. Files
+// processFiles calls the conversion for all new or changed files. Files
 // are processed in parallel using the package github.com/mipimipi/go-worker.
-// It returns a channel that it uses to return the processing status/result
-// continuously after a file has been processed.
-func processFiles(cfg *Config, prog *Progress, files *file.InfoSlice, wg *sync.WaitGroup, errors chan<- error) {
-	log.Debug("smsync.processFiles: START")
+func processFiles(cfg *Config, trck *Tracking, files *file.InfoSlice, wg *sync.WaitGroup, errors chan<- error) {
+	log.Debug("smsync.processFiles: BEGIN")
 	defer log.Debug("smsync.processFiles: END")
 
 	defer wg.Done()
@@ -220,9 +130,9 @@ func processFiles(cfg *Config, prog *Progress, files *file.InfoSlice, wg *sync.W
 		return
 	}
 
-	// start  progress tracking
-	prog.kickOff()
-	defer prog.close()
+	// start progress tracking and register tracking stop
+	trck.start()
+	defer trck.stop()
 
 	// setup worker Go routine and get worklist and result channels
 	wl, res := worker.Setup(func(i interface{}) interface{} { return convert(i.(cvInput)) }, cfg.NumWrkrs)
@@ -235,31 +145,12 @@ func processFiles(cfg *Config, prog *Progress, files *file.InfoSlice, wg *sync.W
 		close(wl)
 	}()
 
-	// retrieve worker results
+	// retrieve worker results and update tracking
 	for r := range res {
-		// update progress
-		prog.update(r.(cvOutput).srcFile, r.(cvOutput).trgFile, r.(cvOutput).dur, r.(cvOutput).err)
-	}
-}
-
-// cleanUp removes temporary files and directories from smsync that are
-// obsolete
-func cleanUp(cfg *Config, wg *sync.WaitGroup, done chan<- struct{}, errors chan<- error) {
-	// wait for processing of dirs and files to be done
-	wg.Wait()
-
-	log.Debug("smsync.cleanUp: START")
-	defer log.Debug("smsync.cleanUp: END")
-
-	defer func() { done <- struct{}{} }()
-
-	// remove log file if it's empty
-	file.RemoveEmpty(filepath.Join(cfg.TrgDir, LogFile))
-	log.Debug("Removed log files (at least tried to do that)")
-
-	// update config file
-	if err := cfg.setProcEnd(); err != nil {
-		errors <- err
-		return
+		trck.update(
+			CvInfo{SrcFile: r.(cvOutput).srcFile,
+				TrgFile: r.(cvOutput).trgFile,
+				Dur:     r.(cvOutput).dur,
+				Err:     r.(cvOutput).err})
 	}
 }
