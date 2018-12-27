@@ -8,7 +8,7 @@ smsync is made for use cases where you have a folder structure for your high qua
 
 Normally, you want to keep the folder structure during replication. I.e. a certain music file on the target shall have the same relative folder path as its counterpart has on the source.
 
-New music is typically added to the source only. If that happened you want to update the targets accordingly with minimal effort. If you deleted files or folders on the source for whatever reason, these deletions shall be propagated to the targets as well. And, last not least, as we are talking about huge music collections (several thousands or ten thousands of music files), the whole synchronization and replication process must happen in a highly automated and performant way.
+New music is typically added to the source only. If that happened you want to update the targets accordingly with minimal effort. If you deleted files or folders on the source for whatever reason, these deletions shall be propagated to the target as well. And, last not least, as we are talking about huge music collections (several thousands or even ten thousands of music files), the whole synchronization and replication process must happen in a highly automated and performant way.
 
 ## Contents
 
@@ -32,7 +32,7 @@ New music is typically added to the source only. If that happened you want to up
     * [Synchronization Process](#syncproc)
         - [FFMPEG errors](#errors)
     * [Command Line Options](#command)
-    * [Keeping source and target consist](#consistency)  
+    * [Keeping source and target consistent](#consistency)  
         - [Case 1: Scope has been reduced](#case1)
         - [Case 2: Scope has been extended](#case2)
         - [Case 3: Scope is unchanged but conversion rules have been changed](#case3)  
@@ -275,7 +275,7 @@ During the conversion with FFMPEG, errors can occur. Unfortunately, there's not 
 
 smsync has only a few options:
 
-* `--initialize` / `-i`
+* `--init` / `-i`
   Do initial sync:
   - Existing files and directories in the target folder are deleted (except the smsync files `smsync.yaml` and - if existing - `smsync.log`).
   - A possibly existing `last_sync` in the config file is ignored. I.e. files and folders in the source directory are taken into account independent from their change time.
@@ -295,9 +295,9 @@ smsync has only a few options:
   
   smsync starts directly without asking for user confirmations. With this option, it's possible to run smsync automatically via cron job.
 
-### <a name="consistency"></a>Keeping source and target consist
+### <a name="consistency"></a>Keeping source and target consistent
 
-As long as the configuration file is not changed, smsync keeps track of the consistency between source and target. If it's changed after a synchronization happened, manual steps are necessary. Depending on the changes that have been made to the configuration, different actions need to be taken to keep source and target consistent. Important is the "scope" that is specified in the configuration. In this context, scope means the set of source file types and the source directories.
+As long as the configuration file is not changed, smsync keeps track of the consistency between source and target. If it's changed after a synchronization happened, manual steps are necessary. Depending on the changes that have been made to the configuration, different actions need to be taken to keep source and target consistent. Important is the "scope" that is specified in the configuration. In this context, scope means the set of source file types and the source directories (i.e. the sub directories of the configured source directory and potential exclusions).
 
 #### <a name="case1"></a>Case 1: Scope has been reduced
 
@@ -307,7 +307,7 @@ I.e. source file types have been removed from or exclusions have been added to t
 
 #### <a name="case2"></a>Case 2: Scope has been extended
 
-I.e. source file type have been added to or exclusions have been removed from the configuration. In this case, a feasible apporoach is to update the change time of the "added" (i.e. added to the scope) source files and directories. The next execution of smsync will then update the target accordingly. Also here the `find` command can help, but this time in combination with the [touch command](https://linux.die.net/man/1/touch).
+I.e. source file types have been added to or exclusions have been removed from the configuration. In this case, a feasible apporoach is to update the change time of the "added" (i.e. added to the scope) source files and directories. The next execution of smsync will then update the target accordingly. Also here the `find` command can help, but this time in combination with the [touch command](https://linux.die.net/man/1/touch).
 
 If you have added a conversion rule for WAV files, the following command updates the change time of all WAV files in the source directory tree:
 
