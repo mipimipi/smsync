@@ -15,9 +15,9 @@
 // You should have received a copy of the GNU General Public License
 // along with go-lhlp. If not, see <http://www.gnu.org/licenses/>.
 
-// Package lhlp contains practical and handy functions that are useful in many
-// Go projects, but which are not part of the standards Go libraries.
-package lhlp
+// Package file contains practical and handy functions for dealing with files
+// and directories.
+package file
 
 import (
 	"fmt"
@@ -30,28 +30,42 @@ import (
 	"sync"
 )
 
-// FileInfo extends the standard interface os.FileInfo
-type FileInfo interface {
+// Info extends the standard interface os.FileInfo
+type Info interface {
 	os.FileInfo
 	Path() string // get complete file name
 }
 
-// fileinfo is an internal helper structire that implements FileInfo
-type fileinfo struct {
+// info is an internal helper structire that implements FileInfo
+type info struct {
 	os.FileInfo
 	path string // complete name of the file
 }
 
 // Path implements the Path() method, so that fileinfo implements FileInfo
-func (fi fileinfo) Path() string { return fi.path }
+func (inf info) Path() string { return inf.path }
 
 // create FileInfo from os.FileInfo and a path
-func newFI(fi os.FileInfo, p string) FileInfo { return fileinfo{fi, p} }
+func newInfo(fi os.FileInfo, p string) Info { return info{fi, p} }
 
-// CopyFile copies srcFn to dstFn. Prequisite is, that srcFn and (if existing)
+// implement sort interface for Info:
+
+// InfoSlice is an array of Info
+type InfoSlice []Info
+
+// Len return the length of InfoSlice
+func (is InfoSlice) Len() int { return len(is) }
+
+// Less implements a compariosn between two elements
+func (is InfoSlice) Less(i, j int) bool { return is[i].Path() < is[j].Path() }
+
+// Swap exchanges two elements
+func (is InfoSlice) Swap(i, j int) { is[i], is[j] = is[j], is[i] }
+
+// Copy copies srcFn to dstFn. Prequisite is, that srcFn and (if existing)
 // dstFn are regular files (i.e. no devices etc.). In case both files are the
 // same, nothing is done. In case, dstFn is already existing it is overwritten.
-func CopyFile(srcFn, dstFn string) error {
+func Copy(srcFn, dstFn string) error {
 	var (
 		err    error
 		exists bool
@@ -62,7 +76,7 @@ func CopyFile(srcFn, dstFn string) error {
 	)
 
 	// check if source file exists
-	exists, err = FileExists(srcFn)
+	exists, err = Exists(srcFn)
 	if err != nil {
 		return err
 	}
@@ -82,7 +96,7 @@ func CopyFile(srcFn, dstFn string) error {
 	}
 
 	// determine existence of dest file
-	exists, err = FileExists(dstFn)
+	exists, err = Exists(dstFn)
 	if err != nil {
 		return err
 	}
@@ -125,15 +139,6 @@ func CopyFile(srcFn, dstFn string) error {
 	return dst.Sync()
 }
 
-// DirIsEmpty returns true is directory d is empty, otherwise false
-func DirIsEmpty(d string) (bool, error) {
-	entries, err := ioutil.ReadDir(d)
-	if err != nil {
-		return false, err
-	}
-	return (len(entries) == 0), nil
-}
-
 // EscapePattern escapes special characters in pattern strings for usage in
 // filepath.Glob() or filepath.Match()
 // See: https://godoc.org/path/filepath#Match
@@ -145,8 +150,8 @@ func EscapePattern(s string) string {
 	return s
 }
 
-// FileExists returns true if filePath exists, otherwise false
-func FileExists(filePath string) (bool, error) {
+// Exists returns true if filePath exists, otherwise false
+func Exists(filePath string) (bool, error) {
 	_, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
 		return false, nil
@@ -157,37 +162,7 @@ func FileExists(filePath string) (bool, error) {
 	return true, nil
 }
 
-// FileIsEmpty returns true is file f is empty, otherwise false
-func FileIsEmpty(f string) (bool, error) {
-	fi, err := os.Stat(f)
-	if err != nil {
-		return false, err
-	}
-	return (fi.Size() == 0), nil
-}
-
-// FileStat returns info about the file whose path is passed as
-// parameter. In this regard, it is simlar to the standard function os.Stat.
-// Different from it, FileStat return file info of type FileInfo, i.e. extended
-// by Path(), which return the path of the file.
-func FileStat(path string) (FileInfo, error) {
-	fi, err := os.Stat(path)
-	if err != nil {
-		return nil, err
-	}
-	return newFI(fi, path), nil
-}
-
-// FileSuffix return the suffix of a file without the dot. If the file name
-// contains no dot, an empty string is returned
-func FileSuffix(f string) string {
-	if len(path.Ext(f)) == 0 {
-		return ""
-	}
-	return path.Ext(f)[1:]
-}
-
-// FindFiles traverses directory trees to find files and directories that
+// Find traverses directory trees to find files and directories that
 // fulfill a certain filter condition. It starts at a list of root
 // directories. The condition must be implemented in a function, which is
 // passed to FindFiles as a parameter. This condition returns two boolean value
@@ -203,12 +178,12 @@ func FileSuffix(f string) string {
 // book "The Go Programming Language" by Alan A. A. Donovan & Brian W.
 // Kernighan.
 // See: https://github.com/adonovan/gopl.io/blob/master/ch8/du4/main.go
-func FindFiles(roots []string, filter func(FileInfo, bool) (bool, bool), numWorkers int) (*[]FileInfo, *[]FileInfo) {
+func Find(roots []string, filter func(Info, bool) (bool, bool), numWorkers int) (*InfoSlice, *InfoSlice) {
 	var (
-		dirs    []FileInfo           // list of directories to be returned
-		files   []FileInfo           // list of files to be returned
-		descend func(FileInfo, bool) // func needs to be declared here since it calls itself recursively
-		wg      sync.WaitGroup       // waiting group for the concurrent traversal
+		dirs    InfoSlice        // list of directories to be returned
+		files   InfoSlice        // list of files to be returned
+		descend func(Info, bool) // func needs to be declared here since it calls itself recursively
+		wg      sync.WaitGroup   // waiting group for the concurrent traversal
 	)
 
 	// create buffered channel, used as semaphore to restrict the number of Go routines
@@ -216,7 +191,7 @@ func FindFiles(roots []string, filter func(FileInfo, bool) (bool, bool), numWork
 	defer close(sema)
 
 	// function to retrieve the entries of a directory
-	entries := func(dir FileInfo) []os.FileInfo {
+	entries := func(dir Info) []os.FileInfo {
 		// send to limited buffer and retrieve from buffer at the end
 		sema <- struct{}{}
 		defer func() { <-sema }()
@@ -230,8 +205,24 @@ func FindFiles(roots []string, filter func(FileInfo, bool) (bool, bool), numWork
 		return entrs
 	}
 
+	// function to check if a directory is relevant. If yes, descend into that
+	// directory
+	checkDescendDir := func(fi os.FileInfo, dir string) {
+		inf := newInfo(fi, dir)
+		valid, propagate := filter(inf, false)
+		if valid {
+			// append it to dirs array
+			dirs = append(dirs, inf)
+		}
+		// descend into directory
+		if valid || !propagate {
+			wg.Add(1)
+			go descend(inf, propagate)
+		}
+	}
+
 	// function to traverse the directory tree. Calls itself recursively
-	descend = func(dir FileInfo, propagated bool) {
+	descend = func(dir Info, propagated bool) {
 		defer wg.Done()
 
 		// loop at the entries of dir
@@ -240,35 +231,28 @@ func FindFiles(roots []string, filter func(FileInfo, bool) (bool, bool), numWork
 			// filter condition. If they do, the entry is appended to the
 			// corresponding array (either dirs or files)
 			if entr.IsDir() {
-				fi := newFI(entr, filepath.Join(dir.Path(), entr.Name()))
-				// filter and add entry to dirs
+				inf := newInfo(entr, filepath.Join(dir.Path(), entr.Name()))
+				// if propagated from the parents, filtering is not necessary
 				if propagated {
 					// append it to dirs array
-					dirs = append(dirs, fi)
+					dirs = append(dirs, inf)
 					// descend and continue
 					wg.Add(1)
-					go descend(fi, true)
+					go descend(inf, true)
 					continue
 				}
-				valid, propagate := filter(fi, propagated)
-				if valid {
-					// append it to dirs array
-					dirs = append(dirs, fi)
-				}
-				if valid || !propagate {
-					wg.Add(1)
-					go descend(fi, propagate)
-				}
+				// check entr and descend
+				checkDescendDir(entr, filepath.Join(dir.Path(), entr.Name()))
 			} else {
 				// only regular files are relevant
 				if !entr.Mode().IsRegular() {
 					continue
 				}
 				// filter and add entry to files
-				fi := newFI(entr, filepath.Join(dir.Path(), entr.Name()))
-				if valid, _ := filter(fi, propagated); valid {
+				inf := newInfo(entr, filepath.Join(dir.Path(), entr.Name()))
+				if valid, _ := filter(inf, propagated); valid {
 					// create extended FileInfo and append it to dirs array
-					files = append(files, fi)
+					files = append(files, inf)
 				}
 			}
 		}
@@ -285,15 +269,33 @@ func FindFiles(roots []string, filter func(FileInfo, bool) (bool, bool), numWork
 		if !fi.IsDir() {
 			continue
 		}
-		// start traversal for this directory
-		wg.Add(1)
-		go descend(newFI(fi, root), false)
+		// check root and descend
+		checkDescendDir(fi, root)
 	}
 
 	// wait for traversals to be finalized
 	wg.Wait()
 
 	return &dirs, &files
+}
+
+// IsEmpty returns true if file or directory is empty, otherwise false
+func IsEmpty(f string) (bool, error) {
+	fi, err := os.Stat(f)
+	if err != nil {
+		return false, err
+	}
+	if fi.IsDir() {
+		entries, err := ioutil.ReadDir(f)
+		if err != nil {
+			return false, err
+		}
+		return (len(entries) == 0), nil
+	}
+	if fi.Mode().IsRegular() {
+		return (fi.Size() == 0), nil
+	}
+	return false, nil
 }
 
 // MkdirAll creates a directory named path, along with any necessary parents.
@@ -337,4 +339,49 @@ func PathRelCopy(srcBase, path, dstBase string) (string, error) {
 // E.g. Trunk("/home/test/abc.mp3") return "/home/test/abc"
 func PathTrunk(p string) string {
 	return p[0 : len(p)-len(path.Ext(p))]
+}
+
+// RemoveEmpty removes a file or directory if it is empty. If it is not empty,
+// RemoveEmpty returns and error
+func RemoveEmpty(f string) error {
+
+	var (
+		empty bool
+		err   error
+	)
+
+	if empty, err = IsEmpty(f); err != nil {
+		return err
+	}
+
+	if empty {
+		if err = os.Remove(f); err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("file or directory %s is not empty: cannot be removed", f)
+	}
+
+	return nil
+}
+
+// Stat returns info about the file whose path is passed as
+// parameter. In this regard, it is simlar to the standard function os.Stat.
+// Different from it, FileStat return file info of type FileInfo, i.e. extended
+// by Path(), which return the path of the file.
+func Stat(path string) (Info, error) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	return newInfo(fi, path), nil
+}
+
+// Suffix return the suffix of a file without the dot. If the file name
+// contains no dot, an empty string is returned
+func Suffix(f string) string {
+	if len(path.Ext(f)) == 0 {
+		return ""
+	}
+	return path.Ext(f)[1:]
 }

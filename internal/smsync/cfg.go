@@ -26,18 +26,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"time"
 
-	lhlp "github.com/mipimipi/go-lhlp"
+	"github.com/mipimipi/go-lhlp/file"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
 
 // Constants for smsync configuration
 const (
-	cfgFileName = "smsync.yaml" // file name of config file
+	cfgFile     = "smsync.yaml" // file name of config file
 	suffixStar  = "*"           // wildcard for music file suffix
 	procStatWIP = "wip"         // work in progress
 )
@@ -51,25 +52,25 @@ type rule struct {
 
 // cfgYml is used to read from and write to the config yaml file
 type cfgYml struct {
-	ProcStat  string   `yaml:"processing_status,omitempty"` // work in progress flag
-	SourceDir string   `yaml:"source_dir"`                  // source directory
-	Excludes  []string `yaml:"exclude,omitempty"`           // exclude these directories
-	LastSync  string   `yaml:"last_sync,omitempty"`         // timestamp when the last sync happened
-	NumCPUs   uint     `yaml:"num_cpus,omitempty"`          // number of CPUs that gool is allowed to use
-	NumWrkrs  uint     `yaml:"num_wrkrs,omitempty"`         // number of worker Go routines to be created
-	Rules     []rule   `yaml:"rules"`                       // conversion rules
+	ProcStat string   `yaml:"processing_status,omitempty"` // work in progress flag
+	SrcDir   string   `yaml:"source_dir"`                  // source directory
+	Excludes []string `yaml:"exclude,omitempty"`           // exclude these directories
+	LastSync string   `yaml:"last_sync,omitempty"`         // timestamp when the last sync happened
+	NumCPUs  uint     `yaml:"num_cpus,omitempty"`          // number of CPUs that gool is allowed to use
+	NumWrkrs uint     `yaml:"num_wrkrs,omitempty"`         // number of worker Go routines to be created
+	Rules    []rule   `yaml:"rules"`                       // conversion rules
 }
 
 // Config contains the enriched data that has been read from the config file
 type Config struct {
-	LastSync   time.Time       // timestamp when the last sync happened
-	WIP        bool            // work in progress flag
-	SrcDirPath string          // source directory
-	TrgDirPath string          // target directory
-	Excludes   []string        // exclude these directories
-	NumCpus    uint            // number of CPUs that gool is allowed to use
-	NumWrkrs   uint            // number of worker Go routines to be created
-	Cvs        map[string]*cvm // conversion rules
+	LastSync time.Time       // timestamp when the last sync happened
+	WIP      bool            // work in progress flag
+	SrcDir   string          // source directory
+	TrgDir   string          // target directory
+	Excludes []string        // exclude these directories
+	NumCpus  uint            // number of CPUs that gool is allowed to use
+	NumWrkrs uint            // number of worker Go routines to be created
+	Cvs      map[string]*cvm // conversion rules
 }
 
 // mapping of target suffix to conversion parameter string
@@ -81,7 +82,7 @@ type cvm struct {
 // Get reads the smsync configuration from the file ./SMSYNC.yaml and stores
 // the configuration values in the structure *config.
 func (cfg *Config) Get(init bool) error {
-	log.Debug("smsync.Config.Get: START")
+	log.Debug("smsync.Config.Get: BEGIN")
 	defer log.Debug("smsync.Config.Get: END")
 
 	var (
@@ -107,10 +108,10 @@ func (cfg *Config) Get(init bool) error {
 	}
 
 	// check if the configured source dir exists and is a directory
-	if err = checkDir(cfgY.SourceDir); err != nil {
+	if err = checkDir(cfgY.SrcDir); err != nil {
 		return err
 	}
-	cfg.SrcDirPath = cfgY.SourceDir
+	cfg.SrcDir = cfgY.SrcDir
 
 	// get directories that shall be excluded
 	if len(cfgY.Excludes) > 0 {
@@ -164,7 +165,7 @@ func (cfg *Config) Get(init bool) error {
 	}
 
 	// set target directory
-	if cfg.TrgDirPath, err = os.Getwd(); err != nil {
+	if cfg.TrgDir, err = os.Getwd(); err != nil {
 		log.Errorf("Cannot determine working directory: %v", err)
 		return fmt.Errorf("Cannot determine working directory: %v", err)
 	}
@@ -177,8 +178,8 @@ func (cfg *Config) Get(init bool) error {
 // retrieved, a pointer to the cvm structure and true is returned, otherwise
 // nil and false
 func (cfg *Config) getCv(f string) (*cvm, bool) {
-	if _, ok := cfg.Cvs[lhlp.FileSuffix(f)]; ok {
-		return cfg.Cvs[lhlp.FileSuffix(f)], true
+	if _, ok := cfg.Cvs[file.Suffix(f)]; ok {
+		return cfg.Cvs[file.Suffix(f)], true
 	}
 	if _, ok := cfg.Cvs[suffixStar]; ok {
 		return cfg.Cvs[suffixStar], true
@@ -189,7 +190,7 @@ func (cfg *Config) getCv(f string) (*cvm, bool) {
 // getExcludes expands the directories specified in the config file (which) can
 // contain wildcards
 func (cfg *Config) getExcludes(excls *[]string) error {
-	log.Debug("smsync.Config.getExcludes: START")
+	log.Debug("smsync.Config.getExcludes: BEGIN")
 	defer log.Debug("smsync.Config.getExcludes: END")
 
 	for _, excl := range *excls {
@@ -198,7 +199,7 @@ func (cfg *Config) getExcludes(excls *[]string) error {
 		}
 
 		// expand directory
-		a, err := filepath.Glob(filepath.Join(cfg.SrcDirPath, excl))
+		a, err := filepath.Glob(file.EscapePattern(filepath.Join(cfg.SrcDir, excl)))
 		if err != nil {
 			return err
 		}
@@ -211,7 +212,7 @@ func (cfg *Config) getExcludes(excls *[]string) error {
 // getRule verifies that r represents a valid rule and create the
 // corresponding mapping structure cvm
 func (cfg *Config) getRule(r *rule, i int) (*cvm, error) {
-	log.Debug("smsync.Config.getRule: START")
+	log.Debug("smsync.Config.getRule: BEGIN")
 	defer log.Debug("smsync.Config.getRule: END")
 
 	var (
@@ -292,7 +293,7 @@ func (cfg *Config) getRule(r *rule, i int) (*cvm, error) {
 // successfully. It sets the last sync time and removes the "wip" (work in
 // progress).
 func (cfg *Config) setProcEnd() error {
-	log.Debug("smsync.Config.setProcEnd: START")
+	log.Debug("smsync.Config.setProcEnd: BEGIN")
 	defer log.Debug("smsync.Config.setProcEnd: END")
 
 	var (
@@ -325,7 +326,7 @@ func (cfg *Config) setProcEnd() error {
 // "wip" (= work is progress). This status is valid as long as smsync is
 // processing / converting files
 func (cfg *Config) setProcStatWIP() error {
-	log.Debug("smsync.Config.setProcStatWIP: START")
+	log.Debug("smsync.Config.setProcStatWIP: BEGIN")
 	defer log.Debug("smsync.Config.setProcStatWIP: END")
 
 	var (
@@ -353,11 +354,11 @@ func (cfg *Config) setProcStatWIP() error {
 
 // readCfg read the configuration from the file smsync.yaml in the current directory
 func (cfgY *cfgYml) read() error {
-	log.Debug("smsync.cfgYml.read: START")
+	log.Debug("smsync.cfgYml.read: BEGIN")
 	defer log.Debug("smsync.cfgYml.read: END")
 
 	// read config file
-	cfgFile, err := ioutil.ReadFile(filepath.Join(".", cfgFileName))
+	cfgFile, err := ioutil.ReadFile(filepath.Join(".", cfgFile))
 	if err != nil {
 		// determine working directory for error message
 		wd, err0 := os.Getwd()
@@ -373,12 +374,18 @@ func (cfgY *cfgYml) read() error {
 		return fmt.Errorf("Error during unmarshaling of config file: %v", err)
 	}
 
+	// clean directory names
+	cfgY.SrcDir = path.Clean(cfgY.SrcDir)
+	for i := range cfgY.Excludes {
+		cfgY.Excludes[i] = path.Clean(cfgY.Excludes[i])
+	}
+
 	return nil
 }
 
 // write writes the configuration to the file smsync.yaml in the current directory
 func (cfgY *cfgYml) write() error {
-	log.Debug("smsync.cfgYml.write: START")
+	log.Debug("smsync.cfgYml.write: BEGIN")
 	defer log.Debug("smsync.cfgYml.write: END")
 
 	var (
@@ -392,9 +399,9 @@ func (cfgY *cfgYml) write() error {
 		return fmt.Errorf("Config struct could not be marshalled: %v", err)
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(".", cfgFileName), out, 0777); err != nil {
-		log.Errorf("Configuration file '%s' cannot be updated: %v", filepath.Join(".", cfgFileName), err)
-		return fmt.Errorf("Configuration file '%s' cannot be updated: %v", filepath.Join(".", cfgFileName), err)
+	if err := ioutil.WriteFile(filepath.Join(".", cfgFile), out, 0777); err != nil {
+		log.Errorf("Configuration file '%s' cannot be updated: %v", filepath.Join(".", cfgFile), err)
+		return fmt.Errorf("Configuration file '%s' cannot be updated: %v", filepath.Join(".", cfgFile), err)
 	}
 
 	return nil
@@ -402,7 +409,7 @@ func (cfgY *cfgYml) write() error {
 
 // checkDir checks if the source directory exists and if it's a directory
 func checkDir(srcDir string) error {
-	log.Debug("smsync.checkDir: START")
+	log.Debug("smsync.checkDir: BEGIN")
 	defer log.Debug("smsync.checkDir: END")
 
 	if len(srcDir) == 0 {
@@ -428,7 +435,7 @@ func checkDir(srcDir string) error {
 
 // getLastSync determines the time of the last synchronization
 func getLastSync(s string) (time.Time, error) {
-	log.Debug("smsync.getLastSync: START")
+	log.Debug("smsync.getLastSync: BEGIN")
 	defer log.Debug("smsync.getLastSync: END")
 
 	var (

@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	lhlp "github.com/mipimipi/go-lhlp"
+	"github.com/mipimipi/go-lhlp/file"
 )
 
 // implementation of interface "conversion" for simple file copy
@@ -29,7 +29,7 @@ type cvCopy struct{}
 
 // exec executes simple file copy
 func (cvCopy) exec(srcFile string, trgFile string, cvStr string) error {
-	return lhlp.CopyFile(srcFile, trgFile)
+	return file.Copy(srcFile, trgFile)
 }
 
 // normCvStr checks if the parameters string from config file is either empty

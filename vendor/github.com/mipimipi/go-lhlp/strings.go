@@ -15,8 +15,6 @@
 // You should have received a copy of the GNU General Public License
 // along with go-lhlp. If not, see <http://www.gnu.org/licenses/>.
 
-// Package lhlp contains practical and handy functions that are useful in many
-// Go projects, but which are not part of the standards Go libraries.
 package lhlp
 
 import "strings"
@@ -32,7 +30,7 @@ func SplitMulti(s string, sep string) []string {
 
 	// handle special cases: if sep is empty ...
 	if len(sep) == 0 {
-		//... and s is empty: return an empty slice
+		//... and if s is empty: return an empty slice
 		if len(s) == 0 {
 			return a
 		}
