@@ -1,4 +1,4 @@
-## [Release 3.3.0](https://github.com/mipimipi/smsync/releases/tag/3.3.0) (2018-12-30)
+## [Release 3.3.0](https://github.com/mipimipi/smsync/releases/tag/3.3.0) (2018-12-27)
 
 ### Added
 
