@@ -26,15 +26,15 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:8adf78a246cac0beb760bd73a7a3df6753b218a87a3d0b4ada1f50bf7af74f6a"
+  digest = "1:c9f731f8b5a155f5fea1f0457499ac50a6b173b79c1c4a60103b708a6f931bb9"
   name = "github.com/mipimipi/go-lhlp"
   packages = [
     ".",
     "file",
   ]
   pruneopts = "UT"
-  revision = "c5c5d7868ca8350f844c78a438a30dfb96bf3a48"
-  version = "2.3"
+  revision = "08d2597151e13ffec2d8de240038328caa32875a"
+  version = "2.4"
 
 [[projects]]
   digest = "1:524f78fa28adabeb9882d5126c16a58ad0291a693264653ea06d930b376e557c"

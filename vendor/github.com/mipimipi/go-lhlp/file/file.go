@@ -185,7 +185,6 @@ func Find(roots []string, filter func(Info, bool) (bool, bool), numWorkers int) 
 		descend func(Info, bool) // func needs to be declared here since it calls itself recursively
 		wg      sync.WaitGroup   // waiting group for the concurrent traversal
 	)
-
 	// create buffered channel, used as semaphore to restrict the number of Go routines
 	sema := make(chan struct{}, numWorkers)
 	defer close(sema)
@@ -207,9 +206,9 @@ func Find(roots []string, filter func(Info, bool) (bool, bool), numWorkers int) 
 
 	// function to check if a directory is relevant. If yes, descend into that
 	// directory
-	checkDescendDir := func(fi os.FileInfo, dir string) {
+	checkDescendDir := func(fi os.FileInfo, dir string, propagated bool) {
 		inf := newInfo(fi, dir)
-		valid, propagate := filter(inf, false)
+		valid, propagate := filter(inf, propagated)
 		if valid {
 			// append it to dirs array
 			dirs = append(dirs, inf)
@@ -231,18 +230,8 @@ func Find(roots []string, filter func(Info, bool) (bool, bool), numWorkers int) 
 			// filter condition. If they do, the entry is appended to the
 			// corresponding array (either dirs or files)
 			if entr.IsDir() {
-				inf := newInfo(entr, filepath.Join(dir.Path(), entr.Name()))
-				// if propagated from the parents, filtering is not necessary
-				if propagated {
-					// append it to dirs array
-					dirs = append(dirs, inf)
-					// descend and continue
-					wg.Add(1)
-					go descend(inf, true)
-					continue
-				}
 				// check entr and descend
-				checkDescendDir(entr, filepath.Join(dir.Path(), entr.Name()))
+				checkDescendDir(entr, filepath.Join(dir.Path(), entr.Name()), propagated)
 			} else {
 				// only regular files are relevant
 				if !entr.Mode().IsRegular() {
@@ -270,7 +259,7 @@ func Find(roots []string, filter func(Info, bool) (bool, bool), numWorkers int) 
 			continue
 		}
 		// check root and descend
-		checkDescendDir(fi, root)
+		checkDescendDir(fi, root, false)
 	}
 
 	// wait for traversals to be finalized
