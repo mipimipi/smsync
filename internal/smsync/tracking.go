@@ -61,16 +61,31 @@ type Status struct {
 	Errors     int           // number of errors
 }
 
-// stop ends progress tracking
-func (trck *Tracking) stop() {
-	log.Debug("smsync.Tracking.stop: BEGIN")
-	defer log.Debug("smsync.Tracking.stop: END")
-	close(trck.CvInfo)
+// newTrck create a Tracking instance
+func newTrck(wl *file.InfoSlice, space uint64) *Tracking {
+	var trck Tracking
+
+	trck.totalNum = len(*wl)
+	trck.diskspace = space
+	trck.CvInfo = make(chan CvInfo)
+
+	for _, inf := range *wl {
+		trck.totalSize += uint64(inf.Size())
+	}
+
+	return &trck
 }
 
 // start begins progress tracking
 func (trck *Tracking) start() {
 	trck.started = time.Now()
+}
+
+// stop ends progress tracking
+func (trck *Tracking) stop() {
+	log.Debug("smsync.Tracking.stop: BEGIN")
+	defer log.Debug("smsync.Tracking.stop: END")
+	close(trck.CvInfo)
 }
 
 // Status calculates the current processing status based on the attributes of
@@ -95,21 +110,6 @@ func (trck *Tracking) Status() *Status {
 	status.Errors = trck.errors
 
 	return &status
-}
-
-// newTrck create a Tracking instance
-func newTrck(wl *file.InfoSlice, space uint64) *Tracking {
-	var trck Tracking
-
-	trck.totalNum = len(*wl)
-	trck.diskspace = space
-	trck.CvInfo = make(chan CvInfo)
-
-	for _, inf := range *wl {
-		trck.totalSize += uint64(inf.Size())
-	}
-
-	return &trck
 }
 
 // update receives information about a finished conversion and updates
