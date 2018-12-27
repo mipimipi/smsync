@@ -219,7 +219,7 @@ func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice, err
 	}
 
 	// call FindFiles with the smsync filter function to get the directories and files
-	dirs, files := file.Find([]string{cfg.SrcDir}, filter, 1)
+	dirs, files := file.Find([]string{cfg.SrcDir}, filter, 20)
 
 	// sort dir array to allow more efficient processing later
 	sort.Sort(*dirs)
