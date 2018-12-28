@@ -32,27 +32,22 @@ import (
 // process starts the processing of directories and file conversions. It also
 // calls the print functions to display the required information onthe command
 // line
-func process(cfg *smsync.Config, dirs, files *[]*file.Info, init bool, verbose bool) (time.Duration, error) {
+func process(cfg *smsync.Config, dirs, files *[]*file.Info, init bool, verbose bool) time.Duration {
 	log.Debug("cli.process: BEGIN")
 	defer log.Debug("cli.process: END")
 
 	var (
-		cvInfo      smsync.CvInfo                 // processing result
-		ticker      = time.NewTicker(time.Second) // ticker to update progress on screen every second
-		ticked      = false
-		trck        *smsync.Tracking
-		err         error
-		ok          = true
-		errOccurred = false
-		errors      <-chan error
-		done        <-chan struct{}
-		started     = time.Now()
+		cvInfo  smsync.CvInfo                 // processing result
+		ticker  = time.NewTicker(time.Second) // ticker to update progress on screen every second
+		ticked  = false
+		trck    *smsync.Tracking
+		ok      = true
+		done    <-chan struct{}
+		started = time.Now()
 	)
 
 	// start processing
-	if trck, errors, done, err = smsync.Process(cfg, dirs, files, init); err != nil {
-		return 0, err
-	}
+	trck, done = smsync.Process(cfg, dirs, files, init)
 
 	// print header (if the user doesn't want smsync to be verbose)
 	if !verbose {
@@ -89,10 +84,6 @@ func process(cfg *smsync.Config, dirs, files *[]*file.Info, init bool, verbose b
 					fmt.Println()
 				}
 			}
-		case err, ok = <-errors:
-			if err != nil {
-				errOccurred = true
-			}
 		}
 	}
 
@@ -102,12 +93,8 @@ func process(cfg *smsync.Config, dirs, files *[]*file.Info, init bool, verbose b
 	// wait for cleanup to be done
 	_ = <-done
 
-	if errOccurred {
-		return time.Since(started), fmt.Errorf("At least one error occurred during processing")
-	}
-
 	// return elapsed time
-	return time.Since(started), nil
+	return time.Since(started)
 }
 
 // synchronize is the main function of smsync. It triggers the entire sync
@@ -118,29 +105,18 @@ func process(cfg *smsync.Config, dirs, files *[]*file.Info, init bool, verbose b
 func synchronize(level log.Level, verbose bool) error {
 	// logger needs to be created before the first log entry is generated!!!
 	if err := smsync.CreateLogger(level); err != nil {
-		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
-			return e
-		}
-		return err
+		fmt.Fprintln(os.Stderr, err)
 	}
 
 	log.Debug("cli.synchronize: BEGIN")
 	defer log.Debug("cli.synchronize: END")
 
 	var (
-		cfg         smsync.Config
-		dirs        *[]*file.Info
-		files       *[]*file.Info
-		elapsed     time.Duration
-		err         error
-		errOccurred = false
+		cfg     smsync.Config
+		dirs    *[]*file.Info
+		files   *[]*file.Info
+		elapsed time.Duration
 	)
-
-	defer func() {
-		if errOccurred {
-			fmt.Printf("\nAt least one error occured. Check %s\n", smsync.LogFile)
-		}
-	}()
 
 	// print copyright etc. on command line
 	fmt.Println(preamble)
@@ -191,9 +167,7 @@ func synchronize(level log.Level, verbose bool) error {
 
 	// do synchronization / conversion
 	fmt.Println("\n:: Synchronization / conversion")
-	if elapsed, err = process(&cfg, dirs, files, cli.init, cli.verbose); err != nil {
-		errOccurred = true
-	}
+	elapsed = process(&cfg, dirs, files, cli.init, cli.verbose)
 
 	// print final success message
 	fmt.Println("\n:: Done :)")

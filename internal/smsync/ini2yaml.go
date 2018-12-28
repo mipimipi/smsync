@@ -132,9 +132,7 @@ func ini2yaml() error {
 	}
 
 	// write config file in yaml format
-	if err := cfgY.write(); err != nil {
-		return err
-	}
+	cfgY.write()
 
 	return nil
 }

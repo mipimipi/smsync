@@ -18,7 +18,6 @@
 package smsync
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -30,7 +29,7 @@ import (
 )
 
 // cleanUp removes temporary files and directories
-func cleanUp(cfg *Config, wg *sync.WaitGroup, done chan<- struct{}, errors chan<- error) {
+func cleanUp(cfg *Config, wg *sync.WaitGroup, done chan<- struct{}) {
 	// wait for processing of dirs and files to be done
 	wg.Wait()
 
@@ -44,36 +43,32 @@ func cleanUp(cfg *Config, wg *sync.WaitGroup, done chan<- struct{}, errors chan<
 	log.Debug("Removed log files (at least tried to do that)")
 
 	// update config file
-	if err := cfg.setProcEnd(); err != nil {
-		errors <- err
-		return
-	}
+	cfg.setProcEnd()
 }
 
 // Process is the main "backend" function to control the conversion.
 // Essentially, it gets the list of directories and files to be processed and
 // returns a Tracking instances, an error channel and a done channel
-func Process(cfg *Config, dirs, files *[]*file.Info, init bool) (*Tracking, <-chan error, <-chan struct{}, error) {
+func Process(cfg *Config, dirs, files *[]*file.Info, init bool) (*Tracking, <-chan struct{}) {
 	log.Debug("smsync.Process: BEGIN")
 	defer log.Debug("smsync.Process: END")
 
 	var (
-		trck   = newTrck(files, du.NewDiskUsage(cfg.TrgDir).Available()) // tracking
-		errors = make(chan error)                                        // error channel
-		done   = make(chan struct{})                                     // done channel
-		wg     sync.WaitGroup
+		trck = newTrck(files, du.NewDiskUsage(cfg.TrgDir).Available()) // tracking
+		done = make(chan struct{})                                     // done channel
+		wg   sync.WaitGroup
 	)
 
 	// if no directories and no files need to be synchec: exit
 	if len(*dirs) == 0 && len(*files) == 0 {
 		log.Info("Nothing to process")
-		return nil, nil, nil, nil
+		return nil, nil
 	}
 
 	// remove potentially existing error directory from last run
 	if err := os.RemoveAll(errDir); err != nil {
-		log.Errorf("Couldn't delete error directory: %v", err)
-		return nil, nil, nil, fmt.Errorf("Couldn't delete error directory: %v", err)
+		log.Errorf("Process: %v", err)
+		return nil, nil
 	}
 
 	// delete all entries of the target directory if requested per cli option
@@ -84,20 +79,20 @@ func Process(cfg *Config, dirs, files *[]*file.Info, init bool) (*Tracking, <-ch
 
 	// fork processing of directories
 	wg.Add(1)
-	go processDirs(cfg, dirs, &wg, errors)
+	go processDirs(cfg, dirs, &wg)
 
 	// fork processing of and files
 	wg.Add(1)
-	go processFiles(cfg, trck, files, &wg, errors)
+	go processFiles(cfg, trck, files, &wg)
 
 	// cleaning up. cleanUp waits for processDirs and processFiles to finish
-	go cleanUp(cfg, &wg, done, errors)
+	go cleanUp(cfg, &wg, done)
 
-	return trck, errors, done, nil
+	return trck, done
 }
 
 // processDirs creates new and deletes obsolete directories
-func processDirs(cfg *Config, dirs *[]*file.Info, wg *sync.WaitGroup, errors chan<- error) {
+func processDirs(cfg *Config, dirs *[]*file.Info, wg *sync.WaitGroup) {
 	log.Debug("smsync.processDirs: BEGIN")
 	defer log.Debug("smsync.processDirs: END")
 
@@ -111,7 +106,7 @@ func processDirs(cfg *Config, dirs *[]*file.Info, wg *sync.WaitGroup, errors cha
 	// setup worker Go routine and get worklist and result channels
 	wl, res := worker.Setup(func(i interface{}) interface{} { return deleteObsoleteFiles(i.(obsInput)) }, cfg.NumWrkrs)
 
-	// fill worklist with files and close worklist channel
+	// fill worklist with directories and close worklist channel
 	go func() {
 		for _, d := range *dirs {
 			wl <- obsInput{cfg: cfg, srcDir: d}
@@ -119,14 +114,14 @@ func processDirs(cfg *Config, dirs *[]*file.Info, wg *sync.WaitGroup, errors cha
 		close(wl)
 	}()
 
-	// retrieve worker results and update tracking
+	// empty results channel
 	for range res {
 	}
 }
 
 // processFiles calls the conversion for all new or changed files. Files
 // are processed in parallel using the package github.com/mipimipi/go-worker.
-func processFiles(cfg *Config, trck *Tracking, files *[]*file.Info, wg *sync.WaitGroup, errors chan<- error) {
+func processFiles(cfg *Config, trck *Tracking, files *[]*file.Info, wg *sync.WaitGroup) {
 	log.Debug("smsync.processFiles: BEGIN")
 	defer log.Debug("smsync.processFiles: END")
 

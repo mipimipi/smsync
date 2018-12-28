@@ -95,7 +95,8 @@ func (cfg *Config) Get(init bool) error {
 		// potentially existing ini file into a yaml file and try again
 		ini2yaml()
 		if err = cfgY.read(); err != nil {
-			return err
+			log.Errorf("Config.Get: %v", err)
+			return nil
 		}
 	}
 
@@ -107,9 +108,7 @@ func (cfg *Config) Get(init bool) error {
 
 	// get directories that shall be excluded
 	if len(cfgY.Excludes) > 0 {
-		if err = cfg.getExcludes(&cfgY.Excludes); err != nil {
-			return err
-		}
+		cfg.getExcludes(&cfgY.Excludes)
 	}
 
 	// get number of CPU's (optional). Default is to use all available cpus
@@ -131,9 +130,7 @@ func (cfg *Config) Get(init bool) error {
 	// get last sync time. If an initial sync was requested by the user (i.e.
 	// init = true), nothing needs to be done)
 	if !init {
-		if cfg.LastSync, err = getLastSync(cfgY.LastSync); err != nil {
-			return err
-		}
+		cfg.LastSync = getLastSync(cfgY.LastSync)
 	}
 
 	// get rules
@@ -158,8 +155,8 @@ func (cfg *Config) Get(init bool) error {
 
 	// set target directory
 	if cfg.TrgDir, err = os.Getwd(); err != nil {
-		log.Errorf("Cannot determine working directory: %v", err)
-		return fmt.Errorf("Cannot determine working directory: %v", err)
+		log.Errorf("Config.Get: %v", err)
+		return fmt.Errorf("Config.Get: %v", err)
 	}
 
 	return nil
@@ -181,7 +178,7 @@ func (cfg *Config) getCv(f string) (*cvm, bool) {
 
 // getExcludes expands the directories specified in the config file (which) can
 // contain wildcards
-func (cfg *Config) getExcludes(excls *[]string) error {
+func (cfg *Config) getExcludes(excls *[]string) {
 	log.Debug("smsync.Config.getExcludes: BEGIN")
 	defer log.Debug("smsync.Config.getExcludes: END")
 
@@ -193,12 +190,11 @@ func (cfg *Config) getExcludes(excls *[]string) error {
 		// expand directory
 		a, err := filepath.Glob(file.EscapePattern(filepath.Join(cfg.SrcDir, excl)))
 		if err != nil {
-			return err
+			log.Errorf("Config.getExcludes: %v", err)
+			return
 		}
 		cfg.Excludes = append(cfg.Excludes, a...)
 	}
-
-	return nil
 }
 
 // getRule verifies that r represents a valid rule and create the
@@ -284,31 +280,22 @@ func (cfg *Config) getRule(r *rule, i int) (*cvm, error) {
 // setProcEnd updates the file smsync.yaml after the conversions have ended
 // successfully. It sets the last sync time and removes the "wip" (work in
 // progress).
-func (cfg *Config) setProcEnd() error {
+func (cfg *Config) setProcEnd() {
 	log.Debug("smsync.Config.setProcEnd: BEGIN")
 	defer log.Debug("smsync.Config.setProcEnd: END")
 
-	var (
-		cfgY cfgYml
-		err  error
-	)
+	var cfgY cfgYml
 
 	// read config from file
-	if err = cfgY.read(); err != nil {
-		return err
-	}
+	cfgY.read()
 
 	// set last sync time to current time in UTC
 	cfgY.LastSync = time.Now().UTC().Format(time.RFC3339)
 
 	// write config to file
-	if err = cfgY.write(); err != nil {
-		return err
-	}
+	cfgY.write()
 
 	log.Debug("Config.setProcEnd(): Config has been saved")
-
-	return nil
 }
 
 // readCfg read the configuration from the file smsync.yaml in the current directory
@@ -322,15 +309,14 @@ func (cfgY *cfgYml) read() error {
 		// determine working directory for error message
 		wd, err0 := os.Getwd()
 		if err0 != nil {
-			log.Errorf("Cannot determine working directory: %v", err0)
-			return fmt.Errorf("Cannot determine working directory: %v", err0)
+			log.Errorf("cfgYml.read: %v", err0)
+			return err
 		}
-		log.Errorf("No configuration file found in '%s'", wd)
 		return fmt.Errorf("No configuration file found in '%s'", wd)
 	}
 	if err = yaml.Unmarshal(cfgFile, &cfgY); err != nil {
-		log.Errorf("Error during unmarshaling of config file: %v", err)
-		return fmt.Errorf("Error during unmarshaling of config file: %v", err)
+		log.Errorf("cfgYml.read: %v", err)
+		return err
 	}
 
 	// clean directory names
@@ -343,7 +329,7 @@ func (cfgY *cfgYml) read() error {
 }
 
 // write writes the configuration to the file smsync.yaml in the current directory
-func (cfgY *cfgYml) write() error {
+func (cfgY *cfgYml) write() {
 	log.Debug("smsync.cfgYml.write: BEGIN")
 	defer log.Debug("smsync.cfgYml.write: END")
 
@@ -354,16 +340,14 @@ func (cfgY *cfgYml) write() error {
 
 	// turn config struct into a byte array
 	if out, err = yaml.Marshal(&cfgY); err != nil {
-		log.Errorf("Config struct could not be marshalled: %v", err)
-		return fmt.Errorf("Config struct could not be marshalled: %v", err)
+		log.Errorf("cfgYml.write: %v", err)
+		return
 	}
 
 	if err := ioutil.WriteFile(filepath.Join(".", cfgFile), out, 0777); err != nil {
-		log.Errorf("Configuration file '%s' cannot be updated: %v", filepath.Join(".", cfgFile), err)
-		return fmt.Errorf("Configuration file '%s' cannot be updated: %v", filepath.Join(".", cfgFile), err)
+		log.Errorf("cfgYml.write: %v", err)
+		return
 	}
-
-	return nil
 }
 
 // checkDir checks if the source directory exists and if it's a directory
@@ -393,22 +377,19 @@ func checkDir(srcDir string) error {
 }
 
 // getLastSync determines the time of the last synchronization
-func getLastSync(s string) (time.Time, error) {
+func getLastSync(s string) (t time.Time) {
 	log.Debug("smsync.getLastSync: BEGIN")
 	defer log.Debug("smsync.getLastSync: END")
 
-	var (
-		t   time.Time
-		err error
-	)
+	var err error
 
 	if len(s) == 0 {
 		log.Infof("No last sync time could be detected")
-		return time.Time{}, nil
+		return time.Time{}
 	}
-	if t, err = time.Parse(time.RFC3339, s); err == nil {
-		return t, nil
+	if t, err = time.Parse(time.RFC3339, s); err != nil {
+		log.Errorf("getLastSync: %v", err)
+		return time.Time{}
 	}
-	log.Errorf("Last sync time '%s' could not be parsed: %v", s, err)
-	return time.Time{}, fmt.Errorf("Last sync time '%s' could not be parsed: %v", s, err)
+	return t
 }
