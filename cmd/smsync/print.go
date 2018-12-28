@@ -99,11 +99,6 @@ func printCfgSummary(cfg *smsync.Config) {
 	if hasStar {
 		fmt.Printf(fmRl, "*", cfg.Cvs["*"].TrgSuffix, cfg.Cvs["*"].NormCvStr) // nolint
 	}
-
-	// work in progress
-	if cfg.WIP {
-		fmt.Println("   WORK IN PROGRESS")
-	}
 }
 
 // printProgress displays the progress of the file conversion
