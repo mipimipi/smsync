@@ -18,7 +18,6 @@
 package smsync
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -33,14 +32,27 @@ import (
 // errDir is the directory that stores error logs from conversion
 const errDir = "smsync.cv.errs"
 
+// input structure of deleteObsoleteFiles()
+type (
+	obsInput struct {
+		cfg    *Config    // configuration
+		srcDir *file.Info // source directory
+	}
+
+	// output structure of deleteObsoleteFiles
+	obsOutput struct {
+		null struct{}
+	}
+)
+
 // deleteObsoleteFiles deletes directories and files that are available in the
 // target directory tree but not in the source directory tree. It is called
 // for all source directories that have been changed since the last sync.
 // Typically, this is relevant if directories or files have been renamed or
-// deleted. In this case, the parenet directory is touched
-func deleteObsoleteFiles(cfg *Config, srcDir *file.Info) error {
-	log.Debugf("smsync.deleteObsoleteFiles(%s): BEGIN", (*srcDir).Path())
-	defer log.Debugf("smsync.deleteObsoleteFiles(%s): END", (*srcDir).Path())
+// deleted. In this case, the parent directory is touched
+func deleteObsoleteFiles(i obsInput) (o obsOutput) {
+	log.Debugf("smsync.deleteObsoleteFiles(%s): BEGIN", (*i.srcDir).Path())
+	defer log.Debugf("smsync.deleteObsoleteFiles(%s): END", (*i.srcDir).Path())
 
 	var (
 		trgDir string
@@ -49,43 +61,43 @@ func deleteObsoleteFiles(cfg *Config, srcDir *file.Info) error {
 	)
 
 	// assemble target directory path
-	trgDir, err = file.PathRelCopy(cfg.SrcDir, (*srcDir).Path(), cfg.TrgDir)
+	trgDir, err = file.PathRelCopy(i.cfg.SrcDir, (*i.srcDir).Path(), i.cfg.TrgDir)
 	if err != nil {
 		log.Errorf("deleteObsoleteFiles: %v", err)
-		return fmt.Errorf("deleteObsoleteFiles: %v", err)
+		return o
 	}
 
 	// nothing to do if target directory doesn't exist
 	if exists, err = file.Exists(trgDir); err != nil {
 		log.Errorf("deleteObsoleteFiles: %v", err)
-		return fmt.Errorf("deleteObsoleteFiles: %v", err)
+		return o
 	}
 	if !exists {
-		return nil
+		return o
 	}
 
 	// read entries of target directory
 	trgEntrs, err := ioutil.ReadDir(trgDir)
 	if err != nil {
 		log.Errorf("deleteObsoleteFiles: %v", err)
-		return fmt.Errorf("deleteObsoleteFiles: %v", err)
+		return o
 	}
 
 	// loop over all entries of target directory
 	for _, trgEntr := range trgEntrs {
 		if trgEntr.IsDir() {
 			// if entry is a directory ...
-			b, err := file.Exists(filepath.Join((*srcDir).Path(), trgEntr.Name()))
+			b, err := file.Exists(filepath.Join((*i.srcDir).Path(), trgEntr.Name()))
 			if err != nil {
 				log.Errorf("deleteObsoleteFiles: %v", err)
-				return fmt.Errorf("deleteObsoleteFiles: %v", err)
+				return o
 			}
 			// ... and the counterpart on source side doesn't exists: ...
 			if !b {
 				// ... delete entry
 				if err = os.RemoveAll(filepath.Join(trgDir, trgEntr.Name())); err != nil {
 					log.Errorf("deleteObsoleteFiles: %v", err)
-					return fmt.Errorf("deleteObsoleteFiles: %v", err)
+					return o
 				}
 			}
 		} else {
@@ -101,26 +113,26 @@ func deleteObsoleteFiles(cfg *Config, srcDir *file.Info) error {
 			}
 			// check if counterpart file on source side exists
 			tr := file.PathTrunk(trgEntr.Name())
-			fs, err := filepath.Glob(file.EscapePattern(filepath.Join((*srcDir).Path(), tr)) + ".*")
+			fs, err := filepath.Glob(file.EscapePattern(filepath.Join((*i.srcDir).Path(), tr)) + ".*")
 			if err != nil {
 				log.Errorf("deleteObsoleteFiles: %v", err)
-				return fmt.Errorf("deleteObsoleteFiles: %v", err)
+				return o
 			}
 			// if counterpart does not exist: delete entry
 			if fs == nil {
 				if err = os.Remove(filepath.Join(trgDir, trgEntr.Name())); err != nil {
 					log.Errorf("deleteObsoleteFiles: %v", err)
-					return fmt.Errorf("deleteObsoleteFiles: %v", err)
+					return o
 				}
 			}
 		}
 	}
 
-	return nil
+	return o
 }
 
 // DeleteTrg deletes all entries of the target directory
-func deleteTrg(cfg *Config) error {
+func deleteTrg(cfg *Config) {
 	log.Debug("smsync.deleteTrg: BEGIN")
 	defer log.Debug("smsync.deleteTrg: END")
 
@@ -128,7 +140,7 @@ func deleteTrg(cfg *Config) error {
 	trgEntrs, err := ioutil.ReadDir(cfg.TrgDir)
 	if err != nil {
 		log.Errorf("deleteTrg: %v", err)
-		return fmt.Errorf("deleteTrg: %v", err)
+		return
 	}
 
 	// loop over all entries of target directory
@@ -140,12 +152,9 @@ func deleteTrg(cfg *Config) error {
 		// delete entry
 		if err = os.RemoveAll(filepath.Join(cfg.TrgDir, trgEntr.Name())); err != nil {
 			log.Errorf("deleteTrg: %v", err)
-			return fmt.Errorf("deleteTrg: %v", err)
+			return
 		}
 	}
-
-	// everything's fine
-	return nil
 }
 
 // GetSyncFiles determines which directories and files need to be synched.
@@ -253,9 +262,8 @@ func GetSyncFiles(cfg *Config, init bool) (dirs, files *[]*file.Info) {
 			// Otherwise it is relevant.
 
 			// assemble target file
-			trgFile, _ := assembleTrgFile(cfg, srcFile.Path())
 			// check if target file exists
-			if exists, err := file.Exists(trgFile); err == nil && !exists {
+			if exists, err := file.Exists(assembleTrgFile(cfg, srcFile.Path())); err == nil && !exists {
 				return true, file.NoneFromSuper
 			}
 		}
@@ -271,7 +279,11 @@ func GetSyncFiles(cfg *Config, init bool) (dirs, files *[]*file.Info) {
 // parentDirChgd returns true if the file speicified by path has changed after
 // time t
 func parentDirChgd(path string, t time.Time) bool {
-	fi, _ := os.Stat(path)
+	fi, err := os.Stat(path)
+	if err != nil {
+		log.Errorf("parentDirChgd: %v", err)
+		return false
+	}
 	if fi.IsDir() && fi.ModTime().After(t) {
 		return true
 	}

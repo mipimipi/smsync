@@ -79,9 +79,7 @@ func Process(cfg *Config, dirs, files *[]*file.Info, init bool) (*Tracking, <-ch
 	// delete all entries of the target directory if requested per cli option
 	if init {
 		log.Info("Delete all entries of the target directory per cli option")
-		if err := deleteTrg(cfg); err != nil {
-			return nil, nil, nil, err
-		}
+		deleteTrg(cfg)
 	}
 
 	// fork processing of directories
@@ -105,10 +103,24 @@ func processDirs(cfg *Config, dirs *[]*file.Info, wg *sync.WaitGroup, errors cha
 
 	defer wg.Done()
 
-	for _, d := range *dirs {
-		if err := deleteObsoleteFiles(cfg, d); err != nil {
-			errors <- err
+	// nothing to do in case of empty dirs array
+	if len(*dirs) == 0 {
+		return
+	}
+
+	// setup worker Go routine and get worklist and result channels
+	wl, res := worker.Setup(func(i interface{}) interface{} { return deleteObsoleteFiles(i.(obsInput)) }, cfg.NumWrkrs)
+
+	// fill worklist with files and close worklist channel
+	go func() {
+		for _, d := range *dirs {
+			wl <- obsInput{cfg: cfg, srcDir: d}
 		}
+		close(wl)
+	}()
+
+	// retrieve worker results and update tracking
+	for range res {
 	}
 }
 

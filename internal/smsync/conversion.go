@@ -18,7 +18,6 @@
 package smsync
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -111,14 +110,14 @@ var (
 
 // assembleTrgFile creates the target file path from the source file path
 // (f) and the configuration
-func assembleTrgFile(cfg *Config, srcFile string) (string, error) {
+func assembleTrgFile(cfg *Config, srcFile string) string {
 	var trgSuffix string
 
 	// get conversion rule from config
 	cvm, exists := cfg.getCv(srcFile)
 	if !exists {
 		log.Errorf("No conversion rule for '%s'", srcFile)
-		return "", fmt.Errorf("No conversion rule for '%s'", srcFile)
+		return ""
 	}
 
 	// if corresponding conversion rule is for '*' ...
@@ -133,9 +132,9 @@ func assembleTrgFile(cfg *Config, srcFile string) (string, error) {
 	trgFile, err := file.PathRelCopy(cfg.SrcDir, file.PathTrunk(srcFile)+"."+trgSuffix, cfg.TrgDir)
 	if err != nil {
 		log.Errorf("Target path cannot be assembled: %v", err)
-		return "", fmt.Errorf("Target path cannot be assembled: %v", err)
+		return ""
 	}
-	return trgFile, nil
+	return trgFile
 }
 
 // convert executes conversion for one file
@@ -156,9 +155,7 @@ func convert(i cvInput) cvOutput {
 	}
 
 	// assemble output file
-	if trgFile, err = assembleTrgFile(i.cfg, i.srcFile.Path()); err != nil {
-		return cvOutput{srcFile: i.srcFile, trgFile: nil, err: err}
-	}
+	trgFile = assembleTrgFile(i.cfg, i.srcFile.Path())
 
 	// if error directory doesn't exist: create it
 	if err := file.MkdirAll(filepath.Dir(trgFile), os.ModeDir|0755); err != nil {
