@@ -62,6 +62,17 @@ func (is InfoSlice) Less(i, j int) bool { return is[i].Path() < is[j].Path() }
 // Swap exchanges two elements
 func (is InfoSlice) Swap(i, j int) { is[i], is[j] = is[j], is[i] }
 
+// ValidPropagate defines if validity shall be propagated to sub
+// directories. Needed for Find()
+type ValidPropagate int
+
+// constants for Find(): propagation of validity to sub directories
+const (
+	NoneFromSuper    ValidPropagate = iota // no propagation to sub directories
+	ValidFromSuper                         // propagate valid=true to sub directories
+	InvalidFromSuper                       // propagate valid=false to sub directories
+)
+
 // Copy copies srcFn to dstFn. Prequisite is, that srcFn and (if existing)
 // dstFn are regular files (i.e. no devices etc.). In case both files are the
 // same, nothing is done. In case, dstFn is already existing it is overwritten.
@@ -185,12 +196,12 @@ func ExistsInfo(path string) (bool, Info, error) {
 // book "The Go Programming Language" by Alan A. A. Donovan & Brian W.
 // Kernighan.
 // See: https://github.com/adonovan/gopl.io/blob/master/ch8/du4/main.go
-func Find(roots []string, filter func(Info, bool) (bool, bool), numWorkers int) (*InfoSlice, *InfoSlice) {
+func Find(roots []string, filter func(Info, ValidPropagate) (bool, ValidPropagate), numWorkers int) (*InfoSlice, *InfoSlice) {
 	var (
-		dirs    InfoSlice        // list of directories to be returned
-		files   InfoSlice        // list of files to be returned
-		descend func(Info, bool) // func needs to be declared here since it calls itself recursively
-		wg      sync.WaitGroup   // waiting group for the concurrent traversal
+		dirs    InfoSlice                  // list of directories to be returned
+		files   InfoSlice                  // list of files to be returned
+		descend func(Info, ValidPropagate) // func needs to be declared here since it calls itself recursively
+		wg      sync.WaitGroup             // waiting group for the concurrent traversal
 	)
 	// create buffered channel, used as semaphore to restrict the number of Go routines
 	sema := make(chan struct{}, numWorkers)
@@ -213,22 +224,22 @@ func Find(roots []string, filter func(Info, bool) (bool, bool), numWorkers int) 
 
 	// function to check if a directory is relevant. If yes, descend into that
 	// directory
-	checkDescendDir := func(fi os.FileInfo, dir string, propagated bool) {
+	checkDescendDir := func(fi os.FileInfo, dir string, vp ValidPropagate) {
 		inf := newInfo(fi, dir)
-		valid, propagate := filter(inf, propagated)
+		valid, vpSub := filter(inf, vp)
 		if valid {
 			// append it to dirs array
 			dirs = append(dirs, inf)
 		}
 		// descend into directory
-		if valid || !propagate {
+		if vpSub != InvalidFromSuper {
 			wg.Add(1)
-			go descend(inf, propagate)
+			go descend(inf, vpSub)
 		}
 	}
 
 	// function to traverse the directory tree. Calls itself recursively
-	descend = func(dir Info, propagated bool) {
+	descend = func(dir Info, vp ValidPropagate) {
 		defer wg.Done()
 
 		// loop at the entries of dir
@@ -238,7 +249,7 @@ func Find(roots []string, filter func(Info, bool) (bool, bool), numWorkers int) 
 			// corresponding array (either dirs or files)
 			if entr.IsDir() {
 				// check entr and descend
-				checkDescendDir(entr, filepath.Join(dir.Path(), entr.Name()), propagated)
+				checkDescendDir(entr, filepath.Join(dir.Path(), entr.Name()), vp)
 			} else {
 				// only regular files are relevant
 				if !entr.Mode().IsRegular() {
@@ -246,7 +257,7 @@ func Find(roots []string, filter func(Info, bool) (bool, bool), numWorkers int) 
 				}
 				// filter and add entry to files
 				inf := newInfo(entr, filepath.Join(dir.Path(), entr.Name()))
-				if valid, _ := filter(inf, propagated); valid {
+				if valid, _ := filter(inf, vp); valid {
 					// create extended FileInfo and append it to dirs array
 					files = append(files, inf)
 				}
@@ -266,7 +277,7 @@ func Find(roots []string, filter func(Info, bool) (bool, bool), numWorkers int) 
 			continue
 		}
 		// check root and descend
-		checkDescendDir(fi, root, false)
+		checkDescendDir(fi, root, NoneFromSuper)
 	}
 
 	// wait for traversals to be finalized

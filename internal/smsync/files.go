@@ -162,34 +162,38 @@ func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice, err
 	defer log.Debug("smsync.GetSyncFiles: END")
 
 	// filter function needed for file.Find(...)
-	filter := func(srcFile file.Info, propagated bool) (bool, bool) {
+	filter := func(srcFile file.Info, vp file.ValidPropagate) (bool, file.ValidPropagate) {
 		log.Debugf("smsync.GetSyncFiles.filter(%s): BEGIN", srcFile.Path())
 		defer log.Debugf("smsync.GetSyncFiles.filter(%s): END", srcFile.Path())
 
-		if propagated {
-			log.Debug("PROPAGATED")
-		} else {
-			log.Debug("NOT PROPAGATED")
+		// just for debugging
+		switch vp {
+		case file.NoneFromSuper:
+			log.Debug("NONE FROM SUPER")
+		case file.ValidFromSuper:
+			log.Debug("VALID FROM SUPER")
+		case file.InvalidFromSuper:
+			log.Debug("INVALID FROM SUPER")
 		}
 
 		if srcFile.IsDir() {
 			// check if the directory shall be excluded
 			if lhlp.Contains(cfg.Excludes, srcFile.Path()) {
-				log.Debug("directory excluded: INVALID, PROPAGATE")
-				return false, true
+				log.Debug("directory excluded: INVALID, INVALID FROM SUPER")
+				return false, file.InvalidFromSuper
 			}
-			if propagated {
-				log.Debug("propagated: VALID, PROPAGATE")
-				return true, true
+			if vp == file.ValidFromSuper {
+				log.Debug("propagated: INVALID, VALID FROM SUPER")
+				return false, file.ValidFromSuper
 			}
 			if init || cfg.LastSync.IsZero() {
-				log.Debug("init or first sync: VALID, PROPAGATE")
-				return true, true
+				log.Debug("init or first sync: INVALID, VALID FROM SUPER")
+				return false, file.ValidFromSuper
 			}
 			// check if the directory has been changed since last sync
 			if srcFile.ModTime().After(cfg.LastSync) {
-				log.Debug("source file has been changed: VALID, NO PROPAGATE")
-				return true, false
+				log.Debug("source file has been changed: VALID, NONE FROM SUPER")
+				return true, file.NoneFromSuper
 			}
 			// if parent has been changed ...
 			if parentDirChgd(filepath.Dir(srcFile.Path()), cfg.LastSync) {
@@ -199,54 +203,55 @@ func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice, err
 				// assemble target directory
 				trgDir, _ := file.PathRelCopy(cfg.SrcDir, srcFile.Path(), cfg.TrgDir)
 				log.Debug("does target counterpart exist?")
-				if exists, err := file.Exists(trgDir); err != nil && exists {
-					// directory existd on target side: not relevant
-					log.Debug("target counterpart of directory exists: INVALID, NO PROPAGATE")
-					return false, false
+				if exists, err := file.Exists(trgDir); err == nil && exists {
+					// directory exists on target side: not relevant but propagate
+					log.Debug("target counterpart of directory exists: INVALID, NONE FROM SUPER")
+					return false, file.NoneFromSuper
 				}
-				// directory doesn't exist on target side: relevant
-				log.Debug("target counterpart of directory doesn't exist: VALID, PROPAGATE")
-				return true, true
+				// directory doesn't exist on target side: not relevant but propagate valid
+				log.Debug("target counterpart of directory doesn't exist: INVALID, VALID FROM SUPER")
+				return false, file.ValidFromSuper
 			}
-			log.Debug("nothing applied: VALID, NO PROPAGATE")
-			return false, false
+			log.Debug("nothing applied: INVALID, NONE FROM SUPER")
+			return false, file.NoneFromSuper
 		}
 		// srcFile is a file and no directory
 
 		// if file is not regular: not relevant
 		if !srcFile.Mode().IsRegular() {
-			log.Debug("file is regular: INVALID, NO PROPAGATE")
-			return false, false
+			log.Debug("file is regular: INVALID, NONE FROM SUPER")
+			return false, file.NoneFromSuper
 		}
 		// check if file is relevant for smsync (i.e. its suffix is
 		// contained in the smsync config)
 		if _, ok := cfg.getCv(srcFile.Path()); !ok {
-			log.Debug("suffix is not contained in smsync config: INVALID, NO PROPAGATE")
-			return false, false
+			log.Debug("suffix is not contained in smsync config: INVALID, NONE FROM SUPER")
+			return false, file.NoneFromSuper
 		}
-		if propagated {
-			log.Debug("propagated: VALID, NO PROPAGATE")
-			return true, false
+		if vp == file.ValidFromSuper {
+			log.Debug("propagated: VALID, NONE FROM SUPER")
+			return true, file.NoneFromSuper
 		}
 		// check if the file has been changed since last sync
 		if srcFile.ModTime().After(cfg.LastSync) {
-			log.Debug("source file has been changed and not WIP: VALID, NO PROPAGATE")
-			return true, false
+			log.Debug("source file has been changed and not WIP: VALID, NONE FROM SUPER")
+			return true, file.NoneFromSuper
 		}
 		// if parent has been changed ...
 		if parentDirChgd(filepath.Dir(srcFile.Path()), cfg.LastSync) {
+			log.Debug("parent directory has been changed")
 			// if file doesn't exists on target side: it's valid.
 			// Note: The timestamp of a file is not changed if it's renamed.
 			// Therefore this check is necessary
 			log.Debug("does target counterpart exist?")
 			trgFile, _ := assembleTrgFile(cfg, srcFile.Path())
-			if exists, err := file.Exists(trgFile); err != nil && !exists {
-				log.Debug("target file doesn't exist:: VALID, PROPAGATE")
-				return true, true
+			if exists, err := file.Exists(trgFile); err == nil && !exists {
+				log.Debug("target file doesn't exist:: VALID, NONE FROM SUPER")
+				return true, file.NoneFromSuper
 			}
 		}
-		log.Debug("nothing applied: INVALID, NO PROPAGATE")
-		return false, false
+		log.Debug("nothing applied: INVALID, NONE FROM SUPER")
+		return false, file.NoneFromSuper
 	}
 
 	// call FindFiles with the smsync filter function to get the directories and files
