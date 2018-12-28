@@ -59,8 +59,6 @@ For all these conversions, [ffmpeg](https://ffmpeg.org/) is used. In addition, a
 
 The synchronization between source and target is done based on timestamps. If new music has been added to the source since the last synchronization, smsync only replicates / converts the added files. If you have deleted files or folders on the source since the last synchronization, smsync deletes its counterparts on the target.
 
-The synchronization can be done stepwise. That's practical if a huge number of files has to be synchronized. In this case, the synchronization can be interrupted (with e.g. CTRL-C) and continued at a later point in time.
-
 ### <a name="parallel">Parallel Processing
 
 To make the synchronization as efficient as possible, the determination of changes since the last synchronization and the replication / conversion of files are done in parallel processes. The number of CPUs that is used for this as well as the number of parallel processes can be configured.

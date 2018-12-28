@@ -1,3 +1,13 @@
+## [Release 3.3.1](https://github.com/mipimipi/smsync/releases/tag/3.3.1) (2018-12-28)
+
+### Removed
+
+* Possibility to do synchronization stepwise (this simply does not work)
+
+### Fixed
+
+* Buggy selection of files and directories fixed
+
 ## [Release 3.3.0](https://github.com/mipimipi/smsync/releases/tag/3.3.0) (2018-12-27)
 
 ### Added

@@ -150,16 +150,23 @@ func EscapePattern(s string) string {
 	return s
 }
 
-// Exists returns true if filePath exists, otherwise false
-func Exists(filePath string) (bool, error) {
-	_, err := os.Stat(filePath)
+// Exists returns true if path exists, otherwise false
+func Exists(path string) (bool, error) {
+	exists, _, err := ExistsInfo(path)
+	return exists, err
+}
+
+// ExistsInfo returns true if path exists, otherwise false. In addition to
+// Exists it also return file.Info
+func ExistsInfo(path string) (bool, Info, error) {
+	fi, err := os.Stat(path)
 	if os.IsNotExist(err) {
-		return false, nil
+		return false, nil, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("Existence of file '%s' couldn't be determined: %v", filePath, err)
+		return false, nil, fmt.Errorf("Existence of file '%s' couldn't be determined: %v", path, err)
 	}
-	return true, nil
+	return true, newInfo(fi, path), nil
 }
 
 // Find traverses directory trees to find files and directories that

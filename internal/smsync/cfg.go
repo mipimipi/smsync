@@ -38,9 +38,8 @@ import (
 
 // Constants for smsync configuration
 const (
-	cfgFile     = "smsync.yaml" // file name of config file
-	suffixStar  = "*"           // wildcard for music file suffix
-	procStatWIP = "wip"         // work in progress
+	cfgFile    = "smsync.yaml" // file name of config file
+	suffixStar = "*"           // wildcard for music file suffix
 )
 
 // structure for conversion rule
@@ -52,19 +51,17 @@ type rule struct {
 
 // cfgYml is used to read from and write to the config yaml file
 type cfgYml struct {
-	ProcStat string   `yaml:"processing_status,omitempty"` // work in progress flag
-	SrcDir   string   `yaml:"source_dir"`                  // source directory
-	Excludes []string `yaml:"exclude,omitempty"`           // exclude these directories
-	LastSync string   `yaml:"last_sync,omitempty"`         // timestamp when the last sync happened
-	NumCPUs  uint     `yaml:"num_cpus,omitempty"`          // number of CPUs that gool is allowed to use
-	NumWrkrs uint     `yaml:"num_wrkrs,omitempty"`         // number of worker Go routines to be created
-	Rules    []rule   `yaml:"rules"`                       // conversion rules
+	SrcDir   string   `yaml:"source_dir"`          // source directory
+	Excludes []string `yaml:"exclude,omitempty"`   // exclude these directories
+	LastSync string   `yaml:"last_sync,omitempty"` // timestamp when the last sync happened
+	NumCPUs  uint     `yaml:"num_cpus,omitempty"`  // number of CPUs that gool is allowed to use
+	NumWrkrs uint     `yaml:"num_wrkrs,omitempty"` // number of worker Go routines to be created
+	Rules    []rule   `yaml:"rules"`               // conversion rules
 }
 
 // Config contains the enriched data that has been read from the config file
 type Config struct {
 	LastSync time.Time       // timestamp when the last sync happened
-	WIP      bool            // work in progress flag
 	SrcDir   string          // source directory
 	TrgDir   string          // target directory
 	Excludes []string        // exclude these directories
@@ -100,11 +97,6 @@ func (cfg *Config) Get(init bool) error {
 		if err = cfgY.read(); err != nil {
 			return err
 		}
-	}
-
-	// set processing status
-	if cfgY.ProcStat == procStatWIP {
-		cfg.WIP = true
 	}
 
 	// check if the configured source dir exists and is a directory
@@ -309,45 +301,12 @@ func (cfg *Config) setProcEnd() error {
 	// set last sync time to current time in UTC
 	cfgY.LastSync = time.Now().UTC().Format(time.RFC3339)
 
-	// adjust back processing status
-	cfgY.ProcStat = ""
-
 	// write config to file
 	if err = cfgY.write(); err != nil {
 		return err
 	}
 
 	log.Debug("Config.setProcEnd(): Config has been saved")
-
-	return nil
-}
-
-// setProcStatWIP sets the processing status in the file smsync.yaml to
-// "wip" (= work is progress). This status is valid as long as smsync is
-// processing / converting files
-func (cfg *Config) setProcStatWIP() error {
-	log.Debug("smsync.Config.setProcStatWIP: BEGIN")
-	defer log.Debug("smsync.Config.setProcStatWIP: END")
-
-	var (
-		cfgY cfgYml
-		err  error
-	)
-
-	// read config from file
-	if err = cfgY.read(); err != nil {
-		return err
-	}
-
-	// adjust back processing status
-	cfgY.ProcStat = procStatWIP
-
-	// write config to file
-	if err = cfgY.write(); err != nil {
-		return err
-	}
-
-	log.Debug("Config.setProcStatWIP(): Config has been saved")
 
 	return nil
 }

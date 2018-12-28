@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	lhlp "github.com/mipimipi/go-lhlp"
 	"github.com/mipimipi/go-lhlp/file"
@@ -186,20 +187,19 @@ func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice, err
 				return true, true
 			}
 			// check if the directory has been changed since last sync
-			if srcFile.ModTime().After(cfg.LastSync) && !cfg.WIP {
-				log.Debug("source file has been changed and not WIP: VALID, NO PROPAGATE")
+			if srcFile.ModTime().After(cfg.LastSync) {
+				log.Debug("source file has been changed: VALID, NO PROPAGATE")
 				return true, false
 			}
 			// if parent has been changed ...
-			fiDir, _ := os.Stat(filepath.Dir(srcFile.Path()))
-			if fiDir.ModTime().After(cfg.LastSync) {
+			if parentDirChgd(filepath.Dir(srcFile.Path()), cfg.LastSync) {
 				log.Debug("parent directory has been changed")
 				// check if target counterpart exists (check is necessary to figure
 				// out renaming)
 				// assemble target directory
 				trgDir, _ := file.PathRelCopy(cfg.SrcDir, srcFile.Path(), cfg.TrgDir)
 				log.Debug("does target counterpart exist?")
-				if exists, _ := file.Exists(trgDir); exists {
+				if exists, err := file.Exists(trgDir); err != nil && exists {
 					// directory existd on target side: not relevant
 					log.Debug("target counterpart of directory exists: INVALID, NO PROPAGATE")
 					return false, false
@@ -220,8 +220,7 @@ func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice, err
 		}
 		// check if file is relevant for smsync (i.e. its suffix is
 		// contained in the smsync config)
-		_, ok := cfg.getCv(srcFile.Path())
-		if !ok {
+		if _, ok := cfg.getCv(srcFile.Path()); !ok {
 			log.Debug("suffix is not contained in smsync config: INVALID, NO PROPAGATE")
 			return false, false
 		}
@@ -230,19 +229,18 @@ func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice, err
 			return true, false
 		}
 		// check if the file has been changed since last sync
-		if srcFile.ModTime().After(cfg.LastSync) && !cfg.WIP {
+		if srcFile.ModTime().After(cfg.LastSync) {
 			log.Debug("source file has been changed and not WIP: VALID, NO PROPAGATE")
 			return true, false
 		}
 		// if parent has been changed ...
-		fiDir, _ := os.Stat(filepath.Dir(srcFile.Path()))
-		if fiDir.ModTime().After(cfg.LastSync) {
+		if parentDirChgd(filepath.Dir(srcFile.Path()), cfg.LastSync) {
 			// if file doesn't exists on target side: it's valid.
 			// Note: The timestamp of a file is not changed if it's renamed.
 			// Therefore this check is necessary
-			trgFile, _ := assembleTrgFile(cfg, srcFile.Path())
 			log.Debug("does target counterpart exist?")
-			if exists, _ := file.Exists(trgFile); !exists {
+			trgFile, _ := assembleTrgFile(cfg, srcFile.Path())
+			if exists, err := file.Exists(trgFile); err != nil && !exists {
 				log.Debug("target file doesn't exist:: VALID, PROPAGATE")
 				return true, true
 			}
@@ -258,4 +256,13 @@ func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice, err
 	sort.Sort(*dirs)
 
 	return dirs, files, nil
+}
+
+// parentDirChgd returns true if path has changed after time t
+func parentDirChgd(path string, t time.Time) bool {
+	fi, _ := os.Stat(path)
+	if fi.IsDir() && fi.ModTime().After(t) {
+		return true
+	}
+	return false
 }

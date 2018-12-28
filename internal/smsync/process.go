@@ -76,11 +76,6 @@ func Process(cfg *Config, dirs *file.InfoSlice, files *file.InfoSlice, init bool
 		return nil, nil, nil, fmt.Errorf("Couldn't delete error directory: %v", err)
 	}
 
-	// set processing status to "work in progress" in smsync.yaml
-	if err := cfg.setProcStatWIP(); err != nil {
-		return nil, nil, nil, err
-	}
-
 	// delete all entries of the target directory if requested per cli option
 	if init {
 		log.Info("Delete all entries of the target directory per cli option")
