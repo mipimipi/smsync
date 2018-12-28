@@ -2,7 +2,7 @@
 
 ### Removed
 
-* Possibility to do synchronization stepwise (this simply does not work)
+* Possibility to do synchronization stepwise (it turned out that this simply does not work)
 
 ### Fixed
 
