@@ -62,7 +62,7 @@ type Status struct {
 }
 
 // newTrck create a Tracking instance
-func newTrck(wl *file.InfoSlice, space uint64) *Tracking {
+func newTrck(wl *[]*file.Info, space uint64) *Tracking {
 	var trck Tracking
 
 	trck.totalNum = len(*wl)
@@ -70,7 +70,7 @@ func newTrck(wl *file.InfoSlice, space uint64) *Tracking {
 	trck.CvInfo = make(chan CvInfo)
 
 	for _, inf := range *wl {
-		trck.totalSize += uint64(inf.Size())
+		trck.totalSize += uint64((*inf).Size())
 	}
 
 	return &trck

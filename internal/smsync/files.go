@@ -22,7 +22,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
@@ -36,10 +35,12 @@ const errDir = "smsync.cv.errs"
 
 // deleteObsoleteFiles deletes directories and files that are available in the
 // target directory tree but not in the source directory tree. It is called
-// for all source directories that have been changed since the last sync
-func deleteObsoleteFiles(cfg *Config, srcDir file.Info) error {
-	log.Debugf("smsync.deleteObsoleteFiles(%s): BEGIN", srcDir.Path())
-	defer log.Debugf("smsync.deleteObsoleteFiles(%s): END", srcDir.Path())
+// for all source directories that have been changed since the last sync.
+// Typically, this is relevant if directories or files have been renamed or
+// deleted. In this case, the parenet directory is touched
+func deleteObsoleteFiles(cfg *Config, srcDir *file.Info) error {
+	log.Debugf("smsync.deleteObsoleteFiles(%s): BEGIN", (*srcDir).Path())
+	defer log.Debugf("smsync.deleteObsoleteFiles(%s): END", (*srcDir).Path())
 
 	var (
 		trgDir string
@@ -48,80 +49,71 @@ func deleteObsoleteFiles(cfg *Config, srcDir file.Info) error {
 	)
 
 	// assemble target directory path
-	trgDir, err = file.PathRelCopy(cfg.SrcDir, srcDir.Path(), cfg.TrgDir)
+	trgDir, err = file.PathRelCopy(cfg.SrcDir, (*srcDir).Path(), cfg.TrgDir)
 	if err != nil {
-		log.Errorf("Target path cannot be assembled: %v", err)
-		return fmt.Errorf("Target path cannot be assembled: %v", err)
+		log.Errorf("deleteObsoleteFiles: %v", err)
+		return fmt.Errorf("deleteObsoleteFiles: %v", err)
 	}
 
 	// nothing to do if target directory doesn't exist
 	if exists, err = file.Exists(trgDir); err != nil {
-		log.Errorf("Cannot determine if directory '%s' exists: %v", trgDir, err)
-		return fmt.Errorf("Cannot determine if directory '%s' exists: %v", trgDir, err)
+		log.Errorf("deleteObsoleteFiles: %v", err)
+		return fmt.Errorf("deleteObsoleteFiles: %v", err)
 	}
 	if !exists {
-		log.Debug("Target directory doesn't exist: DO NOTHING")
 		return nil
 	}
 
 	// read entries of target directory
 	trgEntrs, err := ioutil.ReadDir(trgDir)
 	if err != nil {
-		log.Errorf("Cannot read directory '%s': %v", trgDir, err)
-		return fmt.Errorf("Cannot read directory '%s': %v", trgDir, err)
+		log.Errorf("deleteObsoleteFiles: %v", err)
+		return fmt.Errorf("deleteObsoleteFiles: %v", err)
 	}
 
 	// loop over all entries of target directory
 	for _, trgEntr := range trgEntrs {
-		log.Debugf("processing %s", trgEntr.Name())
-
 		if trgEntr.IsDir() {
 			// if entry is a directory ...
-			b, err := file.Exists(filepath.Join(srcDir.Path(), trgEntr.Name()))
+			b, err := file.Exists(filepath.Join((*srcDir).Path(), trgEntr.Name()))
 			if err != nil {
-				log.Errorf("Cannot determine if file '%s' exists: %v", filepath.Join(srcDir.Path(), trgEntr.Name()), err)
-				return fmt.Errorf("Cannot determine if file '%s' exists: %v", filepath.Join(srcDir.Path(), trgEntr.Name()), err)
+				log.Errorf("deleteObsoleteFiles: %v", err)
+				return fmt.Errorf("deleteObsoleteFiles: %v", err)
 			}
 			// ... and the counterpart on source side doesn't exists: ...
 			if !b {
-				log.Debug("is directory and src counterpart doesn't exist: DELETE")
 				// ... delete entry
 				if err = os.RemoveAll(filepath.Join(trgDir, trgEntr.Name())); err != nil {
-					log.Errorf("Cannot remove '%s': %v", filepath.Join(trgDir, trgEntr.Name()), err)
-					return fmt.Errorf("Cannot remove '%s': %v", filepath.Join(trgDir, trgEntr.Name()), err)
+					log.Errorf("deleteObsoleteFiles: %v", err)
+					return fmt.Errorf("deleteObsoleteFiles: %v", err)
 				}
 			}
 		} else {
-			// if entry is a file
+			// if entry is a file ...
 
 			// if entry is not regular: do nothing and continue loop
 			if !trgEntr.Mode().IsRegular() {
-				log.Debug("is file but not regular: DON'T DELETE")
 				continue
 			}
 			// exclude smsync files (smsync.log or smsync.yaml) from deletion logic
 			if strings.Contains(trgEntr.Name(), LogFile) || strings.Contains(trgEntr.Name(), cfgFile) {
-				log.Debug("is smsync.log or smsync.yaml: DON'T DELETE")
 				continue
 			}
 			// check if counterpart file on source side exists
 			tr := file.PathTrunk(trgEntr.Name())
-			fs, err := filepath.Glob(file.EscapePattern(filepath.Join(srcDir.Path(), tr)) + ".*")
+			fs, err := filepath.Glob(file.EscapePattern(filepath.Join((*srcDir).Path(), tr)) + ".*")
 			if err != nil {
-				log.Errorf("Error from Glob('%s'): %v", file.EscapePattern(filepath.Join(srcDir.Path(), tr))+".*", err)
-				return fmt.Errorf("Error from Glob('%s'): %v", file.EscapePattern(filepath.Join(srcDir.Path(), tr))+".*", err)
+				log.Errorf("deleteObsoleteFiles: %v", err)
+				return fmt.Errorf("deleteObsoleteFiles: %v", err)
 			}
-			// if counterpart does not exist: ...
+			// if counterpart does not exist: delete entry
 			if fs == nil {
-				log.Debug("is file and src counterpart doesn't exist: DELETE")
-				// ... delete entry
 				if err = os.Remove(filepath.Join(trgDir, trgEntr.Name())); err != nil {
-					log.Errorf("Cannot remove '%s': %v", filepath.Join(trgDir, trgEntr.Name()), err)
-					return fmt.Errorf("Cannot remove '%s': %v", filepath.Join(trgDir, trgEntr.Name()), err)
+					log.Errorf("deleteObsoleteFiles: %v", err)
+					return fmt.Errorf("deleteObsoleteFiles: %v", err)
 				}
 			}
 		}
-		log.Debug("src counterpart exists: DON'T DELETE")
 	}
 
 	return nil
@@ -135,8 +127,8 @@ func deleteTrg(cfg *Config) error {
 	// read entries of target directory
 	trgEntrs, err := ioutil.ReadDir(cfg.TrgDir)
 	if err != nil {
-		log.Errorf("Cannot read directory '%s': %v", cfg.TrgDir, err)
-		return fmt.Errorf("Cannot read directory '%s': %v", cfg.TrgDir, err)
+		log.Errorf("deleteTrg: %v", err)
+		return fmt.Errorf("deleteTrg: %v", err)
 	}
 
 	// loop over all entries of target directory
@@ -147,8 +139,8 @@ func deleteTrg(cfg *Config) error {
 		}
 		// delete entry
 		if err = os.RemoveAll(filepath.Join(cfg.TrgDir, trgEntr.Name())); err != nil {
-			log.Errorf("Cannot remove '%s': %v", filepath.Join(cfg.TrgDir, trgEntr.Name()), err)
-			return fmt.Errorf("Cannot remove '%s': %v", filepath.Join(cfg.TrgDir, trgEntr.Name()), err)
+			log.Errorf("deleteTrg: %v", err)
+			return fmt.Errorf("deleteTrg: %v", err)
 		}
 	}
 
@@ -168,7 +160,7 @@ func deleteTrg(cfg *Config) error {
 // because relevant directories lead to existence checks on target side in
 // deleteObsoleteFiles(), the number of relevant directories has to be as small
 // as possible.
-func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice, error) {
+func GetSyncFiles(cfg *Config, init bool) (dirs, files *[]*file.Info) {
 	log.Debug("smsync.GetSyncFiles: BEGIN")
 	defer log.Debug("smsync.GetSyncFiles: END")
 
@@ -271,12 +263,9 @@ func GetSyncFiles(cfg *Config, init bool) (*file.InfoSlice, *file.InfoSlice, err
 	}
 
 	// call FindFiles with the smsync filter function to get the directories and files
-	dirs, files := file.Find([]string{cfg.SrcDir}, filter, 20)
+	dirs, files = file.Find([]string{cfg.SrcDir}, filter, 20)
 
-	// sort dir array to allow more efficient processing later
-	sort.Sort(*dirs)
-
-	return dirs, files, nil
+	return dirs, files
 }
 
 // parentDirChgd returns true if the file speicified by path has changed after

@@ -32,7 +32,7 @@ import (
 // process starts the processing of directories and file conversions. It also
 // calls the print functions to display the required information onthe command
 // line
-func process(cfg *smsync.Config, dirs *file.InfoSlice, files *file.InfoSlice, init bool, verbose bool) (time.Duration, error) {
+func process(cfg *smsync.Config, dirs, files *[]*file.Info, init bool, verbose bool) (time.Duration, error) {
 	log.Debug("cli.process: BEGIN")
 	defer log.Debug("cli.process: END")
 
@@ -129,8 +129,8 @@ func synchronize(level log.Level, verbose bool) error {
 
 	var (
 		cfg         smsync.Config
-		dirs        *file.InfoSlice
-		files       *file.InfoSlice
+		dirs        *[]*file.Info
+		files       *[]*file.Info
 		elapsed     time.Duration
 		err         error
 		errOccurred = false
@@ -166,9 +166,7 @@ func synchronize(level log.Level, verbose bool) error {
 	stop, confirm := lhlp.ProgressStr(":: Find differences (this can take a few minutes)", 1000)
 
 	// get list of directories and files for sync
-	if dirs, files, err = smsync.GetSyncFiles(&cfg, cli.init); err != nil {
-		return err
-	}
+	dirs, files = smsync.GetSyncFiles(&cfg, cli.init)
 
 	// stop progress string and receive stop confirmation. The confirmation is necessary to not
 	// scramble the command line output

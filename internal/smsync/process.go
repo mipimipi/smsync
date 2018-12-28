@@ -53,7 +53,7 @@ func cleanUp(cfg *Config, wg *sync.WaitGroup, done chan<- struct{}, errors chan<
 // Process is the main "backend" function to control the conversion.
 // Essentially, it gets the list of directories and files to be processed and
 // returns a Tracking instances, an error channel and a done channel
-func Process(cfg *Config, dirs *file.InfoSlice, files *file.InfoSlice, init bool) (*Tracking, <-chan error, <-chan struct{}, error) {
+func Process(cfg *Config, dirs, files *[]*file.Info, init bool) (*Tracking, <-chan error, <-chan struct{}, error) {
 	log.Debug("smsync.Process: BEGIN")
 	defer log.Debug("smsync.Process: END")
 
@@ -99,7 +99,7 @@ func Process(cfg *Config, dirs *file.InfoSlice, files *file.InfoSlice, init bool
 }
 
 // processDirs creates new and deletes obsolete directories
-func processDirs(cfg *Config, dirs *file.InfoSlice, wg *sync.WaitGroup, errors chan<- error) {
+func processDirs(cfg *Config, dirs *[]*file.Info, wg *sync.WaitGroup, errors chan<- error) {
 	log.Debug("smsync.processDirs: BEGIN")
 	defer log.Debug("smsync.processDirs: END")
 
@@ -114,7 +114,7 @@ func processDirs(cfg *Config, dirs *file.InfoSlice, wg *sync.WaitGroup, errors c
 
 // processFiles calls the conversion for all new or changed files. Files
 // are processed in parallel using the package github.com/mipimipi/go-worker.
-func processFiles(cfg *Config, trck *Tracking, files *file.InfoSlice, wg *sync.WaitGroup, errors chan<- error) {
+func processFiles(cfg *Config, trck *Tracking, files *[]*file.Info, wg *sync.WaitGroup, errors chan<- error) {
 	log.Debug("smsync.processFiles: BEGIN")
 	defer log.Debug("smsync.processFiles: END")
 
@@ -135,7 +135,7 @@ func processFiles(cfg *Config, trck *Tracking, files *file.InfoSlice, wg *sync.W
 	// fill worklist with files and close worklist channel
 	go func() {
 		for _, f := range *files {
-			wl <- cvInput{cfg: cfg, srcFile: f}
+			wl <- cvInput{cfg: cfg, srcFile: *f}
 		}
 		close(wl)
 	}()

@@ -48,20 +48,6 @@ func (inf info) Path() string { return inf.path }
 // create FileInfo from os.FileInfo and a path
 func newInfo(fi os.FileInfo, p string) Info { return info{fi, p} }
 
-// implement sort interface for Info:
-
-// InfoSlice is an array of Info
-type InfoSlice []Info
-
-// Len return the length of InfoSlice
-func (is InfoSlice) Len() int { return len(is) }
-
-// Less implements a compariosn between two elements
-func (is InfoSlice) Less(i, j int) bool { return is[i].Path() < is[j].Path() }
-
-// Swap exchanges two elements
-func (is InfoSlice) Swap(i, j int) { is[i], is[j] = is[j], is[i] }
-
 // ValidPropagate defines if validity shall be propagated to sub
 // directories. Needed for Find()
 type ValidPropagate int
@@ -196,13 +182,16 @@ func ExistsInfo(path string) (bool, Info, error) {
 // book "The Go Programming Language" by Alan A. A. Donovan & Brian W.
 // Kernighan.
 // See: https://github.com/adonovan/gopl.io/blob/master/ch8/du4/main.go
-func Find(roots []string, filter func(Info, ValidPropagate) (bool, ValidPropagate), numWorkers int) (*InfoSlice, *InfoSlice) {
+func Find(roots []string, filter func(Info, ValidPropagate) (bool, ValidPropagate), numWorkers int) (dirs, files *[]*Info) {
 	var (
-		dirs    InfoSlice                  // list of directories to be returned
-		files   InfoSlice                  // list of files to be returned
 		descend func(Info, ValidPropagate) // func needs to be declared here since it calls itself recursively
 		wg      sync.WaitGroup             // waiting group for the concurrent traversal
 	)
+
+	// allocate result arrays
+	dirs = new([]*Info)
+	files = new([]*Info)
+
 	// create buffered channel, used as semaphore to restrict the number of Go routines
 	sema := make(chan struct{}, numWorkers)
 	defer close(sema)
@@ -229,7 +218,7 @@ func Find(roots []string, filter func(Info, ValidPropagate) (bool, ValidPropagat
 		valid, vpSub := filter(inf, vp)
 		if valid {
 			// append it to dirs array
-			dirs = append(dirs, inf)
+			*dirs = append(*dirs, &inf)
 		}
 		// descend into directory
 		if vpSub != InvalidFromSuper {
@@ -259,7 +248,7 @@ func Find(roots []string, filter func(Info, ValidPropagate) (bool, ValidPropagat
 				inf := newInfo(entr, filepath.Join(dir.Path(), entr.Name()))
 				if valid, _ := filter(inf, vp); valid {
 					// create extended FileInfo and append it to dirs array
-					files = append(files, inf)
+					*files = append(*files, &inf)
 				}
 			}
 		}
@@ -283,7 +272,7 @@ func Find(roots []string, filter func(Info, ValidPropagate) (bool, ValidPropagat
 	// wait for traversals to be finalized
 	wg.Wait()
 
-	return &dirs, &files
+	return dirs, files
 }
 
 // IsEmpty returns true if file or directory is empty, otherwise false
