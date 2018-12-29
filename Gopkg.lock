@@ -37,12 +37,12 @@
   version = "2.6"
 
 [[projects]]
-  digest = "1:524f78fa28adabeb9882d5126c16a58ad0291a693264653ea06d930b376e557c"
+  digest = "1:89ac7de47b0ebbda701ade0f51dc23bb90034a036e4919bb9a2be68d76ed7747"
   name = "github.com/mipimipi/go-worker"
   packages = ["."]
   pruneopts = "UT"
-  revision = "5ad3a4f19551a26e79fd5e001b38ba196d47dfa5"
-  version = "1.1"
+  revision = "2714742b3aa18faa3aeafef08b17ce6e4fe3a759"
+  version = "1.2"
 
 [[projects]]
   branch = "master"

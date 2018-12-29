@@ -29,36 +29,44 @@ package worker
 // Setup creates. It returns two channels: (1) An input channel to pass
 // parameters to the task implementation and (2) an output channel to send the
 // results of the tasks execution
-func Setup(task func(interface{}) interface{}, numWorkers uint) (chan<- interface{}, <-chan interface{}) {
+func Setup(task func(interface{}) interface{}, numWorkers uint) (chan<- interface{}, <-chan interface{}, chan<- struct{}) {
 	input := make(chan interface{})  // input channel for tasks
 	output := make(chan interface{}) // output channel for tasks
+	abort := make(chan struct{})     // channel to request abort
 	done := make(chan struct{})      // channel for workers to report that they are done
 
 	for i := uint(0); i < numWorkers; i++ {
 		// start worker Go routine
 		go func(done chan<- struct{}) {
+		loop:
 			for {
-				//receive from input channel
-				in, ok := <-input
-				// if input channel empty: leave loop
-				if !ok {
-					break
+				select {
+				case in, ok := <-input: // receive from input channel
+					// if input channel empty: leave loop
+					if !ok {
+						break loop
+					}
+					// execute task and send result to output channel
+					output <- task(in)
+				case _ = <-abort: // receive from abort channel
+					break loop
 				}
-				// execute task and send result to output channel
-				output <- task(in)
 			}
 			// report "done" to calling function
 			done <- struct{}{}
 		}(done)
 	}
 
-	// wait for all worker Go routines being done to close output channel
+	// wait for all worker Go routines to be done, then clean up
 	go func() {
 		for i := uint(0); i < numWorkers; i++ {
 			<-done
 		}
+
+		// clean up
+		close(done)
 		close(output)
 	}()
 
-	return input, output
+	return input, output, abort
 }

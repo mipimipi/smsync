@@ -104,7 +104,7 @@ func processDirs(cfg *Config, dirs *[]*file.Info, wg *sync.WaitGroup) {
 	}
 
 	// setup worker Go routine and get worklist and result channels
-	wl, res := worker.Setup(func(i interface{}) interface{} { return deleteObsoleteFiles(i.(obsInput)) }, cfg.NumWrkrs)
+	wl, res, _ := worker.Setup(func(i interface{}) interface{} { return deleteObsoleteFiles(i.(obsInput)) }, cfg.NumWrkrs)
 
 	// fill worklist with directories and close worklist channel
 	go func() {
@@ -137,7 +137,7 @@ func processFiles(cfg *Config, trck *Tracking, files *[]*file.Info, wg *sync.Wai
 	defer trck.stop()
 
 	// setup worker Go routine and get worklist and result channels
-	wl, res := worker.Setup(func(i interface{}) interface{} { return convert(i.(cvInput)) }, cfg.NumWrkrs)
+	wl, res, _ := worker.Setup(func(i interface{}) interface{} { return convert(i.(cvInput)) }, cfg.NumWrkrs)
 
 	// fill worklist with files and close worklist channel
 	go func() {
