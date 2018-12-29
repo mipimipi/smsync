@@ -50,8 +50,8 @@ func process(cfg *smsync.Config, dirs, files *[]*file.Info, init bool, verbose b
 		printProgress(trck, true)
 	}
 
-	// retrieve results and ticks
 loop:
+	// retrieve results and ticks
 	for {
 		select {
 		case <-ticker.C:
