@@ -78,12 +78,10 @@ func Process(cfg *Config, dirs, files *[]*file.Info, init bool) (*Tracking, <-ch
 	}
 
 	// fork processing of directories
-	wg.Add(1)
-	go processDirs(cfg, dirs, &wg)
+	processDirs(cfg, dirs, &wg)
 
 	// fork processing of and files
-	wg.Add(1)
-	go processFiles(cfg, trck, files, &wg)
+	processFiles(cfg, trck, files, &wg)
 
 	// cleaning up. cleanUp waits for processDirs and processFiles to finish
 	go cleanUp(cfg, &wg, done)
@@ -96,8 +94,6 @@ func processDirs(cfg *Config, dirs *[]*file.Info, wg *sync.WaitGroup) {
 	log.Debug("smsync.processDirs: BEGIN")
 	defer log.Debug("smsync.processDirs: END")
 
-	defer wg.Done()
-
 	// nothing to do in case of empty dirs array
 	if len(*dirs) == 0 {
 		return
@@ -106,17 +102,22 @@ func processDirs(cfg *Config, dirs *[]*file.Info, wg *sync.WaitGroup) {
 	// setup worker Go routine and get worklist and result channels
 	wl, res, _ := worker.Setup(func(i interface{}) interface{} { return deleteObsoleteFiles(i.(obsInput)) }, cfg.NumWrkrs)
 
-	// fill worklist with directories and close worklist channel
+	wg.Add(1)
 	go func() {
-		for _, d := range *dirs {
-			wl <- obsInput{cfg: cfg, srcDir: d}
-		}
-		close(wl)
-	}()
+		defer wg.Done()
 
-	// empty results channel
-	for range res {
-	}
+		// fill worklist with directories and close worklist channel
+		go func() {
+			for _, d := range *dirs {
+				wl <- obsInput{cfg: cfg, srcDir: d}
+			}
+			close(wl)
+		}()
+
+		// empty results channel
+		for range res {
+		}
+	}()
 }
 
 // processFiles calls the conversion for all new or changed files. Files
@@ -125,34 +126,37 @@ func processFiles(cfg *Config, trck *Tracking, files *[]*file.Info, wg *sync.Wai
 	log.Debug("smsync.processFiles: BEGIN")
 	defer log.Debug("smsync.processFiles: END")
 
-	defer wg.Done()
-
 	// nothing to do in case of empty files array
 	if len(*files) == 0 {
 		return
 	}
 
-	// start progress tracking and register tracking stop
-	trck.start()
-	defer trck.stop()
-
 	// setup worker Go routine and get worklist and result channels
 	wl, res, _ := worker.Setup(func(i interface{}) interface{} { return convert(i.(cvInput)) }, cfg.NumWrkrs)
 
-	// fill worklist with files and close worklist channel
+	wg.Add(1)
 	go func() {
-		for _, f := range *files {
-			wl <- cvInput{cfg: cfg, srcFile: *f}
-		}
-		close(wl)
-	}()
+		defer wg.Done()
 
-	// retrieve worker results and update tracking
-	for r := range res {
-		trck.update(
-			CvInfo{SrcFile: r.(cvOutput).srcFile,
-				TrgFile: r.(cvOutput).trgFile,
-				Dur:     r.(cvOutput).dur,
-				Err:     r.(cvOutput).err})
-	}
+		// start progress tracking and register tracking stop
+		trck.start()
+		defer trck.stop()
+
+		// fill worklist with files and close worklist channel
+		go func() {
+			for _, f := range *files {
+				wl <- cvInput{cfg: cfg, srcFile: *f}
+			}
+			close(wl)
+		}()
+
+		// retrieve worker results and update tracking
+		for r := range res {
+			trck.update(
+				CvInfo{SrcFile: r.(cvOutput).srcFile,
+					TrgFile: r.(cvOutput).trgFile,
+					Dur:     r.(cvOutput).dur,
+					Err:     r.(cvOutput).err})
+		}
+	}()
 }

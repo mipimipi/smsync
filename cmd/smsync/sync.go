@@ -37,17 +37,13 @@ func process(cfg *smsync.Config, dirs, files *[]*file.Info, init bool, verbose b
 	defer log.Debug("cli.process: END")
 
 	var (
-		cvInfo  smsync.CvInfo                 // processing result
 		ticker  = time.NewTicker(time.Second) // ticker to update progress on screen every second
 		ticked  = false
-		trck    *smsync.Tracking
-		ok      = true
-		done    <-chan struct{}
 		started = time.Now()
 	)
 
 	// start processing
-	trck, done = smsync.Process(cfg, dirs, files, init)
+	trck, done := smsync.Process(cfg, dirs, files, init)
 
 	// print header (if the user doesn't want smsync to be verbose)
 	if !verbose {
@@ -55,7 +51,8 @@ func process(cfg *smsync.Config, dirs, files *[]*file.Info, init bool, verbose b
 	}
 
 	// retrieve results and ticks
-	for ok {
+loop:
+	for {
 		select {
 		case <-ticker.C:
 			ticked = true
@@ -63,26 +60,26 @@ func process(cfg *smsync.Config, dirs, files *[]*file.Info, init bool, verbose b
 			if !verbose {
 				printProgress(trck, false)
 			}
-		case cvInfo, ok = <-trck.CvInfo:
-			if ok {
-				// if ticker hasn't ticked so far: print progress (if the user
-				// doesn't want smsync to be verbose)
-				if !ticked && !verbose {
-					printProgress(trck, false)
-				}
-
-				// if the user wants smsync to be verbose, display file (that
-				// has been processed) ...
-				if verbose {
-					printVerbose(cfg, cvInfo)
-				}
-			} else {
+		case cvInfo, ok := <-trck.CvInfo:
+			if !ok {
 				// if there is no more file to process, the final progress data
 				// is displayed (if the user desn't want smsync to be verbose)
 				if !verbose {
 					printProgress(trck, false)
 					fmt.Println()
 				}
+				break loop
+			}
+			// if ticker hasn't ticked so far: print progress (if the user
+			// doesn't want smsync to be verbose)
+			if !ticked && !verbose {
+				printProgress(trck, false)
+			}
+
+			// if the user wants smsync to be verbose, display file (that
+			// has been processed) ...
+			if verbose {
+				printVerbose(cfg, cvInfo)
 			}
 		}
 	}
@@ -90,7 +87,7 @@ func process(cfg *smsync.Config, dirs, files *[]*file.Info, init bool, verbose b
 	// if processing has finished: stop ticker
 	ticker.Stop()
 
-	// wait for cleanup to be done
+	// wait for clean up to be done
 	_ = <-done
 
 	// return elapsed time
