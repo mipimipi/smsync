@@ -24,14 +24,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// CvInfo contains information about the conversion of a single file
-type CvInfo struct {
-	SrcFile file.Info     // source file or directory
-	TrgFile file.Info     // target file or directory
-	Dur     time.Duration // duration of a conversion
-	Err     error         // error (that occurred during processing)
-}
-
 // Tracking contains attributes that are used to keep track of the progress of
 // the processing
 type Tracking struct {
@@ -44,7 +36,7 @@ type Tracking struct {
 	trgSize   uint64        // cumulated size of target files
 	errors    int           // number of errors
 	dur       time.Duration // cumulated duration
-	CvInfo    chan CvInfo   // channel to report intermediate results
+	PInfo     chan ProcInfo // channel to report intermediate results
 }
 
 // Status contains attributes that are used to communicate the progress of the
@@ -67,7 +59,7 @@ func newTrck(wl *[]*file.Info, space uint64) *Tracking {
 
 	trck.totalNum = len(*wl)
 	trck.diskspace = space
-	trck.CvInfo = make(chan CvInfo)
+	trck.PInfo = make(chan ProcInfo)
 
 	for _, inf := range *wl {
 		trck.totalSize += uint64((*inf).Size())
@@ -85,7 +77,7 @@ func (trck *Tracking) start() {
 func (trck *Tracking) stop() {
 	log.Debug("smsync.Tracking.stop: BEGIN")
 	defer log.Debug("smsync.Tracking.stop: END")
-	close(trck.CvInfo)
+	close(trck.PInfo)
 }
 
 // Status calculates the current processing status based on the attributes of
@@ -114,16 +106,16 @@ func (trck *Tracking) Status() *Status {
 
 // update receives information about a finished conversion and updates
 // tracking accordingly
-func (trck *Tracking) update(cvInfo CvInfo) {
+func (trck *Tracking) update(pInfo ProcInfo) {
 	trck.done++
-	if cvInfo.SrcFile != nil {
-		trck.srcSize += uint64(cvInfo.SrcFile.Size())
+	if pInfo.SrcFile != nil {
+		trck.srcSize += uint64(pInfo.SrcFile.Size())
 	}
-	if cvInfo.TrgFile != nil {
-		trck.trgSize += uint64(cvInfo.TrgFile.Size())
+	if pInfo.TrgFile != nil {
+		trck.trgSize += uint64(pInfo.TrgFile.Size())
 	}
-	trck.dur += cvInfo.Dur
+	trck.dur += pInfo.Dur
 
 	// send conversion information to whoever is interested
-	trck.CvInfo <- cvInfo
+	trck.PInfo <- pInfo
 }

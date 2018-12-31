@@ -88,13 +88,13 @@ func ini2yaml() error {
 	// get number of CPU's
 	if key, err = getKey(sec, iniKeyNumCPUs, false); err == nil {
 		i, _ := key.Int()
-		cfgY.NumCPUs = uint(i)
+		cfgY.NumCPUs = i
 	}
 
 	// get number of workers (optional). Per default it's set to the number of cpus
 	if key, err = getKey(sec, iniKeyNumWrkrs, false); err == nil {
 		i, _ := key.Int()
-		cfgY.NumWrkrs = uint(i)
+		cfgY.NumWrkrs = i
 	}
 
 	// get last sync time (optional)

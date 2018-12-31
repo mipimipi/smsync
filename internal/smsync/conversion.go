@@ -36,20 +36,6 @@ type (
 		trgSuffix string
 	}
 
-	// input structure of a conversion:
-	cvInput struct {
-		cfg     *Config   // configuration
-		srcFile file.Info // source file
-	}
-
-	// output structure of a conversion
-	cvOutput struct {
-		srcFile file.Info     // source file
-		trgFile file.Info     // target file
-		dur     time.Duration // duration of conversion
-		err     error         // error (that occurred during the conversion)
-	}
-
 	// conversion interface
 	conversion interface {
 		// execute conversion
@@ -138,29 +124,30 @@ func assembleTrgFile(cfg *Config, srcFile string) string {
 }
 
 // convert executes conversion for one file
-func convert(i cvInput) cvOutput {
+func convert(cfg *Config, srcFile file.Info) procOut {
 	var (
 		trgFile string
-		trgFI   file.Info
+		trgInfo file.Info
 		cv      conversion
 		err     error
 	)
 
 	// get conversion string for f from config
-	cvm, exists := i.cfg.getCv(i.srcFile.Path())
+	cvm, exists := cfg.getCv(srcFile.Path())
 
 	// if no string found: exit
 	if !exists {
-		return cvOutput{nil, nil, 0, nil}
+		log.Errorf("convert: No conversion found in config for '%s'", srcFile.Name())
+		return procOut{nil, nil, 0, nil}
 	}
 
 	// assemble output file
-	trgFile = assembleTrgFile(i.cfg, i.srcFile.Path())
+	trgFile = assembleTrgFile(cfg, srcFile.Path())
 
 	// if error directory doesn't exist: create it
 	if err := file.MkdirAll(filepath.Dir(trgFile), os.ModeDir|0755); err != nil {
-		log.Errorf("Error from MkdirAll('%s'): %v", errDir, err)
-		return cvOutput{srcFile: i.srcFile, trgFile: nil, err: err}
+		log.Errorf("convert: %v", err)
+		return procOut{srcFile: srcFile, trgFile: nil, err: err}
 	}
 
 	// set transformation function
@@ -168,19 +155,19 @@ func convert(i cvInput) cvOutput {
 		cv = cp
 	} else {
 		// determine transformation function for srcSuffix -> trgSuffix
-		cv = validCvs[cvKey{srcSuffix: file.Suffix(i.srcFile.Path()), trgSuffix: cvm.TrgSuffix}]
+		cv = validCvs[cvKey{srcSuffix: file.Suffix(srcFile.Path()), trgSuffix: cvm.TrgSuffix}]
 	}
 
 	// execute conversion
 	start := time.Now()
-	err = cv.exec(i.srcFile.Path(), trgFile, cvm.NormCvStr)
+	err = cv.exec(srcFile.Path(), trgFile, cvm.NormCvStr)
 
 	if err == nil {
-		trgFI, err = file.Stat(trgFile)
+		trgInfo, err = file.Stat(trgFile)
 	}
 
 	// call transformation function and return result
-	return cvOutput{srcFile: i.srcFile, trgFile: trgFI, dur: time.Since(start), err: err}
+	return procOut{srcFile: srcFile, trgFile: trgInfo, dur: time.Since(start), err: err}
 }
 
 // isValidBitrate determines if s represents a valid bit rate. I.e. it needs

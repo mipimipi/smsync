@@ -54,8 +54,8 @@ type cfgYml struct {
 	SrcDir   string   `yaml:"source_dir"`          // source directory
 	Excludes []string `yaml:"exclude,omitempty"`   // exclude these directories
 	LastSync string   `yaml:"last_sync,omitempty"` // timestamp when the last sync happened
-	NumCPUs  uint     `yaml:"num_cpus,omitempty"`  // number of CPUs that gool is allowed to use
-	NumWrkrs uint     `yaml:"num_wrkrs,omitempty"` // number of worker Go routines to be created
+	NumCPUs  int      `yaml:"num_cpus,omitempty"`  // number of CPUs that gool is allowed to use
+	NumWrkrs int      `yaml:"num_wrkrs,omitempty"` // number of worker Go routines to be created
 	Rules    []rule   `yaml:"rules"`               // conversion rules
 }
 
@@ -65,8 +65,8 @@ type Config struct {
 	SrcDir   string          // source directory
 	TrgDir   string          // target directory
 	Excludes []string        // exclude these directories
-	NumCpus  uint            // number of CPUs that gool is allowed to use
-	NumWrkrs uint            // number of worker Go routines to be created
+	NumCpus  int             // number of CPUs that gool is allowed to use
+	NumWrkrs int             // number of worker Go routines to be created
 	Cvs      map[string]*cvm // conversion rules
 }
 
@@ -113,7 +113,7 @@ func (cfg *Config) Get(init bool) error {
 
 	// get number of CPU's (optional). Default is to use all available cpus
 	if cfgY.NumCPUs == 0 {
-		cfg.NumCpus = uint(runtime.NumCPU())
+		cfg.NumCpus = runtime.NumCPU()
 		log.Infof("num_cpus not configured. Use default: %d", cfg.NumCpus)
 	} else {
 		cfg.NumCpus = cfgY.NumCPUs

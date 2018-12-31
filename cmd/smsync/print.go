@@ -160,14 +160,14 @@ func printProgress(trck *smsync.Tracking, first bool) {
 // printVerbose displays detailed information after each conversion. The name
 // of the converted file is displayed relative to the source directory.This
 // function is used if the user called smsync with the option --verbose / -v
-func printVerbose(cfg *smsync.Config, cvInfo smsync.CvInfo) {
-	srcFile, err := filepath.Rel(cfg.SrcDir, cvInfo.SrcFile.Path())
+func printVerbose(cfg *smsync.Config, pInfo smsync.ProcInfo) {
+	srcFile, err := filepath.Rel(cfg.SrcDir, pInfo.SrcFile.Path())
 	if err != nil {
 		log.Error(err)
 
 	} else {
 		fmt.Println("----------")
 		fmt.Printf("CONVERTED: %s\n", srcFile)
-		fmt.Printf("DURATION : %2.2fs\n", cvInfo.Dur.Seconds())
+		fmt.Printf("DURATION : %2.2fs\n", pInfo.Dur.Seconds())
 	}
 }

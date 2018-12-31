@@ -21,11 +21,29 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/mipimipi/go-lhlp/file"
-	worker "github.com/mipimipi/go-worker"
+	wp "github.com/mipimipi/workerpool"
 	"github.com/ricochet2200/go-disk-usage/du"
 	log "github.com/sirupsen/logrus"
+)
+
+type (
+	// output structure of processing
+	procOut struct {
+		srcFile file.Info     // source file
+		trgFile file.Info     // target file
+		dur     time.Duration // duration of conversion
+		err     error         // error (that occurred during the conversion)
+	}
+	// ProcInfo contains information about the conversion of a single file
+	ProcInfo struct {
+		SrcFile file.Info     // source file or directory
+		TrgFile file.Info     // target file or directory
+		Dur     time.Duration // duration of a conversion
+		Err     error         // error (that occurred during processing)
+	}
 )
 
 // cleanUp removes temporary files and directories
@@ -46,6 +64,50 @@ func cleanUp(cfg *Config, wg *sync.WaitGroup, done chan<- struct{}) {
 	cfg.setProcEnd()
 }
 
+// process calls f for all files. Files are processed in parallel using the
+// worker pool.
+func process(cfg *Config, f func(file.Info) procOut, files *[]*file.Info, wg *sync.WaitGroup) *Tracking {
+	log.Debug("smsync.process: BEGIN")
+	defer log.Debug("smsync.process: END")
+
+	// nothing to do in case of empty files array
+	if len(*files) == 0 {
+		return nil
+	}
+
+	trck := newTrck(files, du.NewDiskUsage(cfg.TrgDir).Available()) // tracking
+
+	wp := wp.New(func(i interface{}) interface{} { return f(i.(file.Info)) }, cfg.NumWrkrs)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		// start progress tracking and register tracking stop
+		trck.start()
+		defer trck.stop()
+
+		// fill worklist with files and close worklist channel
+		go func() {
+			for _, f := range *files {
+				wp.In <- *f
+			}
+			close(wp.In)
+		}()
+
+		// retrieve worker results and update tracking
+		for r := range wp.Out {
+			trck.update(
+				ProcInfo{SrcFile: r.(procOut).srcFile,
+					TrgFile: r.(procOut).trgFile,
+					Dur:     r.(procOut).dur,
+					Err:     r.(procOut).err})
+		}
+	}()
+
+	return trck
+}
+
 // Process is the main "backend" function to control the conversion.
 // Essentially, it gets the list of directories and files to be processed and
 // returns a Tracking instances, an error channel and a done channel
@@ -54,8 +116,7 @@ func Process(cfg *Config, dirs, files *[]*file.Info, init bool) (*Tracking, <-ch
 	defer log.Debug("smsync.Process: END")
 
 	var (
-		trck = newTrck(files, du.NewDiskUsage(cfg.TrgDir).Available()) // tracking
-		done = make(chan struct{})                                     // done channel
+		done = make(chan struct{}) // done channel
 		wg   sync.WaitGroup
 	)
 
@@ -77,86 +138,26 @@ func Process(cfg *Config, dirs, files *[]*file.Info, init bool) (*Tracking, <-ch
 		deleteTrg(cfg)
 	}
 
+	dof := func(srcDir file.Info) procOut {
+		deleteObsoleteFiles(cfg, srcDir)
+		return procOut{srcFile: srcDir,
+			trgFile: nil,
+			dur:     0,
+			err:     nil}
+	}
+
+	cv := func(srcFile file.Info) procOut {
+		return convert(cfg, srcFile)
+	}
+
 	// fork processing of directories
-	processDirs(cfg, dirs, &wg)
+	process(cfg, dof, dirs, &wg)
 
 	// fork processing of and files
-	processFiles(cfg, trck, files, &wg)
+	trck := process(cfg, cv, files, &wg)
 
 	// cleaning up. cleanUp waits for processDirs and processFiles to finish
 	go cleanUp(cfg, &wg, done)
 
 	return trck, done
-}
-
-// processDirs creates new and deletes obsolete directories
-func processDirs(cfg *Config, dirs *[]*file.Info, wg *sync.WaitGroup) {
-	log.Debug("smsync.processDirs: BEGIN")
-	defer log.Debug("smsync.processDirs: END")
-
-	// nothing to do in case of empty dirs array
-	if len(*dirs) == 0 {
-		return
-	}
-
-	// setup worker Go routine and get worklist and result channels
-	wl, res, _ := worker.Setup(func(i interface{}) interface{} { return deleteObsoleteFiles(i.(obsInput)) }, cfg.NumWrkrs)
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
-		// fill worklist with directories and close worklist channel
-		go func() {
-			for _, d := range *dirs {
-				wl <- obsInput{cfg: cfg, srcDir: d}
-			}
-			close(wl)
-		}()
-
-		// empty results channel
-		for range res {
-		}
-	}()
-}
-
-// processFiles calls the conversion for all new or changed files. Files
-// are processed in parallel using the package github.com/mipimipi/go-worker.
-func processFiles(cfg *Config, trck *Tracking, files *[]*file.Info, wg *sync.WaitGroup) {
-	log.Debug("smsync.processFiles: BEGIN")
-	defer log.Debug("smsync.processFiles: END")
-
-	// nothing to do in case of empty files array
-	if len(*files) == 0 {
-		return
-	}
-
-	// setup worker Go routine and get worklist and result channels
-	wl, res, _ := worker.Setup(func(i interface{}) interface{} { return convert(i.(cvInput)) }, cfg.NumWrkrs)
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
-		// start progress tracking and register tracking stop
-		trck.start()
-		defer trck.stop()
-
-		// fill worklist with files and close worklist channel
-		go func() {
-			for _, f := range *files {
-				wl <- cvInput{cfg: cfg, srcFile: *f}
-			}
-			close(wl)
-		}()
-
-		// retrieve worker results and update tracking
-		for r := range res {
-			trck.update(
-				CvInfo{SrcFile: r.(cvOutput).srcFile,
-					TrgFile: r.(cvOutput).trgFile,
-					Dur:     r.(cvOutput).dur,
-					Err:     r.(cvOutput).err})
-		}
-	}()
 }

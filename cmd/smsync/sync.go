@@ -60,7 +60,7 @@ loop:
 			if !verbose {
 				printProgress(trck, false)
 			}
-		case cvInfo, ok := <-trck.CvInfo:
+		case pInfo, ok := <-trck.PInfo:
 			if !ok {
 				// if there is no more file to process, the final progress data
 				// is displayed (if the user desn't want smsync to be verbose)
@@ -79,7 +79,7 @@ loop:
 			// if the user wants smsync to be verbose, display file (that
 			// has been processed) ...
 			if verbose {
-				printVerbose(cfg, cvInfo)
+				printVerbose(cfg, pInfo)
 			}
 		}
 	}
