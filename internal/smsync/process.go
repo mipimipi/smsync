@@ -62,7 +62,7 @@ func NewProcess(cfg *Config, files *[]*file.Info, init bool) *Process {
 	log.Debug("smsync.NewProcess: BEGIN")
 	defer log.Debug("smsync.NewProcess: END")
 
-	var proc Process
+	proc := new(Process)
 
 	proc.pl = wp.NewPool(cfg.NumWrkrs)
 
@@ -72,7 +72,7 @@ func NewProcess(cfg *Config, files *[]*file.Info, init bool) *Process {
 	proc.files = files
 	proc.init = init
 
-	return &proc
+	return proc
 }
 
 // cleanUp removes temporary files and directories
@@ -130,6 +130,7 @@ func (proc *Process) Run() {
 				// assemble task
 				if (*f).IsDir() {
 					proc.pl.In <- wp.Task{
+						Name: "DIR",
 						F: func(i interface{}) interface{} {
 							deleteObsoleteFiles(proc.cfg, i.(file.Info))
 							return procOut{srcFile: i.(file.Info),
@@ -140,6 +141,7 @@ func (proc *Process) Run() {
 						In: *f}
 				} else {
 					proc.pl.In <- wp.Task{
+						Name: "FILE",
 						F: func(i interface{}) interface{} {
 							return convert(proc.cfg, i.(file.Info))
 						},
@@ -150,12 +152,12 @@ func (proc *Process) Run() {
 		}()
 
 		// retrieve worker results and update tracking
-		for out := range proc.pl.Out {
+		for res := range proc.pl.Out {
 			proc.Trck.update(
-				ProcInfo{SrcFile: out.(procOut).srcFile,
-					TrgFile: out.(procOut).trgFile,
-					Dur:     out.(procOut).dur,
-					Err:     out.(procOut).err})
+				ProcInfo{SrcFile: res.Out.(procOut).srcFile,
+					TrgFile: res.Out.(procOut).trgFile,
+					Dur:     res.Out.(procOut).dur,
+					Err:     res.Out.(procOut).err})
 		}
 	}()
 
@@ -171,57 +173,3 @@ func (proc *Process) Stop() {
 func (proc *Process) Wait() {
 	proc.wg.Wait()
 }
-
-/*
-// process calls f for all files. Files are processed in parallel using the
-// worker pool.
-func process(cfg *Config, f func(file.Info) procOut, files *[]*file.Info, trck *Tracking, wg *sync.WaitGroup) chan struct{} {
-	log.Debug("smsync.process: BEGIN")
-	defer log.Debug("smsync.process: END")
-
-	// nothing to do in case of empty files array
-	if len(*files) == 0 {
-		return nil
-	}
-
-	stop := make(chan struct{})
-
-	wp := wp.New(func(i interface{}) interface{} { return f(i.(file.Info)) }, cfg.NumWrkrs)
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
-		// start progress tracking and register tracking stop
-		trck.start()
-		defer trck.stop()
-
-		// fill worklist with files and close worklist channel
-		go func() {
-			for _, f := range *files {
-				wp.In <- *f
-			}
-			close(wp.In)
-		}()
-
-		// retrieve worker results and update tracking
-		for {
-			select {
-			case out, ok := <-wp.Out:
-				if !ok {
-					break
-				}
-				trck.update(
-					ProcInfo{SrcFile: out.(procOut).srcFile,
-						TrgFile: out.(procOut).trgFile,
-						Dur:     out.(procOut).dur,
-						Err:     out.(procOut).err})
-			case <-stop:
-				wp.Stop()
-			}
-		}
-	}()
-
-	return stop
-}
-*/

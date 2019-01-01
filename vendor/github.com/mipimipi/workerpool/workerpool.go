@@ -28,15 +28,21 @@ import (
 
 // Pool
 type Pool struct {
-	In   chan Task        // input channel for tasks
-	Out  chan interface{} // output channel for tasks
-	stop chan struct{}    // stop channel
+	In   chan Task     // input channel for tasks
+	Out  chan Result   // output channel for tasks
+	stop chan struct{} // stop channel
 	wg   sync.WaitGroup
 }
 
 type Task struct {
-	F  func(interface{}) interface{}
-	In interface{}
+	Name string
+	F    func(interface{}) interface{}
+	In   interface{}
+}
+
+type Result struct {
+	Name string
+	Out  interface{}
 }
 
 // NewPool creates a new worker pool with numWorkers number of go routines
@@ -48,7 +54,7 @@ func NewPool(numWorkers int) *Pool {
 	)
 
 	pl.In = make(chan Task)
-	pl.Out = make(chan interface{})
+	pl.Out = make(chan Result)
 	pl.stop = make(chan struct{})
 	pl.wg.Add(1)
 
@@ -66,7 +72,9 @@ func NewPool(numWorkers int) *Pool {
 						return
 					}
 					// execute task and send result to output channel
-					pl.Out <- task.F(task.In)
+					pl.Out <- Result{
+						Name: task.Name,
+						Out:  task.F(task.In)}
 
 				case <-pl.stop: // receive from stop channel
 					stopped = true
