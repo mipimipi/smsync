@@ -166,14 +166,13 @@ func ExistsInfo(path string) (bool, Info, error) {
 	return true, newInfo(fi, path), nil
 }
 
-// Find traverses directory trees to find files and directories that
-// fulfill a certain filter condition. It starts at a list of root
-// directories. The condition must be implemented in a function, which is
-// passed to FindFiles as a parameter. This condition returns two boolean value
-// The first one determines if a certain entry is valid (i.e. fulfills the
-// actual filter condition), the second determines (only in case of a
-// directory) if the filter result (i.e. the first boolean) shall be propagated
-// to the entries of the directory.
+// Find traverses directory trees to find files that fulfill a certain filter
+// condition. It starts at a list of root directories. The condition must be
+// implemented in a function, which is passed to FindFiles as a parameter. This
+// condition returns two boolean value. The first one determines if a certain
+// entry is valid (i.e. fulfills the actual filter condition), the second
+// determines (only in case of a directory) if the filter result (i.e. the first
+// boolean) shall be propagated to the entries of the directory.
 // numWorkers is the number of concurrent Go routines that FindFiles uses.
 // FindFiles returns two string arrays: One contains the directories and one
 // the files that fulfill the filter condition. Both lists contain the absolute
@@ -182,14 +181,13 @@ func ExistsInfo(path string) (bool, Info, error) {
 // book "The Go Programming Language" by Alan A. A. Donovan & Brian W.
 // Kernighan.
 // See: https://github.com/adonovan/gopl.io/blob/master/ch8/du4/main.go
-func Find(roots []string, filter func(Info, ValidPropagate) (bool, ValidPropagate), numWorkers int) (dirs, files *[]*Info) {
+func Find(roots []string, filter func(Info, ValidPropagate) (bool, ValidPropagate), numWorkers int) (files *[]*Info) {
 	var (
 		descend func(Info, ValidPropagate) // func needs to be declared here since it calls itself recursively
 		wg      sync.WaitGroup             // waiting group for the concurrent traversal
 	)
 
-	// allocate result arrays
-	dirs = new([]*Info)
+	// allocate result array
 	files = new([]*Info)
 
 	// create buffered channel, used as semaphore to restrict the number of Go routines
@@ -218,7 +216,7 @@ func Find(roots []string, filter func(Info, ValidPropagate) (bool, ValidPropagat
 		valid, vpSub := filter(inf, vp)
 		if valid {
 			// append it to dirs array
-			*dirs = append(*dirs, &inf)
+			*files = append(*files, &inf)
 		}
 		// descend into directory
 		if vpSub != InvalidFromSuper {
@@ -272,7 +270,7 @@ func Find(roots []string, filter func(Info, ValidPropagate) (bool, ValidPropagat
 	// wait for traversals to be finalized
 	wg.Wait()
 
-	return dirs, files
+	return files
 }
 
 // IsEmpty returns true if file or directory is empty, otherwise false

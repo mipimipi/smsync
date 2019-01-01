@@ -32,7 +32,7 @@ import (
 // process starts the processing of directories and file conversions. It also
 // calls the print functions to display the required information onthe command
 // line
-func process(cfg *smsync.Config, dirs, files *[]*file.Info, init bool, verbose bool) time.Duration {
+func process(cfg *smsync.Config, files *[]*file.Info, init bool, verbose bool) time.Duration {
 	log.Debug("cli.process: BEGIN")
 	defer log.Debug("cli.process: END")
 
@@ -43,11 +43,12 @@ func process(cfg *smsync.Config, dirs, files *[]*file.Info, init bool, verbose b
 	)
 
 	// start processing
-	trck, done := smsync.Process(cfg, dirs, files, init)
+	proc := smsync.NewProcess(cfg, files, init)
+	proc.Run()
 
 	// print header (if the user doesn't want smsync to be verbose)
 	if !verbose {
-		printProgress(trck, true)
+		printProgress(proc.Trck, true)
 	}
 
 loop:
@@ -58,14 +59,14 @@ loop:
 			ticked = true
 			// print progress (if the user doesn't want smsync to be verbose)
 			if !verbose {
-				printProgress(trck, false)
+				printProgress(proc.Trck, false)
 			}
-		case pInfo, ok := <-trck.PInfo:
+		case pInfo, ok := <-proc.Trck.PInfo:
 			if !ok {
 				// if there is no more file to process, the final progress data
 				// is displayed (if the user desn't want smsync to be verbose)
 				if !verbose {
-					printProgress(trck, false)
+					printProgress(proc.Trck, false)
 					fmt.Println()
 				}
 				break loop
@@ -73,7 +74,7 @@ loop:
 			// if ticker hasn't ticked so far: print progress (if the user
 			// doesn't want smsync to be verbose)
 			if !ticked && !verbose {
-				printProgress(trck, false)
+				printProgress(proc.Trck, false)
 			}
 
 			// if the user wants smsync to be verbose, display file (that
@@ -87,8 +88,8 @@ loop:
 	// if processing has finished: stop ticker
 	ticker.Stop()
 
-	// wait for clean up to be done
-	_ = <-done
+	// wait for processing
+	proc.Wait()
 
 	// return elapsed time
 	return time.Since(started)
@@ -110,7 +111,6 @@ func synchronize(level log.Level, verbose bool) error {
 
 	var (
 		cfg     smsync.Config
-		dirs    *[]*file.Info
 		files   *[]*file.Info
 		elapsed time.Duration
 	)
@@ -138,8 +138,8 @@ func synchronize(level log.Level, verbose bool) error {
 	// start automatic progress string which increments every second
 	stop, confirm := lhlp.ProgressStr(":: Find differences (this can take a few minutes)", 1000)
 
-	// get list of directories and files for sync
-	dirs, files = smsync.GetSyncFiles(&cfg, cli.init)
+	// get files and directories that need to be synched
+	files = smsync.GetSyncFiles(&cfg, cli.init)
 
 	// stop progress string and receive stop confirmation. The confirmation is necessary to not
 	// scramble the command line output
@@ -147,8 +147,8 @@ func synchronize(level log.Level, verbose bool) error {
 	close(stop)
 	_ = <-confirm
 
-	// if no directories and no files need to be synchec: exit
-	if len(*dirs) == 0 && len(*files) == 0 {
+	// if no files need to be synchec: exit
+	if len(*files) == 0 {
 		fmt.Println("   Nothing to synchronize. Leaving smsync ...")
 		log.Info("Nothing to synchronize")
 		return nil
@@ -156,7 +156,7 @@ func synchronize(level log.Level, verbose bool) error {
 
 	// print summary and ask user for OK to continue
 	if !cli.noConfirm {
-		if !lhlp.UserOK(fmt.Sprintf("\n:: %d directories and %d files to synchronize. Continue", len(*dirs), len(*files))) {
+		if !lhlp.UserOK(fmt.Sprintf("\n:: %d files and directories to be synchronized. Continue", len(*files))) {
 			log.Infof("Synchronization not started due to user input")
 			return nil
 		}
@@ -164,13 +164,12 @@ func synchronize(level log.Level, verbose bool) error {
 
 	// do synchronization / conversion
 	fmt.Println("\n:: Synchronization / conversion")
-	elapsed = process(&cfg, dirs, files, cli.init, cli.verbose)
+	elapsed = process(&cfg, files, cli.init, cli.verbose)
 
 	// print final success message
 	fmt.Println("\n:: Done :)")
 	split := lhlp.SplitDuration(elapsed)
-	fmt.Printf("   Processed %d directories and %d files in %s\n",
-		len(*dirs),
+	fmt.Printf("   Processed %d files and directories in %s\n",
 		len(*files),
 		fmt.Sprintf("%dh %02dmin %02ds",
 			split[time.Hour],

@@ -1,7 +1,7 @@
 SPDXVersion: SPDX-2.0
 DataLicense: CC0-1.0
 Creator: Michael Picht
-PackageName: go-worker
+PackageName: workerpool
 PackageOriginator: Michael Picht
-PackageHomePage: https://www.github.com/mipimipi/go-worker
+PackageHomePage: https://www.github.com/mipimipi/workerpool
 PackageLicenseDeclared: GPL-3.0

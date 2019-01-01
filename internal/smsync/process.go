@@ -46,27 +46,136 @@ type (
 	}
 )
 
+type Process struct {
+	pl    *wp.Pool
+	Trck  *Tracking
+	wg    sync.WaitGroup
+	cfg   *Config
+	files *[]*file.Info
+	init  bool
+}
+
+// Process is the main "backend" function to control the conversion.
+// Essentially, it gets the list of directories and files to be processed and
+// returns a Tracking instances, an error channel and a done channel
+func NewProcess(cfg *Config, files *[]*file.Info, init bool) *Process {
+	log.Debug("smsync.NewProcess: BEGIN")
+	defer log.Debug("smsync.NewProcess: END")
+
+	var proc Process
+
+	proc.pl = wp.NewPool(cfg.NumWrkrs)
+
+	proc.Trck = newTrck(files, du.NewDiskUsage(cfg.TrgDir).Available()) // tracking
+
+	proc.cfg = cfg
+	proc.files = files
+	proc.init = init
+
+	return &proc
+}
+
 // cleanUp removes temporary files and directories
-func cleanUp(cfg *Config, wg *sync.WaitGroup, done chan<- struct{}) {
-	// wait for processing of dirs and files to be done
-	wg.Wait()
+func (proc *Process) cleanUp(wg *sync.WaitGroup) {
+	defer proc.wg.Done()
 
-	log.Debug("smsync.cleanUp: BEGIN")
-	defer log.Debug("smsync.cleanUp: END")
+	proc.pl.Wait()
 
-	defer func() { done <- struct{}{} }()
+	log.Debug("smsync.Process.cleanUp: BEGIN")
+	defer log.Debug("smsync.Process.cleanUp: END")
 
 	// remove log file if it's empty
-	file.RemoveEmpty(filepath.Join(cfg.TrgDir, LogFile))
+	file.RemoveEmpty(filepath.Join(proc.cfg.TrgDir, LogFile))
 	log.Debug("Removed log files (at least tried to do that)")
 
 	// update config file
-	cfg.setProcEnd()
+	proc.cfg.setProcEnd()
 }
 
+func (proc *Process) Run() {
+	log.Debug("smsync.Process.Run: BEGIN")
+	defer log.Debug("smsync.Process.Run: END")
+
+	var wg sync.WaitGroup
+
+	// if no files need to be synched: exit
+	if len(*proc.files) == 0 {
+		log.Info("Nothing to process")
+		return
+	}
+
+	// remove potentially existing error directory from last run
+	if err := os.RemoveAll(errDir); err != nil {
+		log.Errorf("Process: %v", err)
+		return
+	}
+
+	// delete all entries of the target directory if requested per cli option
+	if proc.init {
+		log.Info("Delete all entries of the target directory per cli option")
+		deleteTrg(proc.cfg)
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		// start progress tracking and register tracking stop
+		proc.Trck.start()
+		defer proc.Trck.stop()
+
+		// fill worklist with files and close worklist channel
+		go func() {
+			for _, f := range *proc.files {
+				// assemble task
+				if (*f).IsDir() {
+					proc.pl.In <- wp.Task{
+						F: func(i interface{}) interface{} {
+							deleteObsoleteFiles(proc.cfg, i.(file.Info))
+							return procOut{srcFile: i.(file.Info),
+								trgFile: nil,
+								dur:     0,
+								err:     nil}
+						},
+						In: *f}
+				} else {
+					proc.pl.In <- wp.Task{
+						F: func(i interface{}) interface{} {
+							return convert(proc.cfg, i.(file.Info))
+						},
+						In: *f}
+				}
+			}
+			close(proc.pl.In)
+		}()
+
+		// retrieve worker results and update tracking
+		for out := range proc.pl.Out {
+			proc.Trck.update(
+				ProcInfo{SrcFile: out.(procOut).srcFile,
+					TrgFile: out.(procOut).trgFile,
+					Dur:     out.(procOut).dur,
+					Err:     out.(procOut).err})
+		}
+	}()
+
+	// cleaning up
+	proc.wg.Add(1)
+	go proc.cleanUp(&wg)
+}
+
+func (proc *Process) Stop() {
+	proc.pl.Stop()
+}
+
+func (proc *Process) Wait() {
+	proc.wg.Wait()
+}
+
+/*
 // process calls f for all files. Files are processed in parallel using the
 // worker pool.
-func process(cfg *Config, f func(file.Info) procOut, files *[]*file.Info, wg *sync.WaitGroup) *Tracking {
+func process(cfg *Config, f func(file.Info) procOut, files *[]*file.Info, trck *Tracking, wg *sync.WaitGroup) chan struct{} {
 	log.Debug("smsync.process: BEGIN")
 	defer log.Debug("smsync.process: END")
 
@@ -75,7 +184,7 @@ func process(cfg *Config, f func(file.Info) procOut, files *[]*file.Info, wg *sy
 		return nil
 	}
 
-	trck := newTrck(files, du.NewDiskUsage(cfg.TrgDir).Available()) // tracking
+	stop := make(chan struct{})
 
 	wp := wp.New(func(i interface{}) interface{} { return f(i.(file.Info)) }, cfg.NumWrkrs)
 
@@ -96,68 +205,23 @@ func process(cfg *Config, f func(file.Info) procOut, files *[]*file.Info, wg *sy
 		}()
 
 		// retrieve worker results and update tracking
-		for r := range wp.Out {
-			trck.update(
-				ProcInfo{SrcFile: r.(procOut).srcFile,
-					TrgFile: r.(procOut).trgFile,
-					Dur:     r.(procOut).dur,
-					Err:     r.(procOut).err})
+		for {
+			select {
+			case out, ok := <-wp.Out:
+				if !ok {
+					break
+				}
+				trck.update(
+					ProcInfo{SrcFile: out.(procOut).srcFile,
+						TrgFile: out.(procOut).trgFile,
+						Dur:     out.(procOut).dur,
+						Err:     out.(procOut).err})
+			case <-stop:
+				wp.Stop()
+			}
 		}
 	}()
 
-	return trck
+	return stop
 }
-
-// Process is the main "backend" function to control the conversion.
-// Essentially, it gets the list of directories and files to be processed and
-// returns a Tracking instances, an error channel and a done channel
-func Process(cfg *Config, dirs, files *[]*file.Info, init bool) (*Tracking, <-chan struct{}) {
-	log.Debug("smsync.Process: BEGIN")
-	defer log.Debug("smsync.Process: END")
-
-	var (
-		done = make(chan struct{}) // done channel
-		wg   sync.WaitGroup
-	)
-
-	// if no directories and no files need to be synchec: exit
-	if len(*dirs) == 0 && len(*files) == 0 {
-		log.Info("Nothing to process")
-		return nil, nil
-	}
-
-	// remove potentially existing error directory from last run
-	if err := os.RemoveAll(errDir); err != nil {
-		log.Errorf("Process: %v", err)
-		return nil, nil
-	}
-
-	// delete all entries of the target directory if requested per cli option
-	if init {
-		log.Info("Delete all entries of the target directory per cli option")
-		deleteTrg(cfg)
-	}
-
-	dof := func(srcDir file.Info) procOut {
-		deleteObsoleteFiles(cfg, srcDir)
-		return procOut{srcFile: srcDir,
-			trgFile: nil,
-			dur:     0,
-			err:     nil}
-	}
-
-	cv := func(srcFile file.Info) procOut {
-		return convert(cfg, srcFile)
-	}
-
-	// fork processing of directories
-	process(cfg, dof, dirs, &wg)
-
-	// fork processing of and files
-	trck := process(cfg, cv, files, &wg)
-
-	// cleaning up. cleanUp waits for processDirs and processFiles to finish
-	go cleanUp(cfg, &wg, done)
-
-	return trck, done
-}
+*/

@@ -141,7 +141,7 @@ func deleteTrg(cfg *Config) {
 	}
 }
 
-// GetSyncFiles determines which directories and files need to be synched.
+// GetSyncFiles determines which files need to be synched.
 // Files are only relevant if they need to be converted. Directories are only
 // relevant if they already exist on target side and might contain obsolete
 // files (which will be handled by deleteObsoleteFiles).
@@ -153,7 +153,7 @@ func deleteTrg(cfg *Config) {
 // because relevant directories lead to existence checks on target side in
 // deleteObsoleteFiles(), the number of relevant directories has to be as small
 // as possible.
-func GetSyncFiles(cfg *Config, init bool) (dirs, files *[]*file.Info) {
+func GetSyncFiles(cfg *Config, init bool) (files *[]*file.Info) {
 	log.Debug("smsync.GetSyncFiles: BEGIN")
 	defer log.Debug("smsync.GetSyncFiles: END")
 
@@ -234,9 +234,21 @@ func GetSyncFiles(cfg *Config, init bool) (dirs, files *[]*file.Info) {
 		if vp == file.ValidFromSuper {
 			return true, file.NoneFromSuper
 		}
-		// if this file has been changed since last sync, it is relevant
+		// assemble target file name ans check if file exists
+		trgFile := assembleTrgFile(cfg, srcFile.Path())
+		exists, inf, err := file.ExistsInfo(trgFile)
+		// if this file has been changed since last sync and if the counterpart
+		// on target side does either not exist or exists but is older than the
+		// last sync time, then this file is relevant.
+		// Note, that if the last run has been interrupted, it could be that the
+		// counterpart on target side has already been updated before the
+		// interrupt (and thus its mod time is after the last sync). In this
+		// case this file is not relevant.
 		if srcFile.ModTime().After(cfg.LastSync) {
-			return true, file.NoneFromSuper
+			if err == nil && (!exists || inf.ModTime().Before(cfg.LastSync)) {
+				return true, file.NoneFromSuper
+			}
+			return false, file.NoneFromSuper
 		}
 		// if parent has been changed ...
 		if parentDirChgd(filepath.Dir(srcFile.Path()), cfg.LastSync) {
@@ -247,7 +259,7 @@ func GetSyncFiles(cfg *Config, init bool) (dirs, files *[]*file.Info) {
 
 			// assemble target file
 			// check if target file exists
-			if exists, err := file.Exists(assembleTrgFile(cfg, srcFile.Path())); err == nil && !exists {
+			if err == nil && !exists {
 				return true, file.NoneFromSuper
 			}
 		}
@@ -255,9 +267,9 @@ func GetSyncFiles(cfg *Config, init bool) (dirs, files *[]*file.Info) {
 	}
 
 	// call FindFiles with the smsync filter function to get the directories and files
-	dirs, files = file.Find([]string{cfg.SrcDir}, filter, 20)
+	files = file.Find([]string{cfg.SrcDir}, filter, 20)
 
-	return dirs, files
+	return files
 }
 
 // parentDirChgd returns true if the file speicified by path has changed after

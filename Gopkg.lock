@@ -26,23 +26,23 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:3fd700d1bd51db03f4f328021fb2f1c46a383168bb480edc8c3ff12bd89fb9c4"
+  digest = "1:0ab9cd1f0f31c42c5ba22691b406fad417f656c254af44d93af2786eec71eae3"
   name = "github.com/mipimipi/go-lhlp"
   packages = [
     ".",
     "file",
   ]
   pruneopts = "UT"
-  revision = "4432cdfd356e909aaebbcc9db7fde0b4d362dad3"
-  version = "2.6"
+  revision = "30a7a83eab6dece8b6199c1b9e5ff3acf74dfa69"
+  version = "2.7"
 
 [[projects]]
-  digest = "1:89ac7de47b0ebbda701ade0f51dc23bb90034a036e4919bb9a2be68d76ed7747"
-  name = "github.com/mipimipi/go-worker"
+  digest = "1:a041caca1682f348649d885d7c9d9437114fbfd38e680d43e90b55e572214dcb"
+  name = "github.com/mipimipi/workerpool"
   packages = ["."]
   pruneopts = "UT"
-  revision = "2714742b3aa18faa3aeafef08b17ce6e4fe3a759"
-  version = "1.2"
+  revision = "acdefc192a5cecde480ada62d19a546870f6751e"
+  version = "0.1"
 
 [[projects]]
   branch = "master"
@@ -110,7 +110,7 @@
     "github.com/go-ini/ini",
     "github.com/mipimipi/go-lhlp",
     "github.com/mipimipi/go-lhlp/file",
-    "github.com/mipimipi/go-worker",
+    "github.com/mipimipi/workerpool",
     "github.com/ricochet2200/go-disk-usage/du",
     "github.com/sirupsen/logrus",
     "github.com/spf13/cobra",

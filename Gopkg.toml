@@ -31,11 +31,11 @@
 
 [[constraint]]
   name = "github.com/mipimipi/go-lhlp"
-  version = "2.4.0"
+  version = "2.7.0"
 
 [[constraint]]
-  name = "github.com/mipimipi/go-worker"
-  version = "1.1.0"
+  name = "github.com/mipimipi/workerpool"
+  version = "0.1.0"
 
 [[constraint]]
   branch = "master"
