@@ -46,33 +46,36 @@ type (
 	}
 )
 
+// Process contains the data to control the sync process
 type Process struct {
-	pl    *wp.Pool
-	Trck  *Tracking
-	wg    sync.WaitGroup
-	cfg   *Config
-	files *[]*file.Info
-	init  bool
+	pl    *wp.Pool       // worker pool
+	Trck  *Tracking      // progress tracking
+	wg    sync.WaitGroup // to allow caller to wait for end of sync
+	cfg   *Config        // smsync config
+	files *[]*file.Info  // list of files that need to be synched
+	init  bool           // called in init mode?
 }
 
+// constants for task names, needed for workerpool
 const (
 	taskNameDir  = "process directory"
 	taskNameFile = "convert file"
 )
 
-// Process is the main "backend" function to control the conversion.
-// Essentially, it gets the list of directories and files to be processed and
-// returns a Tracking instances, an error channel and a done channel
+// NewProcess create a new process object
 func NewProcess(cfg *Config, files *[]*file.Info, init bool) *Process {
 	log.Debug("smsync.NewProcess: BEGIN")
 	defer log.Debug("smsync.NewProcess: END")
 
 	proc := new(Process)
 
+	// set up worker pool
 	proc.pl = wp.NewPool(cfg.NumWrkrs)
 
+	// set up progress tracking
 	proc.Trck = newTrck(files, du.NewDiskUsage(cfg.TrgDir).Available()) // tracking
 
+	// store sync parameters
 	proc.cfg = cfg
 	proc.files = files
 	proc.init = init
@@ -80,7 +83,7 @@ func NewProcess(cfg *Config, files *[]*file.Info, init bool) *Process {
 	return proc
 }
 
-// cleanUp removes temporary files and directories
+// cleanUp removes temporary files and directories and updates the config file
 func (proc *Process) cleanUp(wg *sync.WaitGroup) {
 	defer proc.wg.Done()
 
@@ -97,6 +100,7 @@ func (proc *Process) cleanUp(wg *sync.WaitGroup) {
 	proc.cfg.setProcEnd()
 }
 
+// Run executes the sync process and cleans up after the sync has finished
 func (proc *Process) Run() {
 	log.Debug("smsync.Process.Run: BEGIN")
 	defer log.Debug("smsync.Process.Run: END")
@@ -132,7 +136,9 @@ func (proc *Process) Run() {
 		// fill worklist with files and close worklist channel
 		go func() {
 			for _, f := range *proc.files {
-				// assemble task
+				// send task to the worker pool, distinguishing between
+				// directories and files. Files need to be converted, for
+				// directories, obsolete files might need to be deleted
 				if (*f).IsDir() {
 					proc.pl.In <- wp.Task{
 						Name: taskNameDir,
@@ -183,10 +189,12 @@ func (proc *Process) Run() {
 	go proc.cleanUp(&wg)
 }
 
+// Stop stops the sync process
 func (proc *Process) Stop() {
 	proc.pl.Stop()
 }
 
+// Wait waits for the sync process to be finished
 func (proc *Process) Wait() {
 	proc.wg.Wait()
 }
