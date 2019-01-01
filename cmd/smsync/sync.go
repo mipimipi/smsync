@@ -32,14 +32,13 @@ import (
 // process starts the processing of directories and file conversions. It also
 // calls the print functions to display the required information onthe command
 // line
-func process(cfg *smsync.Config, files *[]*file.Info, init bool, verbose bool) time.Duration {
+func process(cfg *smsync.Config, files *[]*file.Info, init bool, verbose bool) *smsync.Tracking {
 	log.Debug("cli.process: BEGIN")
 	defer log.Debug("cli.process: END")
 
 	var (
-		ticker  = time.NewTicker(time.Second) // ticker to update progress on screen every second
-		ticked  = false
-		started = time.Now()
+		ticker = time.NewTicker(time.Second) // ticker to update progress on screen every second
+		ticked = false
 	)
 
 	// start processing
@@ -59,6 +58,7 @@ loop:
 			ticked = true
 			// print progress (if the user doesn't want smsync to be verbose)
 			if !verbose {
+				proc.Trck.UpdElapsed()
 				printProgress(proc.Trck, false)
 			}
 		case pInfo, ok := <-proc.Trck.PInfo:
@@ -92,7 +92,7 @@ loop:
 	proc.Wait()
 
 	// return elapsed time
-	return time.Since(started)
+	return proc.Trck
 }
 
 // synchronize is the main function of smsync. It triggers the entire sync
@@ -110,9 +110,8 @@ func synchronize(level log.Level, verbose bool) error {
 	defer log.Debug("cli.synchronize: END")
 
 	var (
-		cfg     smsync.Config
-		files   *[]*file.Info
-		elapsed time.Duration
+		cfg   smsync.Config
+		files *[]*file.Info
 	)
 
 	// print copyright etc. on command line
@@ -164,17 +163,24 @@ func synchronize(level log.Level, verbose bool) error {
 
 	// do synchronization / conversion
 	fmt.Println("\n:: Synchronization / conversion")
-	elapsed = process(&cfg, files, cli.init, cli.verbose)
+	trck := process(&cfg, files, cli.init, cli.verbose)
 
 	// print final success message
-	fmt.Println("\n:: Done :)")
-	split := lhlp.SplitDuration(elapsed)
+	if trck.TotalNum > trck.Done {
+		fmt.Println("\n:: Stopped")
+	} else {
+		fmt.Println("\n:: Done :)")
+	}
+	split := lhlp.SplitDuration(trck.Elapsed)
 	fmt.Printf("   Processed %d files and directories in %s\n",
 		len(*files),
 		fmt.Sprintf("%dh %02dmin %02ds",
 			split[time.Hour],
 			split[time.Minute],
 			split[time.Second]))
+	if trck.Errors > 0 {
+		fmt.Printf("   %d errors during conversion\n", trck.Errors)
+	}
 
 	// everything's fine
 	return nil

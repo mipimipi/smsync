@@ -108,9 +108,8 @@ func printProgress(trck *smsync.Tracking, first bool) {
 		mb     = uint64(1024 * 1024)                     // one megabyte
 	)
 	var (
-		size   string
-		avail  string
-		status = trck.Status()
+		size  string
+		avail string
 	)
 
 	// print headlines for progress display
@@ -136,25 +135,25 @@ func printProgress(trck *smsync.Tracking, first bool) {
 		return fmt.Sprintf("%02d:%02d:%02d", sp[time.Hour], sp[time.Minute], sp[time.Second])
 	}
 
-	if status.Size == 0 {
+	if trck.Size == 0 {
 		size = "- MB"
 		avail = "- MB"
 	} else {
-		size = fmt.Sprintf("%d MB", status.Size/mb)
-		avail = fmt.Sprintf("%d MB", status.Avail/int64(mb))
+		size = fmt.Sprintf("%d MB", trck.Size/mb)
+		avail = fmt.Sprintf("%d MB", trck.Avail/int64(mb))
 	}
 
 	// print progress (updates the same screen row)
 	fmt.Printf("\r"+format,
-		strconv.Itoa(status.Todo),
-		split(status.Elapsed),
-		split(status.Remaining),
-		fmt.Sprintf("%2.1f", status.Throughput),
-		fmt.Sprintf("%2.2fs", status.AvgDur.Seconds()),
-		fmt.Sprintf("%3.1f%%", status.Comp*100),
+		strconv.Itoa(trck.TotalNum-trck.Done),
+		split(trck.Elapsed),
+		split(trck.Remaining),
+		fmt.Sprintf("%2.1f", trck.Throughput),
+		fmt.Sprintf("%2.2fs", trck.AvgDur.Seconds()),
+		fmt.Sprintf("%3.1f%%", trck.Comp*100),
 		size,
 		avail,
-		strconv.Itoa(status.Errors)) //nolint
+		strconv.Itoa(trck.Errors)) //nolint
 }
 
 // printVerbose displays detailed information after each conversion. The name
@@ -164,10 +163,14 @@ func printVerbose(cfg *smsync.Config, pInfo smsync.ProcInfo) {
 	srcFile, err := filepath.Rel(cfg.SrcDir, pInfo.SrcFile.Path())
 	if err != nil {
 		log.Error(err)
-
 	} else {
 		fmt.Println("----------")
 		fmt.Printf("CONVERTED: %s\n", srcFile)
 		fmt.Printf("DURATION : %2.2fs\n", pInfo.Dur.Seconds())
+		if pInfo.Err != nil {
+			fmt.Println("STATUS   : ERROR")
+		} else {
+			fmt.Println("STATUS   : OK")
+		}
 	}
 }
