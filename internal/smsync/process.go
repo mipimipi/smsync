@@ -55,6 +55,11 @@ type Process struct {
 	init  bool
 }
 
+const (
+	taskNameDir  = "process directory"
+	taskNameFile = "convert file"
+)
+
 // Process is the main "backend" function to control the conversion.
 // Essentially, it gets the list of directories and files to be processed and
 // returns a Tracking instances, an error channel and a done channel
@@ -130,20 +135,21 @@ func (proc *Process) Run() {
 				// assemble task
 				if (*f).IsDir() {
 					proc.pl.In <- wp.Task{
-						Name: "DIR",
+						Name: taskNameDir,
 						F: func(i interface{}) interface{} {
 							deleteObsoleteFiles(proc.cfg, i.(file.Info))
-							return procOut{srcFile: i.(file.Info),
-								trgFile: nil,
-								dur:     0,
-								err:     nil}
+							return i.(file.Info)
 						},
 						In: *f}
 				} else {
 					proc.pl.In <- wp.Task{
-						Name: "FILE",
+						Name: taskNameFile,
 						F: func(i interface{}) interface{} {
-							return convert(proc.cfg, i.(file.Info))
+							cvOut := convert(proc.cfg, i.(file.Info))
+							return procOut{srcFile: i.(file.Info),
+								trgFile: cvOut.trgFile,
+								dur:     cvOut.dur,
+								err:     cvOut.err}
 						},
 						In: *f}
 				}
@@ -153,11 +159,22 @@ func (proc *Process) Run() {
 
 		// retrieve worker results and update tracking
 		for res := range proc.pl.Out {
-			proc.Trck.update(
-				ProcInfo{SrcFile: res.Out.(procOut).srcFile,
-					TrgFile: res.Out.(procOut).trgFile,
-					Dur:     res.Out.(procOut).dur,
-					Err:     res.Out.(procOut).err})
+			switch res.Name {
+			case taskNameDir:
+				proc.Trck.update(
+					ProcInfo{SrcFile: res.Out.(file.Info),
+						TrgFile: nil,
+						Dur:     0,
+						Err:     nil})
+			case taskNameFile:
+				proc.Trck.update(
+					ProcInfo{SrcFile: res.Out.(procOut).srcFile,
+						TrgFile: res.Out.(procOut).trgFile,
+						Dur:     res.Out.(procOut).dur,
+						Err:     res.Out.(procOut).err})
+			default:
+				log.Warningf("Task name '%s' received", res.Name)
+			}
 		}
 	}()
 

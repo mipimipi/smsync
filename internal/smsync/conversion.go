@@ -36,6 +36,13 @@ type (
 		trgSuffix string
 	}
 
+	// output structure of a conversion
+	cvOutput struct {
+		trgFile file.Info     // target file
+		dur     time.Duration // duration of conversion
+		err     error         // error (that occurred during the conversion)
+	}
+
 	// conversion interface
 	conversion interface {
 		// execute conversion
@@ -124,7 +131,7 @@ func assembleTrgFile(cfg *Config, srcFile string) string {
 }
 
 // convert executes conversion for one file
-func convert(cfg *Config, srcFile file.Info) procOut {
+func convert(cfg *Config, srcFile file.Info) cvOutput {
 	var (
 		trgFile string
 		trgInfo file.Info
@@ -138,7 +145,7 @@ func convert(cfg *Config, srcFile file.Info) procOut {
 	// if no string found: exit
 	if !exists {
 		log.Errorf("convert: No conversion found in config for '%s'", srcFile.Name())
-		return procOut{nil, nil, 0, nil}
+		return cvOutput{trgFile: nil, dur: 0, err: nil}
 	}
 
 	// assemble output file
@@ -147,7 +154,7 @@ func convert(cfg *Config, srcFile file.Info) procOut {
 	// if error directory doesn't exist: create it
 	if err := file.MkdirAll(filepath.Dir(trgFile), os.ModeDir|0755); err != nil {
 		log.Errorf("convert: %v", err)
-		return procOut{srcFile: srcFile, trgFile: nil, err: err}
+		return cvOutput{trgFile: nil, dur: 0, err: err}
 	}
 
 	// set transformation function
@@ -167,7 +174,7 @@ func convert(cfg *Config, srcFile file.Info) procOut {
 	}
 
 	// call transformation function and return result
-	return procOut{srcFile: srcFile, trgFile: trgInfo, dur: time.Since(start), err: err}
+	return cvOutput{trgFile: trgInfo, dur: time.Since(start), err: err}
 }
 
 // isValidBitrate determines if s represents a valid bit rate. I.e. it needs
