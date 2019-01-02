@@ -45,12 +45,12 @@
   version = "2.8"
 
 [[projects]]
-  digest = "1:06228599c4406c23ae360c405247db5fef38357349adcc9c300a0532c27650b5"
+  digest = "1:6d52a5607e6ab7a2158fec15c41ef825023a0566ebf238359bfb61f80575b794"
   name = "github.com/mipimipi/workerpool"
   packages = ["."]
   pruneopts = "UT"
-  revision = "87043b3fb030f275c19f863c3ec12c8c89fc824d"
-  version = "0.3"
+  revision = "78b112a55a9fd8ce749b53748f4ce2944585b092"
+  version = "0.4"
 
 [[projects]]
   branch = "master"

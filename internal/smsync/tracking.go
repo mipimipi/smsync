@@ -100,9 +100,7 @@ func (trck *Tracking) update(pInfo ProcInfo) {
 		trck.Throughput = float64(trck.Done) / trck.Elapsed.Minutes()
 	}
 
-	if pInfo.SrcFile != nil && pInfo.TrgFile != nil {
-		trck.Done++
-	}
+	trck.Done++
 	if pInfo.SrcFile != nil {
 		trck.SrcSize += uint64(pInfo.SrcFile.Size())
 	}
@@ -119,12 +117,4 @@ func (trck *Tracking) update(pInfo ProcInfo) {
 	}
 	trck.Size = uint64(trck.Comp * float64(trck.TotalSize))
 	trck.Avail = int64(trck.Diskspace) - int64(trck.Size)
-}
-
-// Tick updates the elapsed time
-func (trck *Tracking) Tick() {
-	trck.in <- ProcInfo{SrcFile: nil,
-		TrgFile: nil,
-		Dur:     0,
-		Err:     nil}
 }

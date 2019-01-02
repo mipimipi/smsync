@@ -48,8 +48,9 @@ type Result struct {
 // NewPool creates a new worker pool with numWorkers number of go routines
 func NewPool(numWorkers int) *Pool {
 	var (
-		pl Pool
-		wg sync.WaitGroup
+		pl      Pool
+		wg      sync.WaitGroup
+		stopped = false
 	)
 
 	pl.In = make(chan Task)
@@ -66,10 +67,11 @@ func NewPool(numWorkers int) *Pool {
 			for {
 				select {
 				case <-pl.stop: // receive from stop channel
+					stopped = true
 					break loop
 
 				case task, ok := <-pl.In: // receive from input channel
-					if !ok {
+					if !ok || stopped {
 						break loop
 					}
 					// execute task and send result to output channel

@@ -35,8 +35,7 @@ func listenStop() (stop chan struct{}) {
 	stop = make(chan struct{})
 
 	go func() {
-		_, key, _ := keyboard.GetSingleKey()
-		if key == keyboard.KeyEsc {
+		if _, key, _ := keyboard.GetSingleKey(); key == keyboard.KeyEsc {
 			close(stop)
 		}
 	}()
@@ -52,20 +51,21 @@ func process(cfg *smsync.Config, files *[]*file.Info, init bool, verbose bool) {
 	defer log.Debug("cli.process: END")
 
 	var (
-		ticker = time.NewTicker(time.Second) // ticker to update progress on screen every second
-		ticked = false
+		ticker   = time.NewTicker(time.Second) // ticker to update progress on screen every second
+		ticked   = false                       // has ticker ticked?
+		wantstop = false                       // stop wanted?
 	)
-
-	// channel for stop from keyboard
-	stop := listenStop()
 
 	// start processing
 	proc := smsync.NewProcess(cfg, files, init)
 	proc.Run()
 
+	// channel for stop from keyboard
+	stop := listenStop()
+
 	// print header (if the user doesn't want smsync to be verbose)
 	if !verbose {
-		printProgress(proc.Trck, true)
+		printProgress(proc.Trck, true, false)
 	}
 
 loop:
@@ -76,15 +76,14 @@ loop:
 			ticked = true
 			// print progress (if the user doesn't want smsync to be verbose)
 			if !verbose {
-				proc.Trck.Tick() // update tracḱing values (e.g. elapsed time)
-				printProgress(proc.Trck, false)
+				printProgress(proc.Trck, false, wantstop)
 			}
 		case pInfo, ok := <-proc.Trck.Out:
 			if !ok {
 				// if there is no more file to process, the final progress data
 				// is displayed (if the user doesn't want smsync to be verbose)
 				if !verbose {
-					printProgress(proc.Trck, false)
+					printProgress(proc.Trck, false, wantstop)
 					fmt.Println()
 				}
 				break loop
@@ -96,11 +95,13 @@ loop:
 			}
 			// if ticker hasn't ticked so far: print progress
 			if !ticked {
-				printProgress(proc.Trck, false)
+				printProgress(proc.Trck, false, wantstop)
 			}
 		case <-stop:
-			proc.Stop()
-			break loop
+			if !wantstop {
+				proc.Stop()
+				wantstop = true
+			}
 		}
 	}
 
@@ -180,7 +181,7 @@ func synchronize(level log.Level, verbose bool) error {
 	}
 
 	// do synchronization / conversion
-	fmt.Println("\n:: Synchronization / conversion")
+	fmt.Println("\n:: Synchronization / conversion (press <ESC> to stop)")
 	process(&cfg, files, cli.init, cli.verbose)
 
 	// everything's fine

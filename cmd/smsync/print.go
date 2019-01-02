@@ -120,28 +120,29 @@ func printFinal(trck *smsync.Tracking) {
 }
 
 // printProgress displays the progress of the file conversion
-func printProgress(trck *smsync.Tracking, first bool) {
+func printProgress(trck *smsync.Tracking, first, wantstop bool) {
 	const (
-		format = "%6s %8s %8s %5s %6s %6s %12s %12s %7s" // format string for progress display
-		mb     = uint64(1024 * 1024)                     // one megabyte
+		format = "%6s %8s %8s %5s %6s %6s %12s %12s %5s %4s" // format string for progress display
+		mb     = uint64(1024 * 1024)                         // one megabyte
 	)
 	var (
-		size  string
-		avail string
+		size  = "- MB"
+		avail = "- MB"
+		stop  = "    "
 	)
 
 	// print headlines for progress display
 	if first {
 		func() {
 			const (
-				line    = "------------------------------------------------------------------------------" // length=77
-				durNull = "--:--:--"                                                                       // "null" string for display of durations
+				line    = "----------------------------------------------------------------------------" // length=75
+				durNull = "--:--:--"                                                                     // "null" string for display of durations
 			)
 
-			fmt.Printf(format+"\n", "", "Elapsed", "Remain", "#Conv", "Avg", "Avg", "Estimated", "Estimated", "")               // nolint, headline 1
-			fmt.Printf(format+"\n", "#TODO", "Time", "Time", "/ min", "Durat", "Compr", "Target Size", "Free Space", "#Errors") // nolint, headline 2
-			fmt.Println(line)                                                                                                   // separator
-			fmt.Printf(format, "-", durNull, durNull, "-", "- s", "- %", "- MB", "- MB", "-")                                   // nolint
+			fmt.Printf(format+"\n", "", "Elapsed", "Remain", "#Conv", "Avg", "Avg", "Estimated", "Estimated", "", "")             // nolint, headline 1
+			fmt.Printf(format+"\n", "#TODO", "Time", "Time", "/ min", "Durat", "Compr", "Target Size", "Free Space", "#Errs", "") // nolint, headline 2
+			fmt.Println(line)                                                                                                     // separator
+			fmt.Printf(format, "-", durNull, durNull, "-", "- s", "- %", "- MB", "- MB", "-", "")                                 // nolint
 		}()
 
 		return
@@ -153,25 +154,27 @@ func printProgress(trck *smsync.Tracking, first bool) {
 		return fmt.Sprintf("%02d:%02d:%02d", sp[time.Hour], sp[time.Minute], sp[time.Second])
 	}
 
-	if trck.Size == 0 {
-		size = "- MB"
-		avail = "- MB"
-	} else {
+	if trck.Size > 0 {
 		size = fmt.Sprintf("%d MB", trck.Size/mb)
 		avail = fmt.Sprintf("%d MB", trck.Avail/int64(mb))
+	}
+
+	if wantstop {
+		stop = "STOP"
 	}
 
 	// print progress (updates the same screen row)
 	fmt.Printf("\r"+format,
 		strconv.Itoa(trck.TotalNum-trck.Done),
-		split(trck.Elapsed),
+		split(time.Since(trck.Started)),
 		split(trck.Remaining),
 		fmt.Sprintf("%2.1f", trck.Throughput),
 		fmt.Sprintf("%2.2fs", trck.AvgDur.Seconds()),
 		fmt.Sprintf("%3.1f%%", trck.Comp*100),
 		size,
 		avail,
-		strconv.Itoa(trck.Errors)) //nolint
+		strconv.Itoa(trck.Errors),
+		stop) //nolint
 }
 
 // printVerbose displays detailed information after each conversion. The name

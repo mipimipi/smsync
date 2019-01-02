@@ -54,6 +54,7 @@ type Process struct {
 	init    bool          // called in init mode?
 	cleanup chan struct{} // start cleanup
 	done    chan struct{} // report processing to be done
+	stopped bool          // processing has been stopped?
 }
 
 // constants for task names, needed for workerpool
@@ -92,6 +93,7 @@ func (proc *Process) cleanUp() {
 	log.Debug("smsync.Process.cleanUp: BEGIN")
 	defer log.Debug("smsync.Process.cleanUp: END")
 
+	// wait until processing is finished
 	<-proc.cleanup
 
 	// remove log file if it's empty
@@ -99,7 +101,9 @@ func (proc *Process) cleanUp() {
 	log.Debug("Removed log files (at least tried to do that)")
 
 	// update config file
-	proc.cfg.setProcEnd()
+	if !proc.stopped {
+		proc.cfg.setProcEnd()
+	}
 
 	// processing finished
 	close(proc.done)
@@ -192,6 +196,7 @@ func (proc *Process) Run() {
 // Stop stops the sync process
 func (proc *Process) Stop() {
 	proc.pl.Stop()
+	proc.stopped = true
 }
 
 // Wait waits for the sync process to be finished
