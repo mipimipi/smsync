@@ -209,9 +209,9 @@ The synchronization process is executed in the following steps:
 
     ```
             Elapsed   Remain #Conv    Avg    Avg    Estimated    Estimated        
-     #TODO     Time     Time / min  Durat  Compr  Target Size   Free Space #Errors
-    ------------------------------------------------------------------------------
-     37290 00:06:06 13:50:10  38.8 11.36s   9.4%    126069 MB     79075 MB       0
+     #TODO     Time     Time / min  Durat  Compr  Target Size   Free Space #Errs
+    ----------------------------------------------------------------------------
+     37290 00:06:06 13:50:10  38.8 11.36s   9.4%    126069 MB     79075 MB     0
 
     ```
 
@@ -263,7 +263,7 @@ to such a target folder structure:
           |        |- cover.jpg
           |- ...
 
-The folder "/home/musiclover/Music/SOURCE/Rock/Eric Clapton" hasn't been converted because the directoty fits to the exclusion pattern.
+The folder "/home/musiclover/Music/SOURCE/Rock/Eric Clapton" hasn't been converted because the directory fits to the exclusion pattern.
 
 ### <a name="errors"></a>FFMPEG errors
 
