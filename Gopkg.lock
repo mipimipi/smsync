@@ -34,23 +34,23 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:12c7eff74734bb14c4b4b35de59395719fea2c417329e97511dbc9a32dc765ae"
+  digest = "1:b5baa5a1da5539503d73c5f0b086816ff697842813452bbec61092fb0e6df7ec"
   name = "github.com/mipimipi/go-lhlp"
   packages = [
     ".",
     "file",
   ]
   pruneopts = "UT"
-  revision = "914e4f0d70634889a7a1cd5f2f6d840e57851dfa"
-  version = "2.8"
+  revision = "ff402662d6f983296ec17f42f6e09cade0a2c7d1"
+  version = "2.9"
 
 [[projects]]
-  digest = "1:6d52a5607e6ab7a2158fec15c41ef825023a0566ebf238359bfb61f80575b794"
+  digest = "1:703f3d7eb5fe54febe33674b8891f6cb3e9b579ca43454a8931733b5830c97b9"
   name = "github.com/mipimipi/workerpool"
   packages = ["."]
   pruneopts = "UT"
-  revision = "78b112a55a9fd8ce749b53748f4ce2944585b092"
-  version = "0.4"
+  revision = "21cba69a14eb3b5067e4ca373a6cdd5a352a5bcd"
+  version = "0.5"
 
 [[projects]]
   branch = "master"
@@ -94,14 +94,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:10405139b45e3a97a3842c93984710e30466eb933545f219ad3f5e45246973b4"
+  digest = "1:191cccd950a4aeadb60306062f2bdc2f924d750d0156ec6c691b17211bfd7349"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "9a3f9b0469bbc6b8802087ae5c0af9f61502de01"
+  revision = "82a175fd1598e8a172e58ebdf5ed262bb29129e5"
 
 [[projects]]
   digest = "1:4d2e5a73dc1500038e504a8d78b986630e3626dc027bc030ba5c75da257cdb96"

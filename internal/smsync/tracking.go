@@ -51,35 +51,22 @@ type Tracking struct {
 
 	Errors int // number of errors
 
-	in  chan ProcInfo // channel to update tracking
 	Out chan ProcInfo // channel to send intermediate results
 }
 
 // newTrck create a Tracking instance
 func newTrck(wl *[]*file.Info, space uint64) *Tracking {
-	var trck Tracking
+	trck := new(Tracking)
 
 	trck.TotalNum = len(*wl)
 	trck.Diskspace = space
-	trck.in = make(chan ProcInfo)
 	trck.Out = make(chan ProcInfo)
 
 	for _, inf := range *wl {
 		trck.TotalSize += uint64((*inf).Size())
 	}
 
-	// receive updates and forward them
-	go func() {
-		defer close(trck.Out)
-		for pInfo := range trck.in {
-			if pInfo.SrcFile != nil {
-				trck.Out <- pInfo
-			}
-			trck.update(pInfo)
-		}
-	}()
-
-	return &trck
+	return trck
 }
 
 // start begins progress tracking
@@ -87,19 +74,25 @@ func (trck *Tracking) start() {
 	trck.Started = time.Now()
 }
 
+// stop ends progress tracking
+func (trck *Tracking) stop() {
+	close(trck.Out)
+}
+
 // update receives information about a finished conversion and updates
 // tracking accordingly
 func (trck *Tracking) update(pInfo ProcInfo) {
-	trck.Elapsed = time.Since(trck.Started)
+	// forward update
+	trck.Out <- pInfo
 
+	// update status values
+	trck.Elapsed = time.Since(trck.Started)
 	if trck.Done > 0 {
 		trck.Remaining = time.Duration(int64(trck.Elapsed) / int64(trck.Done) * int64(trck.TotalNum-trck.Done))
 	}
-
 	if trck.Elapsed > 0 {
 		trck.Throughput = float64(trck.Done) / trck.Elapsed.Minutes()
 	}
-
 	trck.Done++
 	if pInfo.SrcFile != nil {
 		trck.SrcSize += uint64(pInfo.SrcFile.Size())
@@ -108,7 +101,6 @@ func (trck *Tracking) update(pInfo ProcInfo) {
 		trck.TrgSize += uint64(pInfo.TrgFile.Size())
 	}
 	trck.Dur += pInfo.Dur
-
 	if trck.Done > 0 {
 		trck.AvgDur = time.Duration(int(trck.Dur) / trck.Done)
 	}

@@ -83,7 +83,7 @@ loop:
 				// if there is no more file to process, the final progress data
 				// is displayed (if the user doesn't want smsync to be verbose)
 				if !verbose {
-					printProgress(proc.Trck, false, wantstop)
+					printProgress(proc.Trck, false, false)
 					fmt.Println()
 				}
 				break loop
@@ -128,21 +128,17 @@ func synchronize(level log.Level, verbose bool) error {
 	log.Debug("cli.synchronize: BEGIN")
 	defer log.Debug("cli.synchronize: END")
 
-	var (
-		cfg   smsync.Config
-		files *[]*file.Info
-	)
-
 	// print copyright etc. on command line
 	fmt.Println(preamble)
 
 	// read configuration
+	cfg := new(smsync.Config)
 	if err := cfg.Get(cli.init); err != nil {
 		return err
 	}
 
 	// print summary and ask user for OK
-	printCfgSummary(&cfg)
+	printCfgSummary(cfg)
 	if !cli.noConfirm {
 		if !lhlp.UserOK("\n:: Start synchronization") {
 			log.Infof("Synchronization not started due to user input")
@@ -151,19 +147,18 @@ func synchronize(level log.Level, verbose bool) error {
 	}
 
 	// set number of cpus to be used by smsync
-	_ = runtime.GOMAXPROCS(int(cfg.NumCpus))
+	runtime.GOMAXPROCS(int(cfg.NumCpus))
 
 	// start automatic progress string which increments every second
 	stop, confirm := lhlp.ProgressStr(":: Find differences (this can take a few minutes)", 1000)
 
 	// get files and directories that need to be synched
-	files = smsync.GetSyncFiles(&cfg, cli.init)
+	files := smsync.GetSyncFiles(cfg, cli.init)
 
 	// stop progress string and receive stop confirmation. The confirmation is necessary to not
 	// scramble the command line output
-	stop <- struct{}{}
 	close(stop)
-	_ = <-confirm
+	<-confirm
 
 	// if no files need to be synchec: exit
 	if len(*files) == 0 {
@@ -182,7 +177,7 @@ func synchronize(level log.Level, verbose bool) error {
 
 	// do synchronization / conversion
 	fmt.Println("\n:: Synchronization / conversion (press <ESC> to stop)")
-	process(&cfg, files, cli.init, cli.verbose)
+	process(cfg, files, cli.init, cli.verbose)
 
 	// everything's fine
 	return nil

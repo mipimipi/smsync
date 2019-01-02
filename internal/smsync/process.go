@@ -96,6 +96,9 @@ func (proc *Process) cleanUp() {
 	// wait until processing is finished
 	<-proc.cleanup
 
+	// stop tracking
+	proc.Trck.stop()
+
 	// remove log file if it's empty
 	file.RemoveEmpty(filepath.Join(proc.cfg.TrgDir, LogFile))
 	log.Debug("Removed log files (at least tried to do that)")
@@ -173,20 +176,19 @@ func (proc *Process) Run() {
 		for res := range proc.pl.Out {
 			switch res.Name {
 			case taskNameDir:
-				proc.Trck.in <- ProcInfo{SrcFile: res.Out.(file.Info),
+				proc.Trck.update(ProcInfo{SrcFile: res.Out.(file.Info),
 					TrgFile: nil,
 					Dur:     0,
-					Err:     nil}
+					Err:     nil})
 			case taskNameFile:
-				proc.Trck.in <- ProcInfo{SrcFile: res.Out.(procOut).srcFile,
+				proc.Trck.update(ProcInfo{SrcFile: res.Out.(procOut).srcFile,
 					TrgFile: res.Out.(procOut).trgFile,
 					Dur:     res.Out.(procOut).dur,
-					Err:     res.Out.(procOut).err}
+					Err:     res.Out.(procOut).err})
 			default:
 				log.Warningf("Task name '%s' received", res.Name)
 			}
 		}
-		close(proc.Trck.in)
 	}()
 
 	// cleaning up

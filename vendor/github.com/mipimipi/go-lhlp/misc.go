@@ -41,6 +41,12 @@ func Contains(a interface{}, e interface{}) bool {
 	return false
 }
 
+// Drain empties channel ch
+func Drain(ch chan interface{}) {
+	for range ch {
+	}
+}
+
 // ProgressStr shows and moves a bar '...' on the command line. It can be used
 // to show that an activity is ongoing. The parameter 'interval' steers the
 // refresh rate (in milli seconds). The text in 'msg' is displayed in form of
