@@ -31,7 +31,7 @@ type Pool struct {
 	In   chan Task     // input channel for tasks
 	Out  chan Result   // output channel for tasks
 	stop chan struct{} // stop channel
-	wg   sync.WaitGroup
+	done chan struct{} // done channel
 }
 
 type Task struct {
@@ -48,36 +48,34 @@ type Result struct {
 // NewPool creates a new worker pool with numWorkers number of go routines
 func NewPool(numWorkers int) *Pool {
 	var (
-		pl      Pool
-		wg      sync.WaitGroup
-		stopped = false
+		pl Pool
+		wg sync.WaitGroup
 	)
 
 	pl.In = make(chan Task)
 	pl.Out = make(chan Result)
 	pl.stop = make(chan struct{})
-	pl.wg.Add(1)
+	pl.done = make(chan struct{})
 
 	for i := 0; i < numWorkers; i++ {
 		// start worker Go routine
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-
-			for !stopped {
+		loop:
+			for {
 				select {
+				case <-pl.stop: // receive from stop channel
+					break loop
+
 				case task, ok := <-pl.In: // receive from input channel
-					// if input channel empty: leave loop
 					if !ok {
-						return
+						break loop
 					}
 					// execute task and send result to output channel
 					pl.Out <- Result{
 						Name: task.Name,
 						Out:  task.F(task.In)}
-
-				case <-pl.stop: // receive from stop channel
-					stopped = true
 				}
 			}
 		}()
@@ -88,7 +86,7 @@ func NewPool(numWorkers int) *Pool {
 	go func() {
 		wg.Wait()
 		close(pl.Out)
-		pl.wg.Done()
+		close(pl.done)
 	}()
 
 	return &pl
@@ -96,10 +94,10 @@ func NewPool(numWorkers int) *Pool {
 
 // Stop stops processing
 func (pl *Pool) Stop() {
-	pl.stop <- struct{}{}
+	close(pl.stop)
 }
 
 // Wait until pool finished
 func (pl *Pool) Wait() {
-	pl.wg.Wait()
+	<-pl.done
 }

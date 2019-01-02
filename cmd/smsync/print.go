@@ -101,6 +101,24 @@ func printCfgSummary(cfg *smsync.Config) {
 	}
 }
 
+func printFinal(trck *smsync.Tracking) {
+	if trck.TotalNum > trck.Done {
+		fmt.Println("\n:: Stopped")
+	} else {
+		fmt.Println("\n:: Done :)")
+	}
+	split := lhlp.SplitDuration(trck.Elapsed)
+	fmt.Printf("   Processed %d files and directories in %s\n",
+		trck.Done,
+		fmt.Sprintf("%dh %02dmin %02ds",
+			split[time.Hour],
+			split[time.Minute],
+			split[time.Second]))
+	if trck.Errors > 0 {
+		fmt.Printf("   %d errors during conversion\n", trck.Errors)
+	}
+}
+
 // printProgress displays the progress of the file conversion
 func printProgress(trck *smsync.Tracking, first bool) {
 	const (

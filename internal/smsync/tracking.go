@@ -18,11 +18,9 @@
 package smsync
 
 import (
-	"sync"
 	"time"
 
 	"github.com/mipimipi/go-lhlp/file"
-	log "github.com/sirupsen/logrus"
 )
 
 // Tracking contains attributes that are used to keep track of the progress of
@@ -53,9 +51,8 @@ type Tracking struct {
 
 	Errors int // number of errors
 
-	PInfo chan ProcInfo // channel to report intermediate results
-
-	mu sync.Mutex // sync updates
+	in  chan ProcInfo // channel to update tracking
+	Out chan ProcInfo // channel to send intermediate results
 }
 
 // newTrck create a Tracking instance
@@ -64,11 +61,23 @@ func newTrck(wl *[]*file.Info, space uint64) *Tracking {
 
 	trck.TotalNum = len(*wl)
 	trck.Diskspace = space
-	trck.PInfo = make(chan ProcInfo)
+	trck.in = make(chan ProcInfo)
+	trck.Out = make(chan ProcInfo)
 
 	for _, inf := range *wl {
 		trck.TotalSize += uint64((*inf).Size())
 	}
+
+	// receive updates and forward them
+	go func() {
+		defer close(trck.Out)
+		for pInfo := range trck.in {
+			if pInfo.SrcFile != nil {
+				trck.Out <- pInfo
+			}
+			trck.update(pInfo)
+		}
+	}()
 
 	return &trck
 }
@@ -78,25 +87,22 @@ func (trck *Tracking) start() {
 	trck.Started = time.Now()
 }
 
-// stop ends progress tracking
-func (trck *Tracking) stop() {
-	log.Debug("smsync.Tracking.stop: BEGIN")
-	defer log.Debug("smsync.Tracking.stop: END")
-
-	close(trck.PInfo)
-
-	trck.UpdElapsed()
-}
-
 // update receives information about a finished conversion and updates
 // tracking accordingly
 func (trck *Tracking) update(pInfo ProcInfo) {
-	// send conversion information to whoever is interested
-	trck.PInfo <- pInfo
+	trck.Elapsed = time.Since(trck.Started)
 
-	trck.mu.Lock()
+	if trck.Done > 0 {
+		trck.Remaining = time.Duration(int64(trck.Elapsed) / int64(trck.Done) * int64(trck.TotalNum-trck.Done))
+	}
 
-	trck.Done++
+	if trck.Elapsed > 0 {
+		trck.Throughput = float64(trck.Done) / trck.Elapsed.Minutes()
+	}
+
+	if pInfo.SrcFile != nil && pInfo.TrgFile != nil {
+		trck.Done++
+	}
 	if pInfo.SrcFile != nil {
 		trck.SrcSize += uint64(pInfo.SrcFile.Size())
 	}
@@ -113,23 +119,12 @@ func (trck *Tracking) update(pInfo ProcInfo) {
 	}
 	trck.Size = uint64(trck.Comp * float64(trck.TotalSize))
 	trck.Avail = int64(trck.Diskspace) - int64(trck.Size)
-
-	trck.mu.Unlock()
 }
 
-// UpdElapsed updates the elapsed time and calculated depending data
-func (trck *Tracking) UpdElapsed() {
-	trck.mu.Lock()
-
-	trck.Elapsed = time.Since(trck.Started)
-
-	if trck.Done > 0 {
-		trck.Remaining = time.Duration(int64(trck.Elapsed) / int64(trck.Done) * int64(trck.TotalNum-trck.Done))
-	}
-
-	if trck.Elapsed > 0 {
-		trck.Throughput = float64(trck.Done) / trck.Elapsed.Minutes()
-	}
-
-	trck.mu.Unlock()
+// Tick updates the elapsed time
+func (trck *Tracking) Tick() {
+	trck.in <- ProcInfo{SrcFile: nil,
+		TrgFile: nil,
+		Dur:     0,
+		Err:     nil}
 }

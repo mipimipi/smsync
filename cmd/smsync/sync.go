@@ -23,16 +23,31 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/eiannone/keyboard"
 	lhlp "github.com/mipimipi/go-lhlp"
 	"github.com/mipimipi/go-lhlp/file"
 	"github.com/mipimipi/smsync/internal/smsync"
 	log "github.com/sirupsen/logrus"
 )
 
+// listenStop waits for <ESC> pressed on keyboard as stop signal
+func listenStop() (stop chan struct{}) {
+	stop = make(chan struct{})
+
+	go func() {
+		_, key, _ := keyboard.GetSingleKey()
+		if key == keyboard.KeyEsc {
+			close(stop)
+		}
+	}()
+
+	return stop
+}
+
 // process starts the processing of directories and file conversions. It also
 // calls the print functions to display the required information onthe command
 // line
-func process(cfg *smsync.Config, files *[]*file.Info, init bool, verbose bool) *smsync.Tracking {
+func process(cfg *smsync.Config, files *[]*file.Info, init bool, verbose bool) {
 	log.Debug("cli.process: BEGIN")
 	defer log.Debug("cli.process: END")
 
@@ -40,6 +55,9 @@ func process(cfg *smsync.Config, files *[]*file.Info, init bool, verbose bool) *
 		ticker = time.NewTicker(time.Second) // ticker to update progress on screen every second
 		ticked = false
 	)
+
+	// channel for stop from keyboard
+	stop := listenStop()
 
 	// start processing
 	proc := smsync.NewProcess(cfg, files, init)
@@ -58,41 +76,41 @@ loop:
 			ticked = true
 			// print progress (if the user doesn't want smsync to be verbose)
 			if !verbose {
-				proc.Trck.UpdElapsed()
+				proc.Trck.Tick() // update tracḱing values (e.g. elapsed time)
 				printProgress(proc.Trck, false)
 			}
-		case pInfo, ok := <-proc.Trck.PInfo:
+		case pInfo, ok := <-proc.Trck.Out:
 			if !ok {
 				// if there is no more file to process, the final progress data
-				// is displayed (if the user desn't want smsync to be verbose)
+				// is displayed (if the user doesn't want smsync to be verbose)
 				if !verbose {
 					printProgress(proc.Trck, false)
 					fmt.Println()
 				}
 				break loop
 			}
-			// if ticker hasn't ticked so far: print progress (if the user
-			// doesn't want smsync to be verbose)
-			if !ticked && !verbose {
-				printProgress(proc.Trck, false)
-			}
-
-			// if the user wants smsync to be verbose, display file (that
-			// has been processed) ...
+			// if the user wants smsync to be verbose, display detailed info
 			if verbose {
 				printVerbose(cfg, pInfo)
+				continue
 			}
+			// if ticker hasn't ticked so far: print progress
+			if !ticked {
+				printProgress(proc.Trck, false)
+			}
+		case <-stop:
+			proc.Stop()
+			break loop
 		}
 	}
 
-	// if processing has finished: stop ticker
 	ticker.Stop()
 
-	// wait for processing
+	// wait for processing to be finished
 	proc.Wait()
 
-	// return elapsed time
-	return proc.Trck
+	// print final success message
+	printFinal(proc.Trck)
 }
 
 // synchronize is the main function of smsync. It triggers the entire sync
@@ -163,24 +181,7 @@ func synchronize(level log.Level, verbose bool) error {
 
 	// do synchronization / conversion
 	fmt.Println("\n:: Synchronization / conversion")
-	trck := process(&cfg, files, cli.init, cli.verbose)
-
-	// print final success message
-	if trck.TotalNum > trck.Done {
-		fmt.Println("\n:: Stopped")
-	} else {
-		fmt.Println("\n:: Done :)")
-	}
-	split := lhlp.SplitDuration(trck.Elapsed)
-	fmt.Printf("   Processed %d files and directories in %s\n",
-		len(*files),
-		fmt.Sprintf("%dh %02dmin %02ds",
-			split[time.Hour],
-			split[time.Minute],
-			split[time.Second]))
-	if trck.Errors > 0 {
-		fmt.Printf("   %d errors during conversion\n", trck.Errors)
-	}
+	process(&cfg, files, cli.init, cli.verbose)
 
 	// everything's fine
 	return nil

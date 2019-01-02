@@ -18,6 +18,7 @@
 package smsync
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -46,6 +47,8 @@ func deleteObsoleteFiles(cfg *Config, srcDir file.Info) {
 		exists bool
 		err    error
 	)
+
+	fmt.Println("DELETEOBSOLETEFILES")
 
 	// assemble target directory path
 	trgDir, err = file.PathRelCopy(cfg.SrcDir, srcDir.Path(), cfg.TrgDir)

@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  branch = "master"
+  digest = "1:a2672d1123916d1482d313d994f5cb254b4df61b2498844f3de7e10f564e14e4"
+  name = "github.com/eiannone/keyboard"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "6d2a597fd0f1f80b2dfdab8e893792dbd9e2db45"
+
+[[projects]]
   digest = "1:c914c5f07b45352e70e55d147661667b45e69f01e4ba94ddd260d62a4c0b1aa9"
   name = "github.com/go-ini/ini"
   packages = ["."]
@@ -26,23 +34,23 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:0ab9cd1f0f31c42c5ba22691b406fad417f656c254af44d93af2786eec71eae3"
+  digest = "1:12c7eff74734bb14c4b4b35de59395719fea2c417329e97511dbc9a32dc765ae"
   name = "github.com/mipimipi/go-lhlp"
   packages = [
     ".",
     "file",
   ]
   pruneopts = "UT"
-  revision = "30a7a83eab6dece8b6199c1b9e5ff3acf74dfa69"
-  version = "2.7"
+  revision = "914e4f0d70634889a7a1cd5f2f6d840e57851dfa"
+  version = "2.8"
 
 [[projects]]
-  digest = "1:ac027374fc38396ea1b761117e0b0557b42bf8289102ca89b3851afbcddaddd9"
+  digest = "1:06228599c4406c23ae360c405247db5fef38357349adcc9c300a0532c27650b5"
   name = "github.com/mipimipi/workerpool"
   packages = ["."]
   pruneopts = "UT"
-  revision = "22fb13ed4af71090236fbdbf44b2671fe2162724"
-  version = "0.2"
+  revision = "87043b3fb030f275c19f863c3ec12c8c89fc824d"
+  version = "0.3"
 
 [[projects]]
   branch = "master"
@@ -107,6 +115,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/eiannone/keyboard",
     "github.com/go-ini/ini",
     "github.com/mipimipi/go-lhlp",
     "github.com/mipimipi/go-lhlp/file",

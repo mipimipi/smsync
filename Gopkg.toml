@@ -26,16 +26,20 @@
 
 
 [[constraint]]
+  branch = "master"
+  name = "github.com/eiannone/keyboard"
+
+[[constraint]]
   name = "github.com/go-ini/ini"
   version = "1.40.0"
 
 [[constraint]]
   name = "github.com/mipimipi/go-lhlp"
-  version = "2.7.0"
+  version = "2.8.0"
 
 [[constraint]]
   name = "github.com/mipimipi/workerpool"
-  version = "0.2.0"
+  version = "0.3.0"
 
 [[constraint]]
   branch = "master"

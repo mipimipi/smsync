@@ -20,7 +20,6 @@ package smsync
 import (
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/mipimipi/go-lhlp/file"
@@ -48,12 +47,13 @@ type (
 
 // Process contains the data to control the sync process
 type Process struct {
-	pl    *wp.Pool       // worker pool
-	Trck  *Tracking      // progress tracking
-	wg    sync.WaitGroup // to allow caller to wait for end of sync
-	cfg   *Config        // smsync config
-	files *[]*file.Info  // list of files that need to be synched
-	init  bool           // called in init mode?
+	pl      *wp.Pool      // worker pool
+	Trck    *Tracking     // progress tracking
+	cfg     *Config       // smsync config
+	files   *[]*file.Info // list of files that need to be synched
+	init    bool          // called in init mode?
+	cleanup chan struct{} // start cleanup
+	done    chan struct{} // report processing to be done
 }
 
 // constants for task names, needed for workerpool
@@ -75,6 +75,10 @@ func NewProcess(cfg *Config, files *[]*file.Info, init bool) *Process {
 	// set up progress tracking
 	proc.Trck = newTrck(files, du.NewDiskUsage(cfg.TrgDir).Available()) // tracking
 
+	// make channels
+	proc.cleanup = make(chan struct{})
+	proc.done = make(chan struct{})
+
 	// store sync parameters
 	proc.cfg = cfg
 	proc.files = files
@@ -84,13 +88,11 @@ func NewProcess(cfg *Config, files *[]*file.Info, init bool) *Process {
 }
 
 // cleanUp removes temporary files and directories and updates the config file
-func (proc *Process) cleanUp(wg *sync.WaitGroup) {
-	defer proc.wg.Done()
-
-	proc.pl.Wait()
-
+func (proc *Process) cleanUp() {
 	log.Debug("smsync.Process.cleanUp: BEGIN")
 	defer log.Debug("smsync.Process.cleanUp: END")
+
+	<-proc.cleanup
 
 	// remove log file if it's empty
 	file.RemoveEmpty(filepath.Join(proc.cfg.TrgDir, LogFile))
@@ -98,14 +100,15 @@ func (proc *Process) cleanUp(wg *sync.WaitGroup) {
 
 	// update config file
 	proc.cfg.setProcEnd()
+
+	// processing finished
+	close(proc.done)
 }
 
 // Run executes the sync process and cleans up after the sync has finished
 func (proc *Process) Run() {
 	log.Debug("smsync.Process.Run: BEGIN")
 	defer log.Debug("smsync.Process.Run: END")
-
-	var wg sync.WaitGroup
 
 	// if no files need to be synched: exit
 	if len(*proc.files) == 0 {
@@ -125,13 +128,12 @@ func (proc *Process) Run() {
 		deleteTrg(proc.cfg)
 	}
 
-	wg.Add(1)
 	go func() {
-		defer wg.Done()
+		// trigger cleanup
+		defer close(proc.cleanup)
 
 		// start progress tracking and register tracking stop
 		proc.Trck.start()
-		defer proc.Trck.stop()
 
 		// fill worklist with files and close worklist channel
 		go func() {
@@ -167,26 +169,24 @@ func (proc *Process) Run() {
 		for res := range proc.pl.Out {
 			switch res.Name {
 			case taskNameDir:
-				proc.Trck.update(
-					ProcInfo{SrcFile: res.Out.(file.Info),
-						TrgFile: nil,
-						Dur:     0,
-						Err:     nil})
+				proc.Trck.in <- ProcInfo{SrcFile: res.Out.(file.Info),
+					TrgFile: nil,
+					Dur:     0,
+					Err:     nil}
 			case taskNameFile:
-				proc.Trck.update(
-					ProcInfo{SrcFile: res.Out.(procOut).srcFile,
-						TrgFile: res.Out.(procOut).trgFile,
-						Dur:     res.Out.(procOut).dur,
-						Err:     res.Out.(procOut).err})
+				proc.Trck.in <- ProcInfo{SrcFile: res.Out.(procOut).srcFile,
+					TrgFile: res.Out.(procOut).trgFile,
+					Dur:     res.Out.(procOut).dur,
+					Err:     res.Out.(procOut).err}
 			default:
 				log.Warningf("Task name '%s' received", res.Name)
 			}
 		}
+		close(proc.Trck.in)
 	}()
 
 	// cleaning up
-	proc.wg.Add(1)
-	go proc.cleanUp(&wg)
+	go proc.cleanUp()
 }
 
 // Stop stops the sync process
@@ -196,5 +196,5 @@ func (proc *Process) Stop() {
 
 // Wait waits for the sync process to be finished
 func (proc *Process) Wait() {
-	proc.wg.Wait()
+	<-proc.done
 }
