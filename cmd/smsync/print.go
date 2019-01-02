@@ -103,7 +103,7 @@ func printCfgSummary(cfg *smsync.Config) {
 
 func printFinal(trck *smsync.Tracking) {
 	if trck.TotalNum > trck.Done {
-		fmt.Println("\n:: Stopped")
+		fmt.Printf("\n:: STOPPED! %d files or directories left to process", trck.TotalNum-trck.Done)
 	} else {
 		fmt.Println("\n:: Done :)")
 	}
@@ -114,9 +114,10 @@ func printFinal(trck *smsync.Tracking) {
 			split[time.Hour],
 			split[time.Minute],
 			split[time.Second]))
-	if trck.Errors > 0 {
-		fmt.Printf("   %d errors during conversion\n", trck.Errors)
-	}
+	fmt.Printf("   Conv errs: %d\n", trck.Errors)
+	fmt.Printf("   #Conv/min: %2.1f\n", trck.Throughput)
+	fmt.Printf("   Avg durat: %2.2fs\n", trck.AvgDur.Seconds())
+	fmt.Printf("   Avg compr: %3.1f%%\n", 100*trck.Comp)
 }
 
 // printProgress displays the progress of the file conversion

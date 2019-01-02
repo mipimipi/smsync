@@ -176,7 +176,7 @@ func synchronize(level log.Level, verbose bool) error {
 	}
 
 	// do synchronization / conversion
-	fmt.Println("\n:: Synchronization / conversion (press <ESC> to stop)")
+	fmt.Println("\n:: Synchronization / conversion (PRESS <ESC> TO STOP)")
 	process(cfg, files, cli.init, cli.verbose)
 
 	// everything's fine
