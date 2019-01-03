@@ -101,11 +101,11 @@ func printCfgSummary(cfg *smsync.Config) {
 	}
 }
 
-func printFinal(trck *smsync.Tracking) {
+func printFinal(trck *smsync.Tracking, verbose bool) {
 	if trck.TotalNum > trck.Done {
-		fmt.Printf("\n:: STOPPED! %d files or directories left to process", trck.TotalNum-trck.Done)
+		fmt.Printf("\n:: STOPPED! %d files or directories left to process\n", trck.TotalNum-trck.Done)
 	} else {
-		fmt.Println("\n:: Done :)")
+		fmt.Printf("\n:: Done :)\n")
 	}
 	split := lhlp.SplitDuration(trck.Elapsed)
 	fmt.Printf("   Processed %d files and directories in %s\n",
@@ -114,10 +114,12 @@ func printFinal(trck *smsync.Tracking) {
 			split[time.Hour],
 			split[time.Minute],
 			split[time.Second]))
-	fmt.Printf("   Conv errs: %d\n", trck.Errors)
-	fmt.Printf("   #Conv/min: %2.1f\n", trck.Throughput)
-	fmt.Printf("   Avg durat: %2.2fs\n", trck.AvgDur.Seconds())
-	fmt.Printf("   Avg compr: %3.1f%%\n", 100*trck.Comp)
+	if verbose {
+		fmt.Printf("   Conv errs: %d\n", trck.Errors)
+		fmt.Printf("   #Conv/min: %2.1f\n", trck.Throughput)
+		fmt.Printf("   Avg durat: %2.2fs\n", trck.AvgDur.Seconds())
+		fmt.Printf("   Avg compr: %3.1f%%\n", 100*trck.Comp)
+	}
 }
 
 // printProgress displays the progress of the file conversion

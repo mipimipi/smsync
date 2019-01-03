@@ -217,7 +217,9 @@ func Find(roots []string, filter func(Info, ValidPropagate) (bool, ValidPropagat
 		valid, vpSub := filter(inf, vp)
 		if valid {
 			// send dir to result channel
-			res <- &inf
+			go func() {
+				res <- &inf
+			}()
 		}
 		// descend into directory
 		if vpSub != InvalidFromSuper {
@@ -254,6 +256,7 @@ func Find(roots []string, filter func(Info, ValidPropagate) (bool, ValidPropagat
 	}
 
 	// start traversal for the root directories
+
 	for _, root := range roots {
 		// get file info for root directory
 		fi, err := os.Stat(root)

@@ -10,12 +10,12 @@
   revision = "6d2a597fd0f1f80b2dfdab8e893792dbd9e2db45"
 
 [[projects]]
-  digest = "1:c914c5f07b45352e70e55d147661667b45e69f01e4ba94ddd260d62a4c0b1aa9"
+  digest = "1:8b4bb15de2e698d359eeec15c42453567c98972a70c8619946050360ec02ec32"
   name = "github.com/go-ini/ini"
   packages = ["."]
   pruneopts = "UT"
-  revision = "a9da9309fb4822643ceebb765f80025c35ac19a1"
-  version = "v1.40.0"
+  revision = "6ed8d5f64cd79a498d1f3fab5880cc376ce41bbe"
+  version = "v1.41.0"
 
 [[projects]]
   digest = "1:870d441fe217b8e689d7949fef6e43efbc787e50f200cb1e70dbca9204a1d6be"
@@ -34,15 +34,15 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:b5baa5a1da5539503d73c5f0b086816ff697842813452bbec61092fb0e6df7ec"
+  digest = "1:9c5ae637e453531a3cd81804872eb55e6e52d4b15a596473cb1c774094972664"
   name = "github.com/mipimipi/go-lhlp"
   packages = [
     ".",
     "file",
   ]
   pruneopts = "UT"
-  revision = "ff402662d6f983296ec17f42f6e09cade0a2c7d1"
-  version = "2.9"
+  revision = "9620917e4625fd9125950795326803a7c08bcbff"
+  version = "2.10"
 
 [[projects]]
   digest = "1:703f3d7eb5fe54febe33674b8891f6cb3e9b579ca43454a8931733b5830c97b9"
@@ -90,7 +90,7 @@
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = "UT"
-  revision = "505ab145d0a99da450461ae2c1a9f6cd10d1f447"
+  revision = "8d7daa0c54b357f3071e11eaef7efc4e19a417e2"
 
 [[projects]]
   branch = "master"

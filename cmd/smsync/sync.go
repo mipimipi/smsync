@@ -36,6 +36,7 @@ func listenStop() (stop chan struct{}) {
 
 	go func() {
 		if _, key, _ := keyboard.GetSingleKey(); key == keyboard.KeyEsc {
+			stop <- struct{}{}
 			close(stop)
 		}
 	}()
@@ -97,10 +98,10 @@ loop:
 			if !ticked {
 				printProgress(proc.Trck, false, wantstop)
 			}
-		case <-stop:
-			if !wantstop {
-				proc.Stop()
+		case _, ok := <-stop:
+			if ok {
 				wantstop = true
+				proc.Stop()
 			}
 		}
 	}
@@ -111,7 +112,7 @@ loop:
 	proc.Wait()
 
 	// print final success message
-	printFinal(proc.Trck)
+	printFinal(proc.Trck, verbose)
 }
 
 // synchronize is the main function of smsync. It triggers the entire sync
