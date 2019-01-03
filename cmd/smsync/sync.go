@@ -61,7 +61,10 @@ func process(cfg *smsync.Config, files *[]*file.Info, init bool, verbose bool) {
 	proc := smsync.NewProcess(cfg, files, init)
 	proc.Run()
 
-	// channel for stop from keyboard
+	// channel for stop from keyboard. deferred close is necessary since if
+	// processing hasn't been stopped, listenStop is still waiting for a key
+	// to be pressed
+	defer keyboard.Close()
 	stop := listenStop()
 
 	// print header (if the user doesn't want smsync to be verbose)
