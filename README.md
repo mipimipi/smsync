@@ -22,7 +22,7 @@ New music is typically added to the source only. If that happened you want to up
 * [Usage](#usage)
     * [Configuration File](#config)
         - [General Configuration](#general)
-        - [Exclude Folders](#exclude)
+        - [Excluded Folders](#exclude)
         - [Conversion Rules](#rules)
         - [Format-dependent Conversion Parameters](#format)
             - [FLAC](#flac)
@@ -31,6 +31,7 @@ New music is typically added to the source only. If that happened you want to up
             - [OPUS](#opus)
     * [Synchronization Process](#syncproc)
         - [FFMPEG errors](#errors)
+        - [Interruption of the process](#interrupt)
     * [Command Line Options](#command)
     * [Keeping source and target consistent](#consistency)  
         - [Case 1: Scope has been reduced](#case1)
@@ -115,7 +116,7 @@ In former releases (< smsync 3.0) a configuration file in [INI format](https://e
 
 smsync interprets the configuration file. In the example, the root folder of the source is `/home/musiclover/Music/SOURCE`. The next two entries are optional. They tell smsync to use 4 cpus and start 4 worker processes for the conversion. Per default, smsync uses all available cpus and starts #cpus worker processes.
 
-#### <a name="exclude"></a>Exclude Folders
+#### <a name="exclude"></a>Excluded Folders
 
 `exclude` allows to exclude a list of source folders from the conversion. The folder paths in that list are interpreted relative to the source directory. Wildcards are supported. In the example, all folders fitting to the pattern `/home/musiclover/Music/SOURCE/Rock/Eric*` are excluded, i.e. `/home/musiclover/Music/SOURCE/Rock/Eric Clapton`, `/home/musiclover/Music/SOURCE/Rock/Eric Burden` etc. are excluded. The exclusion feature can be helpful if the target disk space is not big enough. In such a case, some artists or even entire genres can be excluded. Another option to deal with insufficient disk space would be to configure a higher compression rate.
 
@@ -265,9 +266,15 @@ to such a target folder structure:
 
 The folder "/home/musiclover/Music/SOURCE/Rock/Eric Clapton" hasn't been converted because the directory fits to the exclusion pattern.
 
-### <a name="errors"></a>FFMPEG errors
+#### <a name="errors"></a>FFMPEG errors
 
 During the conversion with FFMPEG, errors can occur. Unfortunately, there's not much information about the exit codes of FFMPEG (all I could find is [this](https://lists.ffmpeg.org/pipermail/ffmpeg-user/2013-July/016245.html). In particular, it seems to be impossible to find out if an error occured during the audio conversion or if it only had to do with the cover art. Therefore, smsync reports an error every time the exit code of FFMPEG is not zero. In addition to that, a file with the detailed log information of FFMPEG ([`-loglevel verbose`](http://ffmpeg.org/ffmpeg.html#Generic-options)) is stored in the directory `smsync.cv.err`. This file is named `<name-of-the-music-file-that-was-converted>.log`.
+
+#### <a name="interrupt></a>Interruption of the process
+
+In case of a huge music collaction (tens of thousands of songs), the synchronization process might take very long (10+ hours is normal for a first run). For such cases, smsync offers the possibility to interrupt the process by pressing `<ESC>`. The process finalizes the conversions that have already started and stops afterwards. The next synchronization run selects only the remaining source files.
+
+WARNING: PLEASE USE ONLY THIS OPTION TO INTERRUPT THE PROCESS. INTERRUPTION VIA `<CTRL-C>`, CLOSURE OF THE TERMINAL WINDOW ETC. CAN LEAD TO INCOMPLETE/INCONSISTENT TARGET FILES !!!
 
 ### <a name="command"></a>Command Line Options
 

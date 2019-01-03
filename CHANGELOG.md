@@ -1,3 +1,9 @@
+## [Release 3.4.0](https://github.com/mipimipi/smsync/releases/tag/3.4.0) (2019-01-03)
+
+### Added
+
+* Support interruption of synchronization and later continuation ([#24](https://github.com/mipimipi/smsync/issues/24))
+
 ## [Release 3.3.1](https://github.com/mipimipi/smsync/releases/tag/3.3.1) (2018-12-28)
 
 ### Removed
