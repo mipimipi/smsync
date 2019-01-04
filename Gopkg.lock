@@ -10,14 +10,6 @@
   revision = "6d2a597fd0f1f80b2dfdab8e893792dbd9e2db45"
 
 [[projects]]
-  digest = "1:8b4bb15de2e698d359eeec15c42453567c98972a70c8619946050360ec02ec32"
-  name = "github.com/go-ini/ini"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "6ed8d5f64cd79a498d1f3fab5880cc376ce41bbe"
-  version = "v1.41.0"
-
-[[projects]]
   digest = "1:870d441fe217b8e689d7949fef6e43efbc787e50f200cb1e70dbca9204a1d6be"
   name = "github.com/inconshreveable/mousetrap"
   packages = ["."]
@@ -34,15 +26,15 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:9c5ae637e453531a3cd81804872eb55e6e52d4b15a596473cb1c774094972664"
+  digest = "1:a6639ac6b1d96166792a2b3f1df34913e2d1e36865e31b823c336faebecf5c78"
   name = "github.com/mipimipi/go-lhlp"
   packages = [
     ".",
     "file",
   ]
   pruneopts = "UT"
-  revision = "9620917e4625fd9125950795326803a7c08bcbff"
-  version = "2.10"
+  revision = "afe0838987e08b27d2fe370e8aa9538208465c4f"
+  version = "2.11"
 
 [[projects]]
   digest = "1:703f3d7eb5fe54febe33674b8891f6cb3e9b579ca43454a8931733b5830c97b9"
@@ -90,7 +82,7 @@
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = "UT"
-  revision = "8d7daa0c54b357f3071e11eaef7efc4e19a417e2"
+  revision = "ff983b9c42bc9fbf91556e191cc8efb585c16908"
 
 [[projects]]
   branch = "master"
@@ -116,7 +108,6 @@
   analyzer-version = 1
   input-imports = [
     "github.com/eiannone/keyboard",
-    "github.com/go-ini/ini",
     "github.com/mipimipi/go-lhlp",
     "github.com/mipimipi/go-lhlp/file",
     "github.com/mipimipi/workerpool",

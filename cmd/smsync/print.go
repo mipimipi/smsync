@@ -59,7 +59,7 @@ func printCfgSummary(cfg *smsync.Config) {
 	fmt.Println("\n:: Configuration")
 
 	// source directory
-	fmt.Printf(fmGen, "Source", cfg.SrcDir) // nolint
+	fmt.Printf(fmGen, "Source", cfg.SrcDir.Path()) // nolint
 
 	// directories to exclude
 	if len(cfg.Excludes) > 0 {
@@ -70,7 +70,7 @@ func printCfgSummary(cfg *smsync.Config) {
 	}
 
 	// target directory
-	fmt.Printf(fmGen, "Destination", cfg.TrgDir) // nolint
+	fmt.Printf(fmGen, "Destination", cfg.TrgDir.Path()) // nolint
 
 	// last sync time
 	if cfg.LastSync.IsZero() {
@@ -184,7 +184,7 @@ func printProgress(trck *smsync.Tracking, first, wantstop bool) {
 // of the converted file is displayed relative to the source directory.This
 // function is used if the user called smsync with the option --verbose / -v
 func printVerbose(cfg *smsync.Config, pInfo smsync.ProcInfo) {
-	srcFile, err := filepath.Rel(cfg.SrcDir, pInfo.SrcFile.Path())
+	srcFile, err := filepath.Rel(cfg.SrcDir.Path(), pInfo.SrcFile.Path())
 	if err != nil {
 		log.Error(err)
 	} else {

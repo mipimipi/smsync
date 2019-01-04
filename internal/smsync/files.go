@@ -32,6 +32,13 @@ import (
 // errDir is the directory that stores error logs from conversion
 const errDir = "smsync.cv.errs"
 
+// CleanUp remove temporary files
+func CleanUp(cfg *Config) {
+	// remove log file if it's empty
+	file.RemoveEmpty(filepath.Join(cfg.TrgDir.Path(), LogFile))
+	log.Debug("Removed log files (at least tried to do that)")
+}
+
 // deleteObsoleteFiles deletes directories and files that are available in the
 // target directory tree but not in the source directory tree. It is called
 // for all source directories that have been changed since the last sync.
@@ -48,7 +55,9 @@ func deleteObsoleteFiles(cfg *Config, srcDir file.Info) {
 	)
 
 	// assemble target directory path
-	trgDir, err = file.PathRelCopy(cfg.SrcDir, srcDir.Path(), cfg.TrgDir)
+	trgDir, err = file.PathRelCopy(cfg.SrcDir.Path(),
+		srcDir.Path(),
+		cfg.TrgDir.Path())
 	if err != nil {
 		log.Errorf("deleteObsoleteFiles: %v", err)
 		return
@@ -116,12 +125,12 @@ func deleteObsoleteFiles(cfg *Config, srcDir file.Info) {
 }
 
 // DeleteTrg deletes all entries of the target directory
-func deleteTrg(cfg *Config) {
+func deleteTrg(dir string) {
 	log.Debug("smsync.deleteTrg: BEGIN")
 	defer log.Debug("smsync.deleteTrg: END")
 
 	// read entries of target directory
-	trgEntrs, err := ioutil.ReadDir(cfg.TrgDir)
+	trgEntrs, err := ioutil.ReadDir(dir)
 	if err != nil {
 		log.Errorf("deleteTrg: %v", err)
 		return
@@ -134,7 +143,7 @@ func deleteTrg(cfg *Config) {
 			continue
 		}
 		// delete entry
-		if err = os.RemoveAll(filepath.Join(cfg.TrgDir, trgEntr.Name())); err != nil {
+		if err = os.RemoveAll(filepath.Join(dir, trgEntr.Name())); err != nil {
 			log.Errorf("deleteTrg: %v", err)
 			return
 		}
@@ -167,8 +176,13 @@ func GetSyncFiles(cfg *Config, init bool) (files *[]*file.Info) {
 	//                     corresponding directory. I.e. all downward content
 	//                     will be ignored
 	filter := func(srcFile file.Info, vp file.ValidPropagate) (bool, file.ValidPropagate) {
+		log.Debugf("smsync.GetSyncFiles.filter(%s): BEGIN", srcFile.Path())
+		defer log.Debugf("smsync.GetSyncFiles(%s): END", srcFile.Path())
+
 		// distinguish between directories and files
 		if srcFile.IsDir() {
+			log.Debug("Directory")
+
 			// if a directory is excluded, itself and all sub directories and
 			// files are not relevant
 			if lhlp.Contains(cfg.Excludes, srcFile.Path()) {
@@ -177,11 +191,14 @@ func GetSyncFiles(cfg *Config, init bool) (files *[]*file.Info) {
 			// if relevance is propagated from the parent, this directory is not
 			// relevant, but all sub directories and files are relevant
 			if vp == file.ValidFromSuper {
+				log.Debug("VALID FROM SUPER -> FALSE, VALID FROM SUPER")
+
 				return false, file.ValidFromSuper
 			}
 			// if the target side shall be initialized, this directory is not
 			// relevant but relevance is propagated downwards
 			if init {
+				log.Debug("init -> FALSE, VALID FROM SUPER")
 				return false, file.ValidFromSuper
 			}
 			// if the directory has been changed since the last sync, it's
@@ -190,6 +207,7 @@ func GetSyncFiles(cfg *Config, init bool) (files *[]*file.Info) {
 			// Relevance is not propagated since the filter logic needs to be
 			// applied to them
 			if srcFile.ModTime().After(cfg.LastSync) && !cfg.LastSync.IsZero() {
+				log.Debug("Modtime > lastsync -> TRUE, NONE FROM SUPER")
 				return true, file.NoneFromSuper
 			}
 			// if parent has been changed ...
@@ -200,21 +218,26 @@ func GetSyncFiles(cfg *Config, init bool) (files *[]*file.Info) {
 				// downwards content needs to be filtered. Otherwise, it's
 				// clear that the downward content is relevant, filter logic
 				// doesn't have to be applied.
+				log.Debug("Parent dir changed")
 
 				// assemble target directory
-				trgDir, _ := file.PathRelCopy(cfg.SrcDir, srcFile.Path(), cfg.TrgDir)
+				trgDir, _ := file.PathRelCopy(cfg.SrcDir.Path(), srcFile.Path(), cfg.TrgDir.Path())
 				// check if target directory exists
 				if exists, err := file.Exists(trgDir); err == nil && !exists {
+					log.Debug("Trg doesn't exist -> FALSE, NONE FROM SUPER")
+
 					return false, file.ValidFromSuper
 				}
 			}
 			// if none of the above rules applied, this directory is not
 			// relevant and the downward content is filtered
+			log.Debug("Nothing applied -> FALSE, NONE FROM SUPER")
 			return false, file.NoneFromSuper
 		}
 		// Here, srcFile is a file (no directory). For files, downward
 		// propagation of relevance makes no sense. Thus, in this branch,
 		// 'NoneFromSuper' is always returned
+		log.Debug("File")
 
 		// if file is not regular, it's not relevant
 		if !srcFile.Mode().IsRegular() {
@@ -228,6 +251,8 @@ func GetSyncFiles(cfg *Config, init bool) (files *[]*file.Info) {
 		// if relevance is propagated from the parent, this file is relevant
 		// without further checks
 		if vp == file.ValidFromSuper {
+			log.Debug("VALID FROM SUPER -> TRUE, VALID FROM SUPER")
+
 			return true, file.NoneFromSuper
 		}
 		// assemble target file name and check if file exists
@@ -241,11 +266,14 @@ func GetSyncFiles(cfg *Config, init bool) (files *[]*file.Info) {
 		// interrupt (and thus its mod time is after the last sync). In this
 		// case this file is not relevant.
 		if srcFile.ModTime().After(cfg.LastSync) {
+			log.Debug("Modtime > lastsync")
+
 			if err == nil && (!exists || inf.ModTime().Before(cfg.LastSync) && !cfg.LastSync.IsZero()) {
-				log.Debug("Trg doesn't exist or mod before lastsync or lastsync is zero -> TRUE, NONE FROM SUPER")
+				log.Debug("Trg doesn't exist or modtime < lastsync or lastsync==0 -> TRUE, NONE FROM SUPER")
 
 				return true, file.NoneFromSuper
 			}
+			log.Debug("Trg exist and (modtime > lastsync or lastsync!=0) -> FALSE, NONE FROM SUPER")
 			return false, file.NoneFromSuper
 		}
 		// if parent has been changed it could be that this files has been
@@ -253,13 +281,15 @@ func GetSyncFiles(cfg *Config, init bool) (files *[]*file.Info) {
 		// target side. If the counterpart exists, then this file is not
 		// relevant. Otherwise it is relevant.
 		if parentDirChgd(filepath.Dir(srcFile.Path()), cfg.LastSync) && err == nil && !exists {
+			log.Debug("Parent dir changed and trg doesn't exist -> TRUE, NONE FROM SUPER")
 			return true, file.NoneFromSuper
 		}
+		log.Debug("Nothing applied -> FALSE, NONE FROM SUPER")
 		return false, file.NoneFromSuper
 	}
 
 	// call FindFiles with the smsync filter function to get the directories and files
-	files = file.Find([]string{cfg.SrcDir}, filter, 20)
+	files = file.Find([]file.Info{cfg.SrcDir}, filter, 1)
 
 	return files
 }

@@ -164,11 +164,16 @@ func synchronize(level log.Level, verbose bool) error {
 	close(stop)
 	<-confirm
 
-	// if no files need to be synchec: exit
+	// if no files need to be synchec: clean up and exit
 	if len(*files) == 0 {
 		fmt.Println("   Nothing to synchronize. Leaving smsync ...")
 		log.Info("Nothing to synchronize")
+		smsync.CleanUp(cfg)
 		return nil
+	}
+
+	for _, f := range *files {
+		fmt.Println((*f).Path())
 	}
 
 	// print summary and ask user for OK to continue

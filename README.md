@@ -110,8 +110,6 @@ Example:
       conversion: copy
     - source: '*'
 
-In former releases (< smsync 3.0) a configuration file in [INI format](https://en.wikipedia.org/wiki/INI_file) was required (`SMSYNC.CONF`) instead of a YAML file. If no `smsync.yaml`exists, smsync is taking a potentially  existing `SMSYNC.CONF` and converts it into a YAML file `smsync.yaml`. After that, the old configuration file is obsolete and can be deleted. 
-
 #### <a name="general"></a>General Configuration
 
 smsync interprets the configuration file. In the example, the root folder of the source is `/home/musiclover/Music/SOURCE`. The next two entries are optional. They tell smsync to use 4 cpus and start 4 worker processes for the conversion. Per default, smsync uses all available cpus and starts #cpus worker processes.

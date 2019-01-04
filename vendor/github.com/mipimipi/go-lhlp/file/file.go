@@ -181,19 +181,19 @@ func ExistsInfo(path string) (bool, Info, error) {
 // book "The Go Programming Language" by Alan A. A. Donovan & Brian W.
 // Kernighan.
 // See: https://github.com/adonovan/gopl.io/blob/master/ch8/du4/main.go
-func Find(roots []string, filter func(Info, ValidPropagate) (bool, ValidPropagate), numWorkers int) (files *[]*Info) {
+func Find(roots []Info, filter func(Info, ValidPropagate) (bool, ValidPropagate), numWorkers int) (files *[]*Info) {
 	var (
-		descend func(Info, ValidPropagate, chan<- *Info) // func needs to be declared here since it calls itself recursively
-		wg      sync.WaitGroup                           // waiting group for the concurrent traversal
-		res     = make(chan *Info)                       // result channel to collect th relevant files
-		sema    = make(chan struct{}, numWorkers)        // use as semaphore to restrict the number of Go routines
-
+		filterDescendDir func(Info, ValidPropagate) // func needs to be declared here since it calls itself recursively
+		wg               sync.WaitGroup             // waiting group for the concurrent traversal
+		addfiles         = make(chan *Info)         // channel to collect results
 	)
-
-	defer close(sema)
 
 	// allocate result array
 	files = new([]*Info)
+
+	// create buffered channel, used as semaphore to restrict the number of Go routines
+	sema := make(chan struct{}, numWorkers)
+	defer close(sema)
 
 	// function to retrieve the entries of a directory
 	entries := func(dir Info) []os.FileInfo {
@@ -206,79 +206,63 @@ func Find(roots []string, filter func(Info, ValidPropagate) (bool, ValidPropagat
 		if err != nil {
 			return nil
 		}
-
 		return entrs
 	}
 
 	// function to check if a directory is relevant. If yes, descend into that
 	// directory
-	checkDescendDir := func(fi os.FileInfo, dir string, vp ValidPropagate, res chan<- *Info) {
-		inf := newInfo(fi, dir)
+	filterDescendDir = func(inf Info, vp ValidPropagate) {
+		defer wg.Done()
+
 		valid, vpSub := filter(inf, vp)
 		if valid {
-			// send dir to result channel
-			go func() {
-				res <- &inf
-			}()
+			addfiles <- &inf
 		}
 		// descend into directory
 		if vpSub != InvalidFromSuper {
-			wg.Add(1)
-			go descend(inf, vpSub, res)
-		}
-	}
-
-	// function to traverse the directory tree. Calls itself recursively
-	descend = func(dir Info, vp ValidPropagate, res chan<- *Info) {
-		defer wg.Done()
-
-		// loop at the entries of dir
-		for _, entr := range entries(dir) {
-			// distinguish between dirs and files. Both need to fulfill the
-			// filter condition. If they do, the entry is appended to the
-			// corresponding array (either dirs or files)
-			if entr.IsDir() {
-				// check entr and descend
-				checkDescendDir(entr, filepath.Join(dir.Path(), entr.Name()), vp, res)
-			} else {
-				// only regular files are relevant
-				if !entr.Mode().IsRegular() {
-					continue
-				}
-				// filter and add entry to files
-				inf := newInfo(entr, filepath.Join(dir.Path(), entr.Name()))
-				if valid, _ := filter(inf, vp); valid {
-					// send file to result channel
-					res <- &inf
+			// loop at the entries of dir
+			for _, entr := range entries(inf) {
+				// distinguish between dirs and files. Both need to fulfill the
+				// filter condition. If they do, the entry is send to the
+				// results channel
+				if entr.IsDir() {
+					// filter entr and descend
+					wg.Add(1)
+					go filterDescendDir(newInfo(entr, filepath.Join(inf.Path(), entr.Name())), vpSub)
+				} else {
+					// only regular files are relevant
+					if !entr.Mode().IsRegular() {
+						continue
+					}
+					// filter and add entry to files
+					infSub := newInfo(entr, filepath.Join(inf.Path(), entr.Name()))
+					if valid, _ := filter(infSub, vpSub); valid {
+						addfiles <- &infSub
+					}
 				}
 			}
 		}
 	}
 
 	// start traversal for the root directories
-
 	for _, root := range roots {
-		// get file info for root directory
-		fi, err := os.Stat(root)
-		if err != nil {
-			panic(err.Error())
-		}
 		// verify that root is a directory
-		if !fi.IsDir() {
+		if !root.IsDir() {
 			continue
 		}
-		// check root and descend
-		checkDescendDir(fi, root, NoneFromSuper, res)
+		// filter root and descend
+		wg.Add(1)
+		go filterDescendDir(root, NoneFromSuper)
 	}
 
 	// wait for traversals to be finalized
 	go func() {
 		wg.Wait()
-		close(res)
+		close(addfiles)
 	}()
 
-	// retrieve results from channel
-	for f := range res {
+	// collect results into results array
+	for f := range addfiles {
 		*files = append(*files, f)
 	}
 

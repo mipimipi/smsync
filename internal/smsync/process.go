@@ -19,7 +19,6 @@ package smsync
 
 import (
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/mipimipi/go-lhlp/file"
@@ -74,7 +73,7 @@ func NewProcess(cfg *Config, files *[]*file.Info, init bool) *Process {
 	proc.pl = wp.NewPool(cfg.NumWrkrs)
 
 	// set up progress tracking
-	proc.Trck = newTrck(files, du.NewDiskUsage(cfg.TrgDir).Available()) // tracking
+	proc.Trck = newTrck(files, du.NewDiskUsage(cfg.TrgDir.Path()).Available()) // tracking
 
 	// make channels
 	proc.cleanup = make(chan struct{})
@@ -99,9 +98,8 @@ func (proc *Process) cleanUp() {
 	// stop tracking
 	proc.Trck.stop()
 
-	// remove log file if it's empty
-	file.RemoveEmpty(filepath.Join(proc.cfg.TrgDir, LogFile))
-	log.Debug("Removed log files (at least tried to do that)")
+	// remove temporary files
+	CleanUp(proc.cfg)
 
 	// update config file
 	if !proc.stopped {
@@ -132,7 +130,7 @@ func (proc *Process) Run() {
 	// delete all entries of the target directory if requested per cli option
 	if proc.init {
 		log.Info("Delete all entries of the target directory per cli option")
-		deleteTrg(proc.cfg)
+		deleteTrg(proc.cfg.TrgDir.Path())
 	}
 
 	go func() {

@@ -122,7 +122,9 @@ func assembleTrgFile(cfg *Config, srcFile string) string {
 		trgSuffix = cvm.TrgSuffix
 	}
 
-	trgFile, err := file.PathRelCopy(cfg.SrcDir, file.PathTrunk(srcFile)+"."+trgSuffix, cfg.TrgDir)
+	trgFile, err := file.PathRelCopy(cfg.SrcDir.Path(),
+		file.PathTrunk(srcFile)+"."+trgSuffix,
+		cfg.TrgDir.Path())
 	if err != nil {
 		log.Errorf("Target path cannot be assembled: %v", err)
 		return ""

@@ -62,8 +62,8 @@ type cfgYml struct {
 // Config contains the enriched data that has been read from the config file
 type Config struct {
 	LastSync time.Time       // timestamp when the last sync happened
-	SrcDir   string          // source directory
-	TrgDir   string          // target directory
+	SrcDir   file.Info       // source directory
+	TrgDir   file.Info       // target directory
 	Excludes []string        // exclude these directories
 	NumCpus  int             // number of CPUs that gool is allowed to use
 	NumWrkrs int             // number of worker Go routines to be created
@@ -91,20 +91,18 @@ func (cfg *Config) Get(init bool) error {
 
 	// read config from file
 	if err = cfgY.read(); err != nil {
-		// if config file in yaml for at exists, try to convert an old
-		// potentially existing ini file into a yaml file and try again
-		ini2yaml()
-		if err = cfgY.read(); err != nil {
-			log.Errorf("Config.Get: %v", err)
-			return nil
-		}
+		return fmt.Errorf("Config.Get: %v", err)
+	}
+
+	if len(cfgY.SrcDir) == 0 {
+		log.Errorf("No source directory specified in config file")
+		return fmt.Errorf("No source directory specified in config file")
 	}
 
 	// check if the configured source dir exists and is a directory
-	if err = checkDir(cfgY.SrcDir); err != nil {
+	if cfg.SrcDir, err = getDir(cfgY.SrcDir); err != nil {
 		return err
 	}
-	cfg.SrcDir = cfgY.SrcDir
 
 	// get directories that shall be excluded
 	if len(cfgY.Excludes) > 0 {
@@ -154,7 +152,12 @@ func (cfg *Config) Get(init bool) error {
 	}
 
 	// set target directory
-	if cfg.TrgDir, err = os.Getwd(); err != nil {
+	trgDir, err := os.Getwd()
+	if err != nil {
+		log.Errorf("Config.Get: %v", err)
+		return fmt.Errorf("Config.Get: %v", err)
+	}
+	if cfg.TrgDir, err = file.Stat(trgDir); err != nil {
 		log.Errorf("Config.Get: %v", err)
 		return fmt.Errorf("Config.Get: %v", err)
 	}
@@ -188,7 +191,7 @@ func (cfg *Config) getExcludes(excls *[]string) {
 		}
 
 		// expand directory
-		a, err := filepath.Glob(file.EscapePattern(filepath.Join(cfg.SrcDir, excl)))
+		a, err := filepath.Glob(file.EscapePattern(filepath.Join(cfg.SrcDir.Path(), excl)))
 		if err != nil {
 			log.Errorf("Config.getExcludes: %v", err)
 			return
@@ -350,30 +353,23 @@ func (cfgY *cfgYml) write() {
 	}
 }
 
-// checkDir checks if the source directory exists and if it's a directory
-func checkDir(srcDir string) error {
+// getDir checks if the dir exists and if it's a directory. If everything is
+// fine, it return the file.Info for dir.
+func getDir(dir string) (file.Info, error) {
 	log.Debug("smsync.checkDir: BEGIN")
 	defer log.Debug("smsync.checkDir: END")
 
-	if len(srcDir) == 0 {
-		log.Errorf("No source directory specified in config file")
-		return fmt.Errorf("No source directory specified in config file")
-	}
-	fi, err := os.Stat(srcDir)
+	inf, err := file.Stat(dir)
 	if err != nil {
-		if os.IsNotExist(err) {
-			log.Errorf("Source directory '%s' doesn't exist", srcDir)
-			return fmt.Errorf("Source directory '%s' doesn't exist", srcDir)
-		}
-		log.Errorf("Error regarding source directory '%s': %v", srcDir, err)
-		return fmt.Errorf("Error regarding source directory '%s': %v", srcDir, err)
+		log.Errorf("Config.getDir: %v", err)
+		return nil, fmt.Errorf("Config.getDir: %v", err)
 	}
-	if !fi.IsDir() {
-		log.Errorf("Source '%s' is no directory", srcDir)
-		return fmt.Errorf("Source '%s' is no directory", srcDir)
+	if !inf.IsDir() {
+		log.Errorf("'%s' is no directory", dir)
+		return nil, fmt.Errorf("'%s' is no directory", dir)
 	}
 
-	return nil
+	return inf, nil
 }
 
 // getLastSync determines the time of the last synchronization
