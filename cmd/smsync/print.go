@@ -125,7 +125,7 @@ func printFinal(trck *smsync.Tracking, verbose bool) {
 // printProgress displays the progress of the file conversion
 func printProgress(trck *smsync.Tracking, first, wantstop bool) {
 	const (
-		format = "%6s %8s %8s %5s %6s %6s %12s %12s %5s %4s" // format string for progress display
+		format = "%6s %8s %8s %7s %6s %6s %11s %11s %5s %4s" // format string for progress display
 		mb     = uint64(1024 * 1024)                         // one megabyte
 	)
 	var (
