@@ -101,37 +101,6 @@ var (
 	}
 )
 
-// assembleTrgFile creates the target file path from the source file path
-// (f) and the configuration
-func assembleTrgFile(cfg *Config, srcFile string) string {
-	var trgSuffix string
-
-	// get conversion rule from config
-	cvm, exists := cfg.getCv(srcFile)
-	if !exists {
-		log.Errorf("No conversion rule for '%s'", srcFile)
-		return ""
-	}
-
-	// if corresponding conversion rule is for '*' ...
-	if cvm.TrgSuffix == suffixStar {
-		// ... target suffix is same as source suffix
-		trgSuffix = file.Suffix(srcFile)
-	} else {
-		// ... otherwise take target suffix from conversion rule
-		trgSuffix = cvm.TrgSuffix
-	}
-
-	trgFile, err := file.PathRelCopy(cfg.SrcDir.Path(),
-		file.PathTrunk(srcFile)+"."+trgSuffix,
-		cfg.TrgDir.Path())
-	if err != nil {
-		log.Errorf("Target path cannot be assembled: %v", err)
-		return ""
-	}
-	return trgFile
-}
-
 // convert executes conversion for one file
 func convert(cfg *Config, srcFile file.Info) cvOutput {
 	var (

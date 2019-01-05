@@ -146,6 +146,7 @@ func synchronize(level log.Level, verbose bool) error {
 	if !cli.noConfirm {
 		if !lhlp.UserOK("\n:: Start synchronization") {
 			log.Infof("Synchronization not started due to user input")
+			defer smsync.CleanUp(cfg)
 			return nil
 		}
 	}
@@ -168,7 +169,7 @@ func synchronize(level log.Level, verbose bool) error {
 	if len(*files) == 0 {
 		fmt.Println("   Nothing to synchronize. Leaving smsync ...")
 		log.Info("Nothing to synchronize")
-		smsync.CleanUp(cfg)
+
 		return nil
 	}
 
@@ -180,6 +181,7 @@ func synchronize(level log.Level, verbose bool) error {
 	if !cli.noConfirm {
 		if !lhlp.UserOK(fmt.Sprintf("\n:: %d files and directories to be synchronized. Continue", len(*files))) {
 			log.Infof("Synchronization not started due to user input")
+			smsync.CleanUp(cfg)
 			return nil
 		}
 	}
