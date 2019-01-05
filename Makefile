@@ -1,4 +1,4 @@
-# Copyright (C) 2018 Michael Picht
+# Copyright (C) 2018-2019 Michael Picht
 #
 # This file is part of smsync (Smart Music Sync).
 #

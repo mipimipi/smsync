@@ -1,4 +1,4 @@
-// Copyright (C) 2018 Michael Picht
+// Copyright (C) 2018-2019 Michael Picht
 //
 // This file is part of smsync (Smart Music Sync).
 //
@@ -28,7 +28,7 @@ import (
 )
 
 var preamble = `smsync (Smart Music Sync) ` + Version + `
-Copyright (C) 2018 Michael Picht <https://github.com/mipimipi/smsync>`
+Copyright (C) 2018-2019 Michael Picht <https://github.com/mipimipi/smsync>`
 
 var helpTemplate = preamble + `
 {{with (or .Long .Short)}}{{. | trimTrailingWhitespaces}}
