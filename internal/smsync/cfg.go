@@ -96,7 +96,7 @@ func (cfg *Config) Get(init bool) error {
 		ini2yaml()
 		if err = cfgY.read(); err != nil {
 			log.Errorf("Config.Get: %v", err)
-			return nil
+			return err
 		}
 	}
 
