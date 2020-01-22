@@ -1,4 +1,4 @@
-// Copyright (C) 2018-2019 Michael Picht
+// Copyright (C) 2018-2020 Michael Picht
 //
 // This file is part of smsync (Smart Music Sync).
 //
@@ -21,10 +21,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/mipimipi/go-lhlp/file"
-	wp "github.com/mipimipi/workerpool"
 	"github.com/ricochet2200/go-disk-usage/du"
 	log "github.com/sirupsen/logrus"
+	"gitlab.com/mipimipi/go-utils/file"
+	wp "gitlab.com/mipimipi/go-utils/workerpool"
 )
 
 type (

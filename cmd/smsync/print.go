@@ -1,4 +1,4 @@
-// Copyright (C) 2018-2019 Michael Picht
+// Copyright (C) 2018-2020 Michael Picht
 //
 // This file is part of smsync (Smart Music Sync).
 //
@@ -23,9 +23,9 @@ import (
 	"strconv"
 	"time"
 
-	lhlp "github.com/mipimipi/go-lhlp"
-	"github.com/mipimipi/smsync/internal/smsync"
 	log "github.com/sirupsen/logrus"
+	"gitlab.com/mipimipi/go-utils"
+	"gitlab.com/mipimipi/smsync/internal/smsync"
 )
 
 // printCfgSummary display a summary of the configuration. The content of the
@@ -107,7 +107,7 @@ func printFinal(trck *smsync.Tracking, verbose bool) {
 	} else {
 		fmt.Printf("\n:: Done :)\n")
 	}
-	split := lhlp.SplitDuration(trck.Elapsed)
+	split := utils.SplitDuration(trck.Elapsed)
 	fmt.Printf("   Processed %d files and directories in %s\n",
 		trck.Done,
 		fmt.Sprintf("%dh %02dmin %02ds",
@@ -153,7 +153,7 @@ func printProgress(trck *smsync.Tracking, first, wantstop bool) {
 
 	// local function to print durations as formatted string (HH:MM:SS)
 	split := func(d time.Duration) string {
-		sp := lhlp.SplitDuration(d)
+		sp := utils.SplitDuration(d)
 		return fmt.Sprintf("%02d:%02d:%02d", sp[time.Hour], sp[time.Minute], sp[time.Second])
 	}
 

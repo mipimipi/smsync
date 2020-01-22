@@ -1,3 +1,0 @@
-# workerpool
-
-TODO

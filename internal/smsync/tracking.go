@@ -1,4 +1,4 @@
-// Copyright (C) 2018-2019 Michael Picht
+// Copyright (C) 2018-2020 Michael Picht
 //
 // This file is part of smsync (Smart Music Sync).
 //
@@ -20,7 +20,7 @@ package smsync
 import (
 	"time"
 
-	"github.com/mipimipi/go-lhlp/file"
+	"gitlab.com/mipimipi/go-utils/file"
 )
 
 // Tracking contains attributes that are used to keep track of the progress of

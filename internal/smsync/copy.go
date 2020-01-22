@@ -1,4 +1,4 @@
-// Copyright (C) 2018-2019 Michael Picht
+// Copyright (C) 2018-2020 Michael Picht
 //
 // This file is part of smsync (Smart Music Sync).
 //
@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mipimipi/go-lhlp/file"
+	"gitlab.com/mipimipi/go-utils/file"
 )
 
 // implementation of interface "conversion" for simple file copy

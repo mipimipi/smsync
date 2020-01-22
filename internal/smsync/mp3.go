@@ -22,8 +22,8 @@ import (
 	"regexp"
 	"strings"
 
-	lhlp "github.com/mipimipi/go-lhlp"
 	log "github.com/sirupsen/logrus"
+	"gitlab.com/mipimipi/go-utils"
 )
 
 // implementation of interface "conversion" for conversions to MP3
@@ -36,7 +36,7 @@ func (cv cvAll2MP3) exec(srcFile string, trgFile string, cvStr string) error {
 	// set MP3 codec
 	params = append(params, "-codec:a", "libmp3lame")
 
-	a := lhlp.SplitMulti(cvStr, "|:")
+	a := utils.SplitMulti(cvStr, "|:")
 
 	switch a[0] {
 	case abr:

@@ -23,8 +23,8 @@ import (
 	"strconv"
 	"strings"
 
-	lhlp "github.com/mipimipi/go-lhlp"
 	log "github.com/sirupsen/logrus"
+	"gitlab.com/mipimipi/go-utils"
 )
 
 // implementation of interface "conversion" for conversions to OGG
@@ -37,7 +37,7 @@ func (cv cvAll2OGG) exec(srcFile string, trgFile string, cvStr string) error {
 	// set vorbis codec
 	params = append(params, "-codec:a", "libvorbis")
 
-	a := lhlp.SplitMulti(cvStr, "|:")
+	a := utils.SplitMulti(cvStr, "|:")
 
 	switch a[0] {
 	case abr:

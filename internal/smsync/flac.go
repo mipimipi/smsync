@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 
-	lhlp "github.com/mipimipi/go-lhlp"
+	"gitlab.com/mipimipi/go-utils"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -39,7 +39,7 @@ func (cvAll2FLAC) exec(srcFile string, trgFile string, cvStr string) error {
 	params = append(params, "-codec:a", "flac")
 
 	// set compression level
-	params = append(params, "-compression_level", lhlp.SplitMulti(cvStr, "|:")[1])
+	params = append(params, "-compression_level", utils.SplitMulti(cvStr, "|:")[1])
 
 	// execute ffmpeg
 	return execFFMPEG(srcFile, trgFile, &params)

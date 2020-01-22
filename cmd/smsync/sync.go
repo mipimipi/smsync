@@ -1,4 +1,4 @@
-// Copyright (C) 2018-2019 Michael Picht
+// Copyright (C) 2018-2020 Michael Picht
 //
 // This file is part of smsync (Smart Music Sync).
 //
@@ -24,10 +24,10 @@ import (
 	"time"
 
 	"github.com/eiannone/keyboard"
-	lhlp "github.com/mipimipi/go-lhlp"
-	"github.com/mipimipi/go-lhlp/file"
-	"github.com/mipimipi/smsync/internal/smsync"
 	log "github.com/sirupsen/logrus"
+	"gitlab.com/mipimipi/go-utils"
+	"gitlab.com/mipimipi/go-utils/file"
+	"gitlab.com/mipimipi/smsync/internal/smsync"
 )
 
 // listenStop waits for <ESC> pressed on keyboard as stop signal
@@ -144,7 +144,7 @@ func synchronize(level log.Level, verbose bool) error {
 	// print summary and ask user for OK
 	printCfgSummary(cfg)
 	if !cli.noConfirm {
-		if !lhlp.UserOK("\n:: Start synchronization") {
+		if !utils.UserOK("\n:: Start synchronization") {
 			log.Infof("Synchronization not started due to user input")
 			defer smsync.CleanUp(cfg)
 			return nil
@@ -155,7 +155,7 @@ func synchronize(level log.Level, verbose bool) error {
 	runtime.GOMAXPROCS(int(cfg.NumCpus))
 
 	// start automatic progress string which increments every second
-	stop, confirm := lhlp.ProgressStr(":: Find differences (this can take a few minutes)", 1000)
+	stop, confirm := utils.ProgressStr(":: Find differences (this can take a few minutes)", 1000)
 
 	// get files and directories that need to be synched
 	files := smsync.GetSyncFiles(cfg, cli.init)
@@ -179,7 +179,7 @@ func synchronize(level log.Level, verbose bool) error {
 
 	// print summary and ask user for OK to continue
 	if !cli.noConfirm {
-		if !lhlp.UserOK(fmt.Sprintf("\n:: %d files and directories to be synchronized. Continue", len(*files))) {
+		if !utils.UserOK(fmt.Sprintf("\n:: %d files and directories to be synchronized. Continue", len(*files))) {
 			log.Infof("Synchronization not started due to user input")
 			smsync.CleanUp(cfg)
 			return nil

@@ -1,4 +1,4 @@
-// Copyright (C) 2018-2019 Michael Picht
+// Copyright (C) 2018-2020 Michael Picht
 //
 // This file is part of smsync (Smart Music Sync).
 //
@@ -23,11 +23,10 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
-	"github.com/mipimipi/go-lhlp/file"
 	log "github.com/sirupsen/logrus"
+	"gitlab.com/mipimipi/go-utils/file"
 )
 
 // LogFile is the log file. smsync always logs into ./smsync.log
@@ -105,14 +104,15 @@ func (f *smsyncTextFormatter) Format(entry *log.Entry) ([]byte, error) {
 // CreateLogger creates and initializes the logger for smsync
 func CreateLogger(level log.Level) error {
 	// set log file
-	fp, err := filepath.Abs(filepath.Join(".", LogFile))
-	if err != nil {
-		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
-			panic(e.Error())
+	fp := "/home/mipi/Musik/smsync/smsync.log"
+	/*	fp, err := filepath.Abs(filepath.Join(".", LogFile))
+		if err != nil {
+			if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
+				panic(e.Error())
+			}
+			return err
 		}
-		return err
-	}
-
+	*/
 	// delete log file if it already exists
 	exists, err := file.Exists(fp)
 	if err != nil {

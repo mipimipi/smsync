@@ -1,5 +1,3 @@
-[![Travis](https://travis-ci.org/mipimipi/smsync.svg?branch=master)](https://travis-ci.org/mipimipi/smsync.svg?branch=master)
-
 # Smart Music Sync (smsync)
 
 keeps huge music collections in sync and is takes care of conversions between different formats. It's an easy-to-use command line application for Linux. 
@@ -72,7 +70,7 @@ smsync is written in [Golang](https://golang.org/) and thus requires the install
 
 To download smsync and all dependencies, open a terminal and enter
 
-    $ go get github.com/mipimipi/smsync
+    $ go get gitlab.com/mipimipi/smsync
 
 After that, build smsync by executing
 

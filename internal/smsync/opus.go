@@ -22,8 +22,8 @@ import (
 	"strconv"
 	"strings"
 
-	lhlp "github.com/mipimipi/go-lhlp"
 	log "github.com/sirupsen/logrus"
+	"gitlab.com/mipimipi/go-utils"
 )
 
 // implementation of interface "conversion" for conversions to OPUS
@@ -36,7 +36,7 @@ func (cv cvAll2OPUS) exec(srcFile string, trgFile string, cvStr string) error {
 	// set OPUS codec
 	params = append(params, "-codec:a", "libopus")
 
-	a := lhlp.SplitMulti(cvStr, "|:")
+	a := utils.SplitMulti(cvStr, "|:")
 
 	// set bit rate
 	params = append(params, "-b:a", a[1]+"k")
