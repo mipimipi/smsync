@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2019 Michael Picht
+# Copyright (C) 2018-2020 Michael Picht
 #
 # This file is part of smsync (Smart Music Sync).
 #
@@ -33,26 +33,13 @@ all:
 .PHONY: all clean install lint release
 
 lint:
-	gometalinter \
-		--enable=goimports \
-		--enable=misspell \
-		--enable=nakedret \
-		--enable=unparam \
-		--disable=gocyclo \
-		--vendor \
-		--deadline=30s \
-		./...
+	golangci-lint run 
 
 # move all executables to /usr/bin 
 install:
 	for CMD in `ls cmd`; do \
 		install -Dm755 $$CMD $(DESTDIR)/usr/bin/$$CMD; \
 	done
-
-# create a new release tag
-release:
-	git tag -a $(value VERSION) -m "Release $(value VERSION)"
-	git push origin $(value VERSION)	
 
 # remove build results
 clean:
