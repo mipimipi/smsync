@@ -8,11 +8,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 keeps huge music collections in sync and is takes care of conversions between different formats. It's an easy-to-use command line application for Linux. 
 
-smsync is made for use cases where you have a folder structure for your high quality lossless or lossy but high bit rate music that acts as a source (aka. "master"). From this source you replicate your music to targets (aka. "slaves"), such as a smartphone or an SD card / hard drive for your car etc. On a smartphone or in the car you either don't have or you don't want to spend that much storage capacity that you might have for you source music storage. Thus, the replication step from the source to the targets is not a simple copy, it's in fact a conversion step. For instance, music that is stored on the source in the lossless [FLAC format](https://en.wikipedia.org/wiki/FLAC) shall be converted to [MP3](https://en.wikipedia.org/wiki/MP3) while being replicated to a target.
+smsync is made for use cases where you have a folder structure for your high quality lossless or lossy but high bit rate music that acts as a source (aka. "master"). From this source you replicate your music to targets (aka. "slaves"), such as a smartphone or an SD card / hard drive for your car etc. On a smartphone or in the car you either don't have or you don't want to spend that much storage capacity that you might have for you source music storage. Thus, the replication step from the source to the targets is not a simple copy, it's in fact a conversion step. Music that is stored on the source in the lossless [FLAC format](https://en.wikipedia.org/wiki/FLAC), for example, shall be converted to [MP3](https://en.wikipedia.org/wiki/MP3) while being replicated to a target.
 
-Normally, you want to keep the folder structure during replication. I.e. a certain music file on the target shall have the same relative folder path as its counterpart has on the source.
+Normally, you want to keep the folder structure during replication. This means, that a certain music file on the target shall have the same relative folder path as its counterpart has on the source.
 
-New music is typically added to the source only. If that happened you want to update the targets accordingly with minimal effort. If you deleted files or folders on the source for whatever reason, these deletions shall be propagated to the target as well. And, last not least, as we are talking about huge music collections (several thousands or even ten thousands of music files), the whole synchronization and replication process must happen in a highly automated and performant way.
+New music is typically added to the source only. If that happened, you want to update the targets accordingly with minimal effort. If you deleted files or folders on the source for whatever reason, these deletions shall be propagated to the target as well. And, last not least, as we are talking about huge music collections (several thousands or even ten thousands of music files), the whole synchronization and replication process must happen in a highly automated and performant way.
 
 ## Contents
 
@@ -37,10 +37,10 @@ New music is typically added to the source only. If that happened you want to up
         - [FFMPEG errors](#errors)
         - [Interruption of the process](#interrupt)
     * [Command Line Options](#command)
-    * [Keeping source and target consistent](#consistency)  
+    * [Keeping source and target consistent](#consistency) 
         - [Case 1: Scope has been reduced](#case1)
         - [Case 2: Scope has been extended](#case2)
-        - [Case 3: Scope is unchanged but conversion rules have been changed](#case3)  
+        - [Case 3: Scope is unchanged but conversion rules have been changed](#case3) 
 
 ## <a name="features"></a>Features
 
@@ -80,7 +80,7 @@ To download smsync and all dependencies, open a terminal and enter
 
 After that, build smsync by executing
 
-    $ cd $GOPATH/src/github.com/mipimipi/smsync
+    $ cd $GOPATH/src/gitlab.com/mipimipi/smsync
     $ make
 
 Finally, execute

@@ -15,7 +15,7 @@ import (
 )
 
 var preamble = `smsync (Smart Music Sync) ` + Version + `
-Copyright (C) 2018-2019 Michael Picht <https://github.com/mipimipi/smsync>`
+Copyright (C) 2018-2020 Michael Picht <https://github.com/mipimipi/smsync>`
 
 var helpTemplate = preamble + `
 {{with (or .Long .Short)}}{{. | trimTrailingWhitespaces}}
