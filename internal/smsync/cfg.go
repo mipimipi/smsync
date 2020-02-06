@@ -290,7 +290,9 @@ func (cfg *Config) setProcEnd() {
 	var cfgY cfgYml
 
 	// read config from file
-	cfgY.read()
+	if err := cfgY.read(); err != nil {
+		log.Errorf("cfgYml.serProcEnd: %v", err)
+	}
 
 	// set last sync time to current time in UTC
 	cfgY.LastSync = time.Now().UTC().Format(time.RFC3339)

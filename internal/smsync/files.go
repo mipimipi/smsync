@@ -33,7 +33,6 @@ import (
 const errDir = "smsync.cv.errs"
 
 // assembleTrgFile creates the target file path from the source file path
-// (f) and the configuration
 func assembleTrgFile(cfg *Config, srcFile string) string {
 	var trgSuffix string
 
@@ -66,7 +65,7 @@ func assembleTrgFile(cfg *Config, srcFile string) string {
 // CleanUp remove temporary files
 func CleanUp(cfg *Config) {
 	// remove log file if it's empty
-	file.RemoveEmpty(filepath.Join(cfg.TrgDir.Path(), LogFile))
+	_ = file.RemoveEmpty(filepath.Join(cfg.TrgDir.Path(), LogFile))
 	log.Debug("Removed log files (at least tried to do that)")
 }
 
@@ -74,7 +73,8 @@ func CleanUp(cfg *Config) {
 // target directory tree but not in the source directory tree. It is called
 // for all source directories that have been changed since the last sync.
 // Typically, this is relevant if directories or files have been renamed or
-// deleted. In this case, the parent directory is touched
+// deleted. In this case, the parent directory has been touched. That's used to
+// identify the relevant directories and files.
 func deleteObsoleteFiles(cfg *Config, srcDir file.Info) {
 	log.Debugf("smsync.deleteObsoleteFiles(%s): BEGIN", srcDir.Path())
 	defer log.Debugf("smsync.deleteObsoleteFiles(%s): END", srcDir.Path())
@@ -184,15 +184,15 @@ func deleteTrg(dir string) {
 // GetSyncFiles determines which files need to be synched.
 // Files are only relevant if they need to be converted. Directories are only
 // relevant if they already exist on target side and might contain obsolete
-// files (which will be handled by deleteObsoleteFiles).
+// files.
 // Note, that the entire directory path of a file is created (if this path
 // doesn't exist yet) if this file is created on target side
 // Note, that it's important to keep the number of existence checks on target
-// side as small as possible because target devices often external devices (USB
-// etc.). Thus existence checks on target side are time consuming. Therefore,
-// because relevant directories lead to existence checks on target side in
-// deleteObsoleteFiles(), the number of relevant directories has to be as small
-// as possible.
+// side as small as possible because target devices aer often external devices
+// (USB etc.). Thus existence checks on target side are time consuming.
+// Therefore, because relevant directories lead to existence checks on target
+// side in deleteObsoleteFiles(), the number of relevant directories has to be
+// as small as possible.
 func GetSyncFiles(cfg *Config, init bool) (files *[]*file.Info) {
 	log.Debug("smsync.GetSyncFiles: BEGIN")
 	defer log.Debug("smsync.GetSyncFiles: END")
@@ -206,150 +206,39 @@ func GetSyncFiles(cfg *Config, init bool) (files *[]*file.Info) {
 	// - InvalidFromSuper: file.Find() will not descend into the
 	//                     corresponding directory. I.e. all downward content
 	//                     will be ignored
-
-	/*
-	   // >>>>> NEW ###################################################################
-	   	filter := func(srcFile file.Info, vp file.ValidPropagate) (bool, file.ValidPropagate) {
-	   		log.Debugf("smsync.GetSyncFiles.filter(%s): BEGIN", srcFile.Path())
-	   		defer log.Debugf("smsync.GetSyncFiles(%s): END", srcFile.Path())
-
-	   		// distinguish between directories and files
-	   		if srcFile.IsDir() {
-	   			log.Debug("Directory")
-
-	   			// if a directory is excluded, itself and all sub directories and
-	   			// files are not relevant
-	   			if utils.Contains(cfg.Excludes, srcFile.Path()) {
-	   				return false, file.InvalidFromSuper
-	   			}
-	   			// if relevance is propagated from the parent, this directory is not
-	   			// relevant, but all sub directories and files are relevant
-	   			if vp == file.ValidFromSuper {
-	   				log.Debug("VALID FROM SUPER -> FALSE, VALID FROM SUPER")
-
-	   				return false, file.ValidFromSuper
-	   			}
-	   			// if the target side shall be initialized, this directory is not
-	   			// relevant but relevance is propagated downwards
-	   			if init {
-	   				log.Debug("init -> FALSE, VALID FROM SUPER")
-	   				return false, file.ValidFromSuper
-	   			}
-	   			// if the directory has been changed since the last sync, it's
-	   			// relevant. This is because, it could be an indicator, that either
-	   			// sub directories or files in that directory have been renamed.
-	   			// Relevance is not propagated since the filter logic needs to be
-	   			// applied to them
-	   			if srcFile.ModTime().After(cfg.LastSync) && !cfg.LastSync.IsZero() {
-	   				log.Debug("Modtime > lastsync -> TRUE, NONE FROM SUPER")
-	   				return true, file.NoneFromSuper
-	   			}
-	   			// if parent has been changed ...
-	   			if parentDirChgd(filepath.Dir(srcFile.Path()), cfg.LastSync) {
-	   				// ... it could be that this directory has been renamed. Thus,
-	   				// it needs to be checked if it's counterpart exists on target
-	   				// side. If that's the case, this directory is not relevant but
-	   				// downwards content needs to be filtered. Otherwise, it's
-	   				// clear that the downward content is relevant, filter logic
-	   				// doesn't have to be applied.
-	   				log.Debug("Parent dir changed")
-
-	   				// assemble target directory
-	   				trgDir, _ := file.PathRelCopy(cfg.SrcDir.Path(), srcFile.Path(), cfg.TrgDir.Path())
-	   				// check if target directory exists
-	   				if exists, err := file.Exists(trgDir); err == nil && !exists {
-	   					log.Debug("Trg doesn't exist -> FALSE, NONE FROM SUPER")
-
-	   					return false, file.ValidFromSuper
-	   				}
-	   			}
-	   			// if none of the above rules applied, this directory is not
-	   			// relevant and the downward content is filtered
-	   			log.Debug("Nothing applied -> FALSE, NONE FROM SUPER")
-	   			return false, file.NoneFromSuper
-	   		}
-	   		// Here, srcFile is a file (no directory). For files, downward
-	   		// propagation of relevance makes no sense. Thus, in this branch,
-	   		// 'NoneFromSuper' is always returned
-	   		log.Debug("File")
-
-	   		// if file is not regular, it's not relevant
-	   		if !srcFile.Mode().IsRegular() {
-	   			return false, file.NoneFromSuper
-	   		}
-	   		// if file type is not relevant per the smsync configuration, this file
-	   		// is not relevant
-	   		if _, ok := cfg.getCv(srcFile.Path()); !ok {
-	   			return false, file.NoneFromSuper
-	   		}
-	   		// if relevance is propagated from the parent, this file is relevant
-	   		// without further checks
-	   		if vp == file.ValidFromSuper {
-	   			log.Debug("VALID FROM SUPER -> TRUE, VALID FROM SUPER")
-
-	   			return true, file.NoneFromSuper
-	   		}
-	   		// assemble target file name and check if file exists
-	   		trgFile := assembleTrgFile(cfg, srcFile.Path())
-	   		exists, inf, err := file.ExistsInfo(trgFile)
-	   		// if this file has been changed since last sync and if the counterpart
-	   		// on target side does either not exist or exists but is older than the
-	   		// last sync time, then this file is relevant.
-	   		// Note, that if the last run has been interrupted, it could be that the
-	   		// counterpart on target side has already been updated before the
-	   		// interrupt (and thus its mod time is after the last sync). In this
-	   		// case this file is not relevant.
-	   		if srcFile.ModTime().After(cfg.LastSync) {
-	   			log.Debug("Modtime > lastsync")
-
-	   			if err == nil && (!exists || inf.ModTime().Before(cfg.LastSync) && !cfg.LastSync.IsZero()) {
-	   				log.Debug("Trg doesn't exist or modtime < lastsync or lastsync==0 -> TRUE, NONE FROM SUPER")
-
-	   				return true, file.NoneFromSuper
-	   			}
-	   			log.Debug("Trg exist and (modtime > lastsync or lastsync!=0) -> FALSE, NONE FROM SUPER")
-	   			return false, file.NoneFromSuper
-	   		}
-	   		// if parent has been changed it could be that this files has been
-	   		// renamed. Thus, it needs to be checked if it's counterpart exists on
-	   		// target side. If the counterpart exists, then this file is not
-	   		// relevant. Otherwise it is relevant.
-	   		if parentDirChgd(filepath.Dir(srcFile.Path()), cfg.LastSync) && err == nil && !exists {
-	   			log.Debug("Parent dir changed and trg doesn't exist -> TRUE, NONE FROM SUPER")
-	   			return true, file.NoneFromSuper
-	   		}
-	   		log.Debug("Nothing applied -> FALSE, NONE FROM SUPER")
-	   		return false, file.NoneFromSuper
-	   	}
-	   // <<<<< NEW ##################################################################
-	*/
-	// >>>>> OLD ##################################################################
 	filter := func(srcFile file.Info, vp file.ValidPropagate) (bool, file.ValidPropagate) {
+		log.Debugf("smsync.GetSyncFiles.filter(%s): BEGIN", srcFile.Path())
+		defer log.Debugf("smsync.GetSyncFiles(%s): END", srcFile.Path())
+
 		// distinguish between directories and files
 		if srcFile.IsDir() {
+			log.Debug("Directory")
+
 			// if a directory is excluded, itself and all sub directories and
 			// files are not relevant
 			if utils.Contains(cfg.Excludes, srcFile.Path()) {
 				return false, file.InvalidFromSuper
 			}
 			// if relevance is propagated from the parent, this directory is not
-			// relevant, but all sub directries and files are relevant
+			// relevant, but all sub directories and files are relevant
 			if vp == file.ValidFromSuper {
+				log.Debug("VALID FROM SUPER -> FALSE, VALID FROM SUPER")
+
 				return false, file.ValidFromSuper
 			}
-			// if the target side shall be initialized or it's the first sync
-			// run for that target (in which case no counterparts can be
-			// there), this directory is not relevant but relevance is
-			// propagated downwards
+			// if the target side shall be initialized, this directory is not
+			// relevant but relevance is propagated downwards
 			if init {
+				log.Debug("init -> FALSE, VALID FROM SUPER")
 				return false, file.ValidFromSuper
 			}
 			// if the directory has been changed since the last sync, it's
 			// relevant. This is because, it could be an indicator, that either
-			// sub directories oer files in that directory have been renamed.
+			// sub directories or files in that directory have been renamed.
 			// Relevance is not propagated since the filter logic needs to be
 			// applied to them
 			if srcFile.ModTime().After(cfg.LastSync) && !cfg.LastSync.IsZero() {
+				log.Debug("Modtime > lastsync -> TRUE, NONE FROM SUPER")
 				return true, file.NoneFromSuper
 			}
 			// if parent has been changed ...
@@ -360,29 +249,26 @@ func GetSyncFiles(cfg *Config, init bool) (files *[]*file.Info) {
 				// downwards content needs to be filtered. Otherwise, it's
 				// clear that the downward content is relevant, filter logic
 				// doesn't have to be applied.
+				log.Debug("Parent dir changed")
 
 				// assemble target directory
 				trgDir, _ := file.PathRelCopy(cfg.SrcDir.Path(), srcFile.Path(), cfg.TrgDir.Path())
 				// check if target directory exists
-				exists, err := file.Exists(trgDir)
-				if err != nil {
-					log.Errorf("DIR EXISTS ERR: %v", err)
-					return false, file.NoneFromSuper
-				} else {
+				if exists, err := file.Exists(trgDir); err == nil && !exists {
+					log.Debug("Trg doesn't exist -> FALSE, NONE FROM SUPER")
 
-				}
-				log.Debugf("DIR EXISTS OK: %s", trgDir)
-				if !exists {
 					return false, file.ValidFromSuper
 				}
 			}
-			// if none of the above rules applied, the directory is not
-			// relevant and the downward content is filtered
+			// if none of the above rules applied, this directory is not
+			// relevant and the downward content needs to be filtered
+			log.Debug("Nothing applied -> FALSE, NONE FROM SUPER")
 			return false, file.NoneFromSuper
 		}
-		// srcFile is a file (no directory). For files, downward propagation of
-		// relevance makes no sense. Thus, in this branch, 'NoneFromSuper' is
-		// always returned
+		// Here, srcFile is a file (no directory). For files, downward
+		// propagation of relevance makes no sense. Thus, in this branch,
+		// 'NoneFromSuper' is always returned
+		log.Debug("File")
 
 		// if file is not regular, it's not relevant
 		if !srcFile.Mode().IsRegular() {
@@ -396,43 +282,42 @@ func GetSyncFiles(cfg *Config, init bool) (files *[]*file.Info) {
 		// if relevance is propagated from the parent, this file is relevant
 		// without further checks
 		if vp == file.ValidFromSuper {
-			return true, file.NoneFromSuper
-		}
-		// assemble target file name
-		trgFile := assembleTrgFile(cfg, srcFile.Path())
-		_, err := file.Exists(trgFile)
-		if err != nil {
-			log.Errorf("FILE EXISTS (1) ERR: %v", err)
-			return false, file.NoneFromSuper
-		} else {
-			log.Debugf("FILE EXISTS (1) OK: %s", trgFile)
-		}
-		// if this file has been changed since last sync, it is relevant
-		if srcFile.ModTime().After(cfg.LastSync) {
-			return true, file.NoneFromSuper
-		}
-		// if parent has been changed ...
-		if parentDirChgd(filepath.Dir(srcFile.Path()), cfg.LastSync) {
-			// ... it could be that this files has been renamed. Thus,
-			// it needs to be checked if it's counterpart exists on target
-			// side. If the counterpart exists, then this file is not relevant.
-			// Otherwise it is relevant.
+			log.Debug("VALID FROM SUPER -> TRUE, VALID FROM SUPER")
 
-			// assemble target file
-			// check if target file exists
-			exists, err := file.Exists(trgFile)
-			if err != nil {
-				log.Errorf("FILE EXISTS (2) ERR: %v", err)
-				return false, file.NoneFromSuper
-			} else {
-				log.Debugf("FILE EXISTS (2) OK: %s", trgFile)
-			}
-			if !exists {
+			return true, file.NoneFromSuper
+		}
+		// assemble target file name and check if file exists
+		trgFile := assembleTrgFile(cfg, srcFile.Path())
+		exists, inf, err := file.ExistsInfo(trgFile)
+		// if this file has been changed since last sync and if the counterpart
+		// on target side does either not exist or exists but is older than the
+		// last sync time, then this file is relevant.
+		// Note, that if the last run has been interrupted, it could be that the
+		// counterpart on target side has already been updated before the
+		// interrupt (and thus its mod time is after the last sync). In this
+		// case this file is not relevant.
+		if srcFile.ModTime().After(cfg.LastSync) {
+			log.Debug("Modtime > lastsync")
+
+			if err == nil && (!exists || inf.ModTime().Before(cfg.LastSync) && !cfg.LastSync.IsZero()) {
+				log.Debug("Trg doesn't exist or modtime < lastsync or lastsync==0 -> TRUE, NONE FROM SUPER")
+
 				return true, file.NoneFromSuper
 			}
+			log.Debug("Trg exist and (modtime > lastsync or lastsync!=0) -> FALSE, NONE FROM SUPER")
+			return false, file.NoneFromSuper
 		}
+		// if parent was changed it could be that this files was renamed. Thus, it
+		// needs to be checked if it's counterpart exists on target side. If the
+		// counterpart exists, then this file is not relevant. Otherwise it is
+		// relevant.
+		if parentDirChgd(filepath.Dir(srcFile.Path()), cfg.LastSync) && err == nil && !exists {
+			log.Debug("Parent dir changed and trg doesn't exist -> TRUE, NONE FROM SUPER")
+			return true, file.NoneFromSuper
+		}
+		log.Debug("Nothing applied -> FALSE, NONE FROM SUPER")
 		return false, file.NoneFromSuper
-	} // <<<<< OLD ##################################################################
+	}
 
 	// call FindFiles with the smsync filter function to get the directories and files
 	files = file.Find([]file.Info{cfg.SrcDir}, filter, 1)

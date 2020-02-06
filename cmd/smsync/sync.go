@@ -173,10 +173,6 @@ func synchronize(level log.Level, verbose bool) error {
 		return nil
 	}
 
-	for _, f := range *files {
-		fmt.Println((*f).Path())
-	}
-
 	// print summary and ask user for OK to continue
 	if !cli.noConfirm {
 		if !utils.UserOK(fmt.Sprintf("\n:: %d files and directories to be synchronized. Continue", len(*files))) {
