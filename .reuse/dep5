@@ -1,0 +1,10 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: smsync
+Upstream-Contact: Michael Picht <mipi@fsfe.org>
+Source: gitlab.com/mipimipi/smsync
+
+# Sample paragraph, commented out:
+#
+# Files: src/*
+# Copyright: $YEAR $NAME <$CONTACT>
+# License: ...

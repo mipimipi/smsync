@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2018-2020 Michael Picht
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 ## [Release 3.4.0](https://github.com/mipimipi/smsync/releases/tag/3.4.0) (2019-01-03)
 
 ### Added

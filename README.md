@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2018-2020 Michael Picht
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Smart Music Sync (smsync)
 
 keeps huge music collections in sync and is takes care of conversions between different formats. It's an easy-to-use command line application for Linux. 
