@@ -2,12 +2,12 @@
 
 
 [[projects]]
-  digest = "1:c914c5f07b45352e70e55d147661667b45e69f01e4ba94ddd260d62a4c0b1aa9"
-  name = "github.com/go-ini/ini"
+  branch = "master"
+  digest = "1:393d3174f4ccedc04106eba06de014b33fde7716fd562cb0611e5fae64fe7695"
+  name = "github.com/eiannone/keyboard"
   packages = ["."]
   pruneopts = "UT"
-  revision = "a9da9309fb4822643ceebb765f80025c35ac19a1"
-  version = "v1.40.0"
+  revision = "7169d0afeb4fed19d59b9c3478b0d6692e0c2668"
 
 [[projects]]
   digest = "1:870d441fe217b8e689d7949fef6e43efbc787e50f200cb1e70dbca9204a1d6be"
@@ -18,31 +18,12 @@
   version = "v1.0"
 
 [[projects]]
-  digest = "1:0a69a1c0db3591fcefb47f115b224592c8dfa4368b7ba9fae509d5e16cdc95c8"
+  digest = "1:31e761d97c76151dde79e9d28964a812c46efc5baee4085b86f68f0c654450de"
   name = "github.com/konsorten/go-windows-terminal-sequences"
   packages = ["."]
   pruneopts = "UT"
-  revision = "5c8c8bd35d3832f5d134ae1e1e375b69a4d25242"
-  version = "v1.0.1"
-
-[[projects]]
-  digest = "1:3fd700d1bd51db03f4f328021fb2f1c46a383168bb480edc8c3ff12bd89fb9c4"
-  name = "github.com/mipimipi/go-lhlp"
-  packages = [
-    ".",
-    "file",
-  ]
-  pruneopts = "UT"
-  revision = "4432cdfd356e909aaebbcc9db7fde0b4d362dad3"
-  version = "2.6"
-
-[[projects]]
-  digest = "1:89ac7de47b0ebbda701ade0f51dc23bb90034a036e4919bb9a2be68d76ed7747"
-  name = "github.com/mipimipi/go-worker"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "2714742b3aa18faa3aeafef08b17ce6e4fe3a759"
-  version = "1.2"
+  revision = "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
+  version = "v1.0.2"
 
 [[projects]]
   branch = "master"
@@ -53,67 +34,71 @@
   revision = "f0d1b743428fc09792f93233d9412f89f88fa2ab"
 
 [[projects]]
-  digest = "1:69b1cc331fca23d702bd72f860c6a647afd0aa9fcbc1d0659b1365e26546dd70"
+  digest = "1:04457f9f6f3ffc5fea48e71d62f2ca256637dee0a04d710288e27e05c8b41976"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   pruneopts = "UT"
-  revision = "bcd833dfe83d3cebad139e4a29ed79cb2318bf95"
-  version = "v1.2.0"
+  revision = "839c75faf7f98a33d445d181f3018b5c3409a45e"
+  version = "v1.4.2"
 
 [[projects]]
-  digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"
+  digest = "1:e096613fb7cf34743d49af87d197663cfccd61876e2219853005a57baedfa562"
   name = "github.com/spf13/cobra"
   packages = ["."]
   pruneopts = "UT"
-  revision = "ef82de70bb3f60c65fb8eebacbb2d122ef517385"
-  version = "v0.0.3"
+  revision = "f2b07da1e2c38d5f12845a4f607e2e1018cbb1f5"
+  version = "v0.0.5"
 
 [[projects]]
-  digest = "1:c1b1102241e7f645bc8e0c22ae352e8f0dc6484b6cb4d132fa9f24174e0119e2"
+  digest = "1:524b71991fc7d9246cc7dc2d9e0886ccb97648091c63e30eef619e6862c955dd"
   name = "github.com/spf13/pflag"
   packages = ["."]
   pruneopts = "UT"
-  revision = "298182f68c66c05229eb03ac171abe6e309ee79a"
-  version = "v1.0.3"
+  revision = "2e9d26c8c37aae03e3f9d4e90b7116f5accb7cab"
+  version = "v1.0.5"
 
 [[projects]]
   branch = "master"
-  digest = "1:38f553aff0273ad6f367cb0a0f8b6eecbaef8dc6cb8b50e57b6a81c1d5b1e332"
-  name = "golang.org/x/crypto"
-  packages = ["ssh/terminal"]
+  digest = "1:1e8a85c84efc4c695c71a0132acb7aec5de5cd49e21dc7971bb62fd16b955a8f"
+  name = "gitlab.com/mipimipi/go-utils"
+  packages = [
+    ".",
+    "file",
+    "workerpool",
+  ]
   pruneopts = "UT"
-  revision = "505ab145d0a99da450461ae2c1a9f6cd10d1f447"
+  revision = "303959adcff0a9660e1488f4c9844ba933f9c35a"
 
 [[projects]]
   branch = "master"
-  digest = "1:10405139b45e3a97a3842c93984710e30466eb933545f219ad3f5e45246973b4"
+  digest = "1:b40521580b68b3cd78f87d1820116ba94090f426b7da3c4e3124e874e1f431dd"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "9a3f9b0469bbc6b8802087ae5c0af9f61502de01"
+  revision = "d101bd2416d505c0448a6ce8a282482678040a89"
 
 [[projects]]
-  digest = "1:4d2e5a73dc1500038e504a8d78b986630e3626dc027bc030ba5c75da257cdb96"
+  digest = "1:55b110c99c5fdc4f14930747326acce56b52cfce60b24b1c03ef686ac0e46bb1"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
   pruneopts = "UT"
-  revision = "51d6538a90f86fe93ac480b35f37b2be17fef232"
-  version = "v2.2.2"
+  revision = "53403b58ad1b561927d19068c655246f2db79d48"
+  version = "v2.2.8"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/go-ini/ini",
-    "github.com/mipimipi/go-lhlp",
-    "github.com/mipimipi/go-lhlp/file",
-    "github.com/mipimipi/go-worker",
+    "github.com/eiannone/keyboard",
     "github.com/ricochet2200/go-disk-usage/du",
     "github.com/sirupsen/logrus",
     "github.com/spf13/cobra",
+    "gitlab.com/mipimipi/go-utils",
+    "gitlab.com/mipimipi/go-utils/file",
+    "gitlab.com/mipimipi/go-utils/workerpool",
     "gopkg.in/yaml.v2",
   ]
   solver-name = "gps-cdcl"

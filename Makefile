@@ -1,19 +1,6 @@
-# Copyright (C) 2018-2019 Michael Picht
+# SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org>
 #
-# This file is part of smsync (Smart Music Sync).
-#
-# smsync is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# smsync is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with smsync. If not, see <http://www.gnu.org/licenses/>.
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 # use bash
 SHELL=/bin/bash
@@ -33,26 +20,14 @@ all:
 .PHONY: all clean install lint release
 
 lint:
-	gometalinter \
-		--enable=goimports \
-		--enable=misspell \
-		--enable=nakedret \
-		--enable=unparam \
-		--disable=gocyclo \
-		--vendor \
-		--deadline=30s \
-		./...
+	reuse lint
+	golangci-lint run 
 
 # move all executables to /usr/bin 
 install:
 	for CMD in `ls cmd`; do \
 		install -Dm755 $$CMD $(DESTDIR)/usr/bin/$$CMD; \
 	done
-
-# create a new release tag
-release:
-	git tag -a $(value VERSION) -m "Release $(value VERSION)"
-	git push origin $(value VERSION)	
 
 # remove build results
 clean:

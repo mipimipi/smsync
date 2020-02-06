@@ -1,20 +1,3 @@
-// Copyright (C) 2018-2019 Michael Picht
-//
-// This file is part of smsync (Smart Music Sync).
-//
-// smsync is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// smsync is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with smsync. If not, see <http://www.gnu.org/licenses/>.
-
 package main
 
 import (
@@ -23,31 +6,53 @@ import (
 	"runtime"
 	"time"
 
-	lhlp "github.com/mipimipi/go-lhlp"
-	"github.com/mipimipi/go-lhlp/file"
-	"github.com/mipimipi/smsync/internal/smsync"
+	"github.com/eiannone/keyboard"
 	log "github.com/sirupsen/logrus"
+	"gitlab.com/mipimipi/go-utils"
+	"gitlab.com/mipimipi/go-utils/file"
+	"gitlab.com/mipimipi/smsync/internal/smsync"
 )
+
+// listenStop waits for <ESC> pressed on keyboard as stop signal
+func listenStop() (stop chan struct{}) {
+	stop = make(chan struct{})
+
+	go func() {
+		if _, key, _ := keyboard.GetSingleKey(); key == keyboard.KeyEsc {
+			stop <- struct{}{}
+			close(stop)
+		}
+	}()
+
+	return stop
+}
 
 // process starts the processing of directories and file conversions. It also
 // calls the print functions to display the required information onthe command
 // line
-func process(cfg *smsync.Config, dirs, files *[]*file.Info, init bool, verbose bool) time.Duration {
+func process(cfg *smsync.Config, files *[]*file.Info, init bool, verbose bool) {
 	log.Debug("cli.process: BEGIN")
 	defer log.Debug("cli.process: END")
 
 	var (
-		ticker  = time.NewTicker(time.Second) // ticker to update progress on screen every second
-		ticked  = false
-		started = time.Now()
+		ticker   = time.NewTicker(time.Second) // ticker to update progress on screen every second
+		ticked   = false                       // has ticker ticked?
+		wantstop = false                       // stop wanted?
 	)
 
 	// start processing
-	trck, done := smsync.Process(cfg, dirs, files, init)
+	proc := smsync.NewProcess(cfg, files, init)
+	proc.Run()
+
+	// channel for stop from keyboard. deferred close is necessary since if
+	// processing hasn't been stopped, listenStop is still waiting for a key
+	// to be pressed
+	defer keyboard.Close()
+	stop := listenStop()
 
 	// print header (if the user doesn't want smsync to be verbose)
 	if !verbose {
-		printProgress(trck, true)
+		printProgress(proc.Trck, true, false)
 	}
 
 loop:
@@ -58,40 +63,42 @@ loop:
 			ticked = true
 			// print progress (if the user doesn't want smsync to be verbose)
 			if !verbose {
-				printProgress(trck, false)
+				printProgress(proc.Trck, false, wantstop)
 			}
-		case cvInfo, ok := <-trck.CvInfo:
+		case pInfo, ok := <-proc.Trck.Out:
 			if !ok {
 				// if there is no more file to process, the final progress data
-				// is displayed (if the user desn't want smsync to be verbose)
+				// is displayed (if the user doesn't want smsync to be verbose)
 				if !verbose {
-					printProgress(trck, false)
+					printProgress(proc.Trck, false, false)
 					fmt.Println()
 				}
 				break loop
 			}
-			// if ticker hasn't ticked so far: print progress (if the user
-			// doesn't want smsync to be verbose)
-			if !ticked && !verbose {
-				printProgress(trck, false)
-			}
-
-			// if the user wants smsync to be verbose, display file (that
-			// has been processed) ...
+			// if the user wants smsync to be verbose, display detailed info
 			if verbose {
-				printVerbose(cfg, cvInfo)
+				printVerbose(cfg, pInfo)
+				continue
+			}
+			// if ticker hasn't ticked so far: print progress
+			if !ticked {
+				printProgress(proc.Trck, false, wantstop)
+			}
+		case _, ok := <-stop:
+			if ok {
+				wantstop = true
+				proc.Stop()
 			}
 		}
 	}
 
-	// if processing has finished: stop ticker
 	ticker.Stop()
 
-	// wait for clean up to be done
-	_ = <-done
+	// wait for processing to be finished
+	proc.Wait()
 
-	// return elapsed time
-	return time.Since(started)
+	// print final success message
+	printFinal(proc.Trck, verbose)
 }
 
 // synchronize is the main function of smsync. It triggers the entire sync
@@ -108,74 +115,59 @@ func synchronize(level log.Level, verbose bool) error {
 	log.Debug("cli.synchronize: BEGIN")
 	defer log.Debug("cli.synchronize: END")
 
-	var (
-		cfg     smsync.Config
-		dirs    *[]*file.Info
-		files   *[]*file.Info
-		elapsed time.Duration
-	)
-
 	// print copyright etc. on command line
 	fmt.Println(preamble)
 
 	// read configuration
+	cfg := new(smsync.Config)
 	if err := cfg.Get(cli.init); err != nil {
 		return err
 	}
 
 	// print summary and ask user for OK
-	printCfgSummary(&cfg)
+	printCfgSummary(cfg)
 	if !cli.noConfirm {
-		if !lhlp.UserOK("\n:: Start synchronization") {
+		if !utils.UserOK("\n:: Start synchronization") {
 			log.Infof("Synchronization not started due to user input")
+			defer smsync.CleanUp(cfg)
 			return nil
 		}
 	}
 
 	// set number of cpus to be used by smsync
-	_ = runtime.GOMAXPROCS(int(cfg.NumCpus))
+	runtime.GOMAXPROCS(int(cfg.NumCpus))
 
 	// start automatic progress string which increments every second
-	stop, confirm := lhlp.ProgressStr(":: Find differences (this can take a few minutes)", 1000)
+	stop, confirm := utils.ProgressStr(":: Find differences (this can take a few minutes)", 1000)
 
-	// get list of directories and files for sync
-	dirs, files = smsync.GetSyncFiles(&cfg, cli.init)
+	// get files and directories that need to be synched
+	files := smsync.GetSyncFiles(cfg, cli.init)
 
 	// stop progress string and receive stop confirmation. The confirmation is necessary to not
 	// scramble the command line output
-	stop <- struct{}{}
 	close(stop)
-	_ = <-confirm
+	<-confirm
 
-	// if no directories and no files need to be synchec: exit
-	if len(*dirs) == 0 && len(*files) == 0 {
+	// if no files need to be synchec: clean up and exit
+	if len(*files) == 0 {
 		fmt.Println("   Nothing to synchronize. Leaving smsync ...")
 		log.Info("Nothing to synchronize")
+
 		return nil
 	}
 
 	// print summary and ask user for OK to continue
 	if !cli.noConfirm {
-		if !lhlp.UserOK(fmt.Sprintf("\n:: %d directories and %d files to synchronize. Continue", len(*dirs), len(*files))) {
+		if !utils.UserOK(fmt.Sprintf("\n:: %d files and directories to be synchronized. Continue", len(*files))) {
 			log.Infof("Synchronization not started due to user input")
+			smsync.CleanUp(cfg)
 			return nil
 		}
 	}
 
 	// do synchronization / conversion
-	fmt.Println("\n:: Synchronization / conversion")
-	elapsed = process(&cfg, dirs, files, cli.init, cli.verbose)
-
-	// print final success message
-	fmt.Println("\n:: Done :)")
-	split := lhlp.SplitDuration(elapsed)
-	fmt.Printf("   Processed %d directories and %d files in %s\n",
-		len(*dirs),
-		len(*files),
-		fmt.Sprintf("%dh %02dmin %02ds",
-			split[time.Hour],
-			split[time.Minute],
-			split[time.Second]))
+	fmt.Println("\n:: Synchronization / conversion (PRESS <ESC> TO STOP)")
+	process(cfg, files, cli.init, cli.verbose)
 
 	// everything's fine
 	return nil

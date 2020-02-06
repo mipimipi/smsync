@@ -1,20 +1,3 @@
-// Copyright (C) 2018-2019 Michael Picht
-//
-// This file is part of smsync (Smart Music Sync).
-//
-// smsync is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// smsync is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with smsync. If not, see <http://www.gnu.org/licenses/>.
-
 package smsync
 
 import (
@@ -23,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	lhlp "github.com/mipimipi/go-lhlp"
 	log "github.com/sirupsen/logrus"
+	"gitlab.com/mipimipi/go-utils"
 )
 
 // implementation of interface "conversion" for conversions to OGG
@@ -37,7 +20,7 @@ func (cv cvAll2OGG) exec(srcFile string, trgFile string, cvStr string) error {
 	// set vorbis codec
 	params = append(params, "-codec:a", "libvorbis")
 
-	a := lhlp.SplitMulti(cvStr, "|:")
+	a := utils.SplitMulti(cvStr, "|:")
 
 	switch a[0] {
 	case abr:

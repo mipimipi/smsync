@@ -1,19 +1,6 @@
-# Binaries for programs and plugins
-*.exe
-*.dll
-*.so
-*.dylib
-
-# Test binary, build with `go test -c`
-*.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
-# Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
-.glide/
-.vscode/launch.json
-.vscode/tasks.json
+# SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org>
+#
+# SPDX-License-Identifier: CC0-1.0
 
 # exclude smsync executable, but not smsync directory
 *smsync*

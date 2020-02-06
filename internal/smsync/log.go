@@ -1,20 +1,3 @@
-// Copyright (C) 2018-2019 Michael Picht
-//
-// This file is part of smsync (Smart Music Sync).
-//
-// smsync is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// smsync is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with smsync. If not, see <http://www.gnu.org/licenses/>.
-
 package smsync
 
 // log.go implements some wrapper functionality for logging
@@ -23,11 +6,10 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
-	"github.com/mipimipi/go-lhlp/file"
 	log "github.com/sirupsen/logrus"
+	"gitlab.com/mipimipi/go-utils/file"
 )
 
 // LogFile is the log file. smsync always logs into ./smsync.log
@@ -105,14 +87,15 @@ func (f *smsyncTextFormatter) Format(entry *log.Entry) ([]byte, error) {
 // CreateLogger creates and initializes the logger for smsync
 func CreateLogger(level log.Level) error {
 	// set log file
-	fp, err := filepath.Abs(filepath.Join(".", LogFile))
-	if err != nil {
-		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
-			panic(e.Error())
+	fp := "/home/mipi/Musik/smsync/smsync.log"
+	/*	fp, err := filepath.Abs(filepath.Join(".", LogFile))
+		if err != nil {
+			if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
+				panic(e.Error())
+			}
+			return err
 		}
-		return err
-	}
-
+	*/
 	// delete log file if it already exists
 	exists, err := file.Exists(fp)
 	if err != nil {

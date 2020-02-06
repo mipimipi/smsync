@@ -1,14 +1,18 @@
-[![Travis](https://travis-ci.org/mipimipi/smsync.svg?branch=master)](https://travis-ci.org/mipimipi/smsync.svg?branch=master)
+<!--
+SPDX-FileCopyrightText: 2018-2020 Michael Picht
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
 
 # Smart Music Sync (smsync)
 
 keeps huge music collections in sync and is takes care of conversions between different formats. It's an easy-to-use command line application for Linux. 
 
-smsync is made for use cases where you have a folder structure for your high quality lossless or lossy but high bit rate music that acts as a source (aka. "master"). From this source you replicate your music to targets (aka. "slaves"), such as a smartphone or an SD card / hard drive for your car etc. On a smartphone or in the car you either don't have or you don't want to spend that much storage capacity that you might have for you source music storage. Thus, the replication step from the source to the targets is not a simple copy, it's in fact a conversion step. For instance, music that is stored on the source in the lossless [FLAC format](https://en.wikipedia.org/wiki/FLAC) shall be converted to [MP3](https://en.wikipedia.org/wiki/MP3) while being replicated to a target.
+smsync is made for use cases where you have a folder structure for your high quality lossless or lossy but high bit rate music that acts as a source (aka. "master"). From this source you replicate your music to targets (aka. "slaves"), such as a smartphone or an SD card / hard drive for your car etc. On a smartphone or in the car you either don't have or you don't want to spend that much storage capacity that you might have for you source music storage. Thus, the replication step from the source to the targets is not a simple copy, it's in fact a conversion step. Music that is stored on the source in the lossless [FLAC format](https://en.wikipedia.org/wiki/FLAC), for example, shall be converted to [MP3](https://en.wikipedia.org/wiki/MP3) while being replicated to a target.
 
-Normally, you want to keep the folder structure during replication. I.e. a certain music file on the target shall have the same relative folder path as its counterpart has on the source.
+Normally, you want to keep the folder structure during replication. This means, that a certain music file on the target shall have the same relative folder path as its counterpart has on the source.
 
-New music is typically added to the source only. If that happened you want to update the targets accordingly with minimal effort. If you deleted files or folders on the source for whatever reason, these deletions shall be propagated to the target as well. And, last not least, as we are talking about huge music collections (several thousands or even ten thousands of music files), the whole synchronization and replication process must happen in a highly automated and performant way.
+New music is typically added to the source only. If that happened, you want to update the targets accordingly with minimal effort. If you deleted files or folders on the source for whatever reason, these deletions shall be propagated to the target as well. And, last not least, as we are talking about huge music collections (several thousands or even ten thousands of music files), the whole synchronization and replication process must happen in a highly automated and performant way.
 
 ## Contents
 
@@ -22,7 +26,7 @@ New music is typically added to the source only. If that happened you want to up
 * [Usage](#usage)
     * [Configuration File](#config)
         - [General Configuration](#general)
-        - [Exclude Folders](#exclude)
+        - [Excluded Folders](#exclude)
         - [Conversion Rules](#rules)
         - [Format-dependent Conversion Parameters](#format)
             - [FLAC](#flac)
@@ -31,11 +35,12 @@ New music is typically added to the source only. If that happened you want to up
             - [OPUS](#opus)
     * [Synchronization Process](#syncproc)
         - [FFMPEG errors](#errors)
+        - [Interruption of the process](#interrupt)
     * [Command Line Options](#command)
-    * [Keeping source and target consistent](#consistency)  
+    * [Keeping source and target consistent](#consistency) 
         - [Case 1: Scope has been reduced](#case1)
         - [Case 2: Scope has been extended](#case2)
-        - [Case 3: Scope is unchanged but conversion rules have been changed](#case3)  
+        - [Case 3: Scope is unchanged but conversion rules have been changed](#case3) 
 
 ## <a name="features"></a>Features
 
@@ -71,11 +76,11 @@ smsync is written in [Golang](https://golang.org/) and thus requires the install
 
 To download smsync and all dependencies, open a terminal and enter
 
-    $ go get github.com/mipimipi/smsync
+    $ go get gitlab.com/mipimipi/smsync
 
 After that, build smsync by executing
 
-    $ cd $GOPATH/src/github.com/mipimipi/smsync
+    $ cd $GOPATH/src/gitlab.com/mipimipi/smsync
     $ make
 
 Finally, execute
@@ -109,13 +114,11 @@ Example:
       conversion: copy
     - source: '*'
 
-In former releases (< smsync 3.0) a configuration file in [INI format](https://en.wikipedia.org/wiki/INI_file) was required (`SMSYNC.CONF`) instead of a YAML file. If no `smsync.yaml`exists, smsync is taking a potentially  existing `SMSYNC.CONF` and converts it into a YAML file `smsync.yaml`. After that, the old configuration file is obsolete and can be deleted. 
-
 #### <a name="general"></a>General Configuration
 
 smsync interprets the configuration file. In the example, the root folder of the source is `/home/musiclover/Music/SOURCE`. The next two entries are optional. They tell smsync to use 4 cpus and start 4 worker processes for the conversion. Per default, smsync uses all available cpus and starts #cpus worker processes.
 
-#### <a name="exclude"></a>Exclude Folders
+#### <a name="exclude"></a>Excluded Folders
 
 `exclude` allows to exclude a list of source folders from the conversion. The folder paths in that list are interpreted relative to the source directory. Wildcards are supported. In the example, all folders fitting to the pattern `/home/musiclover/Music/SOURCE/Rock/Eric*` are excluded, i.e. `/home/musiclover/Music/SOURCE/Rock/Eric Clapton`, `/home/musiclover/Music/SOURCE/Rock/Eric Burden` etc. are excluded. The exclusion feature can be helpful if the target disk space is not big enough. In such a case, some artists or even entire genres can be excluded. Another option to deal with insufficient disk space would be to configure a higher compression rate.
 
@@ -209,9 +212,9 @@ The synchronization process is executed in the following steps:
 
     ```
             Elapsed   Remain #Conv    Avg    Avg    Estimated    Estimated        
-     #TODO     Time     Time / min  Durat  Compr  Target Size   Free Space #Errors
-    ------------------------------------------------------------------------------
-     37290 00:06:06 13:50:10  38.8 11.36s   9.4%    126069 MB     79075 MB       0
+     #TODO     Time     Time / min  Durat  Compr  Target Size   Free Space #Errs
+    ----------------------------------------------------------------------------
+     37290 00:06:06 13:50:10  38.8 11.36s   9.4%    126069 MB     79075 MB     0
 
     ```
 
@@ -263,11 +266,17 @@ to such a target folder structure:
           |        |- cover.jpg
           |- ...
 
-The folder "/home/musiclover/Music/SOURCE/Rock/Eric Clapton" hasn't been converted because the directoty fits to the exclusion pattern.
+The folder "/home/musiclover/Music/SOURCE/Rock/Eric Clapton" hasn't been converted because the directory fits to the exclusion pattern.
 
-### <a name="errors"></a>FFMPEG errors
+#### <a name="errors"></a>FFMPEG errors
 
 During the conversion with FFMPEG, errors can occur. Unfortunately, there's not much information about the exit codes of FFMPEG (all I could find is [this](https://lists.ffmpeg.org/pipermail/ffmpeg-user/2013-July/016245.html). In particular, it seems to be impossible to find out if an error occured during the audio conversion or if it only had to do with the cover art. Therefore, smsync reports an error every time the exit code of FFMPEG is not zero. In addition to that, a file with the detailed log information of FFMPEG ([`-loglevel verbose`](http://ffmpeg.org/ffmpeg.html#Generic-options)) is stored in the directory `smsync.cv.err`. This file is named `<name-of-the-music-file-that-was-converted>.log`.
+
+#### <a name="interrupt></a>Interruption of the process
+
+In case of a huge music collaction (tens of thousands of songs), the synchronization process might take very long (10+ hours is normal for a first run). For such cases, smsync offers the possibility to interrupt the process by pressing `<ESC>`. The process finalizes the conversions that have already started and stops afterwards. The next synchronization run selects only the remaining source files.
+
+WARNING: PLEASE USE ONLY THIS OPTION TO INTERRUPT THE PROCESS. INTERRUPTION VIA `<CTRL-C>`, CLOSURE OF THE TERMINAL WINDOW ETC. CAN LEAD TO INCOMPLETE/INCONSISTENT TARGET FILES !!!
 
 ### <a name="command"></a>Command Line Options
 

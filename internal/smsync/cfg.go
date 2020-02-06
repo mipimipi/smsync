@@ -1,20 +1,3 @@
-// Copyright (C) 2018-2019 Michael Picht
-//
-// This file is part of smsync (Smart Music Sync).
-//
-// smsync is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// smsync is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with smsync. If not, see <http://www.gnu.org/licenses/>.
-
 package smsync
 
 // cfg.go implements the logic that is needed for the configuration
@@ -31,8 +14,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/mipimipi/go-lhlp/file"
 	log "github.com/sirupsen/logrus"
+	"gitlab.com/mipimipi/go-utils/file"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -54,19 +37,19 @@ type cfgYml struct {
 	SrcDir   string   `yaml:"source_dir"`          // source directory
 	Excludes []string `yaml:"exclude,omitempty"`   // exclude these directories
 	LastSync string   `yaml:"last_sync,omitempty"` // timestamp when the last sync happened
-	NumCPUs  uint     `yaml:"num_cpus,omitempty"`  // number of CPUs that gool is allowed to use
-	NumWrkrs uint     `yaml:"num_wrkrs,omitempty"` // number of worker Go routines to be created
+	NumCPUs  int      `yaml:"num_cpus,omitempty"`  // number of CPUs that gool is allowed to use
+	NumWrkrs int      `yaml:"num_wrkrs,omitempty"` // number of worker Go routines to be created
 	Rules    []rule   `yaml:"rules"`               // conversion rules
 }
 
 // Config contains the enriched data that has been read from the config file
 type Config struct {
 	LastSync time.Time       // timestamp when the last sync happened
-	SrcDir   string          // source directory
-	TrgDir   string          // target directory
+	SrcDir   file.Info       // source directory
+	TrgDir   file.Info       // target directory
 	Excludes []string        // exclude these directories
-	NumCpus  uint            // number of CPUs that gool is allowed to use
-	NumWrkrs uint            // number of worker Go routines to be created
+	NumCpus  int             // number of CPUs that gool is allowed to use
+	NumWrkrs int             // number of worker Go routines to be created
 	Cvs      map[string]*cvm // conversion rules
 }
 
@@ -91,20 +74,18 @@ func (cfg *Config) Get(init bool) error {
 
 	// read config from file
 	if err = cfgY.read(); err != nil {
-		// if config file in yaml for at exists, try to convert an old
-		// potentially existing ini file into a yaml file and try again
-		ini2yaml()
-		if err = cfgY.read(); err != nil {
-			log.Errorf("Config.Get: %v", err)
-			return err
-		}
+		return fmt.Errorf("Config.Get: %v", err)
+	}
+
+	if len(cfgY.SrcDir) == 0 {
+		log.Errorf("No source directory specified in config file")
+		return fmt.Errorf("No source directory specified in config file")
 	}
 
 	// check if the configured source dir exists and is a directory
-	if err = checkDir(cfgY.SrcDir); err != nil {
+	if cfg.SrcDir, err = getDir(cfgY.SrcDir); err != nil {
 		return err
 	}
-	cfg.SrcDir = cfgY.SrcDir
 
 	// get directories that shall be excluded
 	if len(cfgY.Excludes) > 0 {
@@ -113,7 +94,7 @@ func (cfg *Config) Get(init bool) error {
 
 	// get number of CPU's (optional). Default is to use all available cpus
 	if cfgY.NumCPUs == 0 {
-		cfg.NumCpus = uint(runtime.NumCPU())
+		cfg.NumCpus = runtime.NumCPU()
 		log.Infof("num_cpus not configured. Use default: %d", cfg.NumCpus)
 	} else {
 		cfg.NumCpus = cfgY.NumCPUs
@@ -154,7 +135,12 @@ func (cfg *Config) Get(init bool) error {
 	}
 
 	// set target directory
-	if cfg.TrgDir, err = os.Getwd(); err != nil {
+	trgDir, err := os.Getwd()
+	if err != nil {
+		log.Errorf("Config.Get: %v", err)
+		return fmt.Errorf("Config.Get: %v", err)
+	}
+	if cfg.TrgDir, err = file.Stat(trgDir); err != nil {
 		log.Errorf("Config.Get: %v", err)
 		return fmt.Errorf("Config.Get: %v", err)
 	}
@@ -188,7 +174,7 @@ func (cfg *Config) getExcludes(excls *[]string) {
 		}
 
 		// expand directory
-		a, err := filepath.Glob(file.EscapePattern(filepath.Join(cfg.SrcDir, excl)))
+		a, err := filepath.Glob(file.EscapePattern(filepath.Join(cfg.SrcDir.Path(), excl)))
 		if err != nil {
 			log.Errorf("Config.getExcludes: %v", err)
 			return
@@ -287,7 +273,9 @@ func (cfg *Config) setProcEnd() {
 	var cfgY cfgYml
 
 	// read config from file
-	cfgY.read()
+	if err := cfgY.read(); err != nil {
+		log.Errorf("cfgYml.serProcEnd: %v", err)
+	}
 
 	// set last sync time to current time in UTC
 	cfgY.LastSync = time.Now().UTC().Format(time.RFC3339)
@@ -350,30 +338,23 @@ func (cfgY *cfgYml) write() {
 	}
 }
 
-// checkDir checks if the source directory exists and if it's a directory
-func checkDir(srcDir string) error {
+// getDir checks if the dir exists and if it's a directory. If everything is
+// fine, it return the file.Info for dir.
+func getDir(dir string) (file.Info, error) {
 	log.Debug("smsync.checkDir: BEGIN")
 	defer log.Debug("smsync.checkDir: END")
 
-	if len(srcDir) == 0 {
-		log.Errorf("No source directory specified in config file")
-		return fmt.Errorf("No source directory specified in config file")
-	}
-	fi, err := os.Stat(srcDir)
+	inf, err := file.Stat(dir)
 	if err != nil {
-		if os.IsNotExist(err) {
-			log.Errorf("Source directory '%s' doesn't exist", srcDir)
-			return fmt.Errorf("Source directory '%s' doesn't exist", srcDir)
-		}
-		log.Errorf("Error regarding source directory '%s': %v", srcDir, err)
-		return fmt.Errorf("Error regarding source directory '%s': %v", srcDir, err)
+		log.Errorf("Config.getDir: %v", err)
+		return nil, fmt.Errorf("Config.getDir: %v", err)
 	}
-	if !fi.IsDir() {
-		log.Errorf("Source '%s' is no directory", srcDir)
-		return fmt.Errorf("Source '%s' is no directory", srcDir)
+	if !inf.IsDir() {
+		log.Errorf("'%s' is no directory", dir)
+		return nil, fmt.Errorf("'%s' is no directory", dir)
 	}
 
-	return nil
+	return inf, nil
 }
 
 // getLastSync determines the time of the last synchronization

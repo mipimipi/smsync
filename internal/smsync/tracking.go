@@ -1,129 +1,95 @@
-// Copyright (C) 2018-2019 Michael Picht
-//
-// This file is part of smsync (Smart Music Sync).
-//
-// smsync is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// smsync is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with smsync. If not, see <http://www.gnu.org/licenses/>.
-
 package smsync
 
 import (
 	"time"
 
-	"github.com/mipimipi/go-lhlp/file"
-	log "github.com/sirupsen/logrus"
+	"gitlab.com/mipimipi/go-utils/file"
 )
-
-// CvInfo contains information about the conversion of a single file
-type CvInfo struct {
-	SrcFile file.Info     // source file or directory
-	TrgFile file.Info     // target file or directory
-	Dur     time.Duration // duration of a conversion
-	Err     error         // error (that occurred during processing)
-}
 
 // Tracking contains attributes that are used to keep track of the progress of
 // the processing
 type Tracking struct {
-	started   time.Time     // start time of processing
-	totalNum  int           // total number of files / dirs
-	totalSize uint64        // total aggregated size of source files
-	diskspace uint64        // available space on target device
-	done      int           // number of files / dirs that have been processed
-	srcSize   uint64        // cumulated size of source files
-	trgSize   uint64        // cumulated size of target files
-	errors    int           // number of errors
-	dur       time.Duration // cumulated duration
-	CvInfo    chan CvInfo   // channel to report intermediate results
-}
+	// number of files
+	TotalNum int // total number of files
+	Done     int // number of files / dirs that have been processed
 
-// Status contains attributes that are used to communicate the progress of the
-// processing
-type Status struct {
-	Todo       int           // number of files that still have to be processed
-	Elapsed    time.Duration // elapsed time
-	Remaining  time.Duration // remaining time
-	Throughput float64       // average number of conversions per minute
-	Size       uint64        // estimated total target size
-	Avail      int64         // estimated free diskspace
-	Comp       float64       // average compression rate
-	AvgDur     time.Duration // average duration of a conversion
-	Errors     int           // number of errors
+	// time
+	Started   time.Time     // start time of processing
+	AvgDur    time.Duration // average duration of a conversion
+	Dur       time.Duration // cumulated duration
+	Elapsed   time.Duration // elapsed time
+	Remaining time.Duration // remaining time
+
+	// size
+	TotalSize uint64 // total aggregated size of source files
+	Diskspace uint64 // available space on target device
+	SrcSize   uint64 // cumulated size of source files
+	TrgSize   uint64 // cumulated size of target files
+	Size      uint64 // estimated total target size
+	Avail     int64  // estimated free diskspace
+
+	// efficiency
+	Throughput float64 // average number of conversions per minute
+	Comp       float64 // average compression rate
+
+	Errors int // number of errors
+
+	Out chan ProcInfo // channel to send intermediate results
 }
 
 // newTrck create a Tracking instance
 func newTrck(wl *[]*file.Info, space uint64) *Tracking {
-	var trck Tracking
+	trck := new(Tracking)
 
-	trck.totalNum = len(*wl)
-	trck.diskspace = space
-	trck.CvInfo = make(chan CvInfo)
+	trck.TotalNum = len(*wl)
+	trck.Diskspace = space
+	trck.Out = make(chan ProcInfo)
 
 	for _, inf := range *wl {
-		trck.totalSize += uint64((*inf).Size())
+		trck.TotalSize += uint64((*inf).Size())
 	}
 
-	return &trck
+	return trck
 }
 
 // start begins progress tracking
 func (trck *Tracking) start() {
-	trck.started = time.Now()
+	trck.Started = time.Now()
 }
 
 // stop ends progress tracking
 func (trck *Tracking) stop() {
-	log.Debug("smsync.Tracking.stop: BEGIN")
-	defer log.Debug("smsync.Tracking.stop: END")
-	close(trck.CvInfo)
-}
-
-// Status calculates the current processing status based on the attributes of
-// Tracking
-func (trck *Tracking) Status() *Status {
-	var status Status
-
-	status.Todo = trck.totalNum - trck.done
-	status.Elapsed = time.Since(trck.started)
-	if trck.done > 0 {
-		status.Remaining = time.Duration(int64(status.Elapsed) / int64(trck.done) * int64(trck.totalNum-trck.done))
-		status.AvgDur = time.Duration(int(trck.dur) / trck.done)
-	}
-	if status.Elapsed > 0 {
-		status.Throughput = float64(trck.done) / status.Elapsed.Minutes()
-	}
-	if trck.srcSize > 0 {
-		status.Comp = float64(trck.trgSize) / float64(trck.srcSize)
-	}
-	status.Size = uint64(status.Comp * float64(trck.totalSize))
-	status.Avail = int64(trck.diskspace) - int64(status.Size)
-	status.Errors = trck.errors
-
-	return &status
+	close(trck.Out)
 }
 
 // update receives information about a finished conversion and updates
 // tracking accordingly
-func (trck *Tracking) update(cvInfo CvInfo) {
-	trck.done++
-	if cvInfo.SrcFile != nil {
-		trck.srcSize += uint64(cvInfo.SrcFile.Size())
-	}
-	if cvInfo.TrgFile != nil {
-		trck.trgSize += uint64(cvInfo.TrgFile.Size())
-	}
-	trck.dur += cvInfo.Dur
+func (trck *Tracking) update(pInfo ProcInfo) {
+	// forward update
+	trck.Out <- pInfo
 
-	// send conversion information to whoever is interested
-	trck.CvInfo <- cvInfo
+	// update status values
+	trck.Elapsed = time.Since(trck.Started)
+	if trck.Done > 0 {
+		trck.Remaining = time.Duration(int64(trck.Elapsed) / int64(trck.Done) * int64(trck.TotalNum-trck.Done))
+	}
+	if trck.Elapsed > 0 {
+		trck.Throughput = float64(trck.Done) / trck.Elapsed.Minutes()
+	}
+	trck.Done++
+	if pInfo.SrcFile != nil {
+		trck.SrcSize += uint64(pInfo.SrcFile.Size())
+	}
+	if pInfo.TrgFile != nil {
+		trck.TrgSize += uint64(pInfo.TrgFile.Size())
+	}
+	trck.Dur += pInfo.Dur
+	if trck.Done > 0 {
+		trck.AvgDur = time.Duration(int(trck.Dur) / trck.Done)
+	}
+	if trck.SrcSize > 0 {
+		trck.Comp = float64(trck.TrgSize) / float64(trck.SrcSize)
+	}
+	trck.Size = uint64(trck.Comp * float64(trck.TotalSize))
+	trck.Avail = int64(trck.Diskspace) - int64(trck.Size)
 }

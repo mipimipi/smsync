@@ -1,20 +1,3 @@
-// Copyright (C) 2018-2019 Michael Picht
-//
-// This file is part of smsync (Smart Music Sync).
-//
-// smsync is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// smsync is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with smsync. If not, see <http://www.gnu.org/licenses/>.
-
 package smsync
 
 import (
@@ -24,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mipimipi/go-lhlp/file"
 	log "github.com/sirupsen/logrus"
+	"gitlab.com/mipimipi/go-utils/file"
 )
 
 type (
@@ -36,15 +19,8 @@ type (
 		trgSuffix string
 	}
 
-	// input structure of a conversion:
-	cvInput struct {
-		cfg     *Config   // configuration
-		srcFile file.Info // source file
-	}
-
 	// output structure of a conversion
 	cvOutput struct {
-		srcFile file.Info     // source file
 		trgFile file.Info     // target file
 		dur     time.Duration // duration of conversion
 		err     error         // error (that occurred during the conversion)
@@ -108,59 +84,31 @@ var (
 	}
 )
 
-// assembleTrgFile creates the target file path from the source file path
-// (f) and the configuration
-func assembleTrgFile(cfg *Config, srcFile string) string {
-	var trgSuffix string
-
-	// get conversion rule from config
-	cvm, exists := cfg.getCv(srcFile)
-	if !exists {
-		log.Errorf("No conversion rule for '%s'", srcFile)
-		return ""
-	}
-
-	// if corresponding conversion rule is for '*' ...
-	if cvm.TrgSuffix == suffixStar {
-		// ... target suffix is same as source suffix
-		trgSuffix = file.Suffix(srcFile)
-	} else {
-		// ... otherwise take target suffix from conversion rule
-		trgSuffix = cvm.TrgSuffix
-	}
-
-	trgFile, err := file.PathRelCopy(cfg.SrcDir, file.PathTrunk(srcFile)+"."+trgSuffix, cfg.TrgDir)
-	if err != nil {
-		log.Errorf("Target path cannot be assembled: %v", err)
-		return ""
-	}
-	return trgFile
-}
-
 // convert executes conversion for one file
-func convert(i cvInput) cvOutput {
+func convert(cfg *Config, srcFile file.Info) cvOutput {
 	var (
 		trgFile string
-		trgFI   file.Info
+		trgInfo file.Info
 		cv      conversion
 		err     error
 	)
 
 	// get conversion string for f from config
-	cvm, exists := i.cfg.getCv(i.srcFile.Path())
+	cvm, exists := cfg.getCv(srcFile.Path())
 
 	// if no string found: exit
 	if !exists {
-		return cvOutput{nil, nil, 0, nil}
+		log.Errorf("convert: No conversion found in config for '%s'", srcFile.Name())
+		return cvOutput{trgFile: nil, dur: 0, err: nil}
 	}
 
 	// assemble output file
-	trgFile = assembleTrgFile(i.cfg, i.srcFile.Path())
+	trgFile = assembleTrgFile(cfg, srcFile.Path())
 
 	// if error directory doesn't exist: create it
 	if err := file.MkdirAll(filepath.Dir(trgFile), os.ModeDir|0755); err != nil {
-		log.Errorf("Error from MkdirAll('%s'): %v", errDir, err)
-		return cvOutput{srcFile: i.srcFile, trgFile: nil, err: err}
+		log.Errorf("convert: %v", err)
+		return cvOutput{trgFile: nil, dur: 0, err: err}
 	}
 
 	// set transformation function
@@ -168,19 +116,19 @@ func convert(i cvInput) cvOutput {
 		cv = cp
 	} else {
 		// determine transformation function for srcSuffix -> trgSuffix
-		cv = validCvs[cvKey{srcSuffix: file.Suffix(i.srcFile.Path()), trgSuffix: cvm.TrgSuffix}]
+		cv = validCvs[cvKey{srcSuffix: file.Suffix(srcFile.Path()), trgSuffix: cvm.TrgSuffix}]
 	}
 
 	// execute conversion
 	start := time.Now()
-	err = cv.exec(i.srcFile.Path(), trgFile, cvm.NormCvStr)
+	err = cv.exec(srcFile.Path(), trgFile, cvm.NormCvStr)
 
 	if err == nil {
-		trgFI, err = file.Stat(trgFile)
+		trgInfo, err = file.Stat(trgFile)
 	}
 
 	// call transformation function and return result
-	return cvOutput{srcFile: i.srcFile, trgFile: trgFI, dur: time.Since(start), err: err}
+	return cvOutput{trgFile: trgInfo, dur: time.Since(start), err: err}
 }
 
 // isValidBitrate determines if s represents a valid bit rate. I.e. it needs
