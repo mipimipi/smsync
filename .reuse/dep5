@@ -3,8 +3,10 @@ Upstream-Name: smsync
 Upstream-Contact: Michael Picht <mipi@fsfe.org>
 Source: gitlab.com/mipimipi/smsync
 
-# Sample paragraph, commented out:
-#
-# Files: src/*
-# Copyright: $YEAR $NAME <$CONTACT>
-# License: ...
+Files: cmd/smsync/*
+Copyright: 2018-2020 Michael Picht <mipi@fsfe.org>
+License: GPL-3.0-or-later
+
+Files: internal/smsync/*
+Copyright: 2018-2020 Michael Picht <mipi@fsfe.org>
+License: GPL-3.0-or-later

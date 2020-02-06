@@ -1,0 +1,196 @@
+SPDXVersion: SPDX-2.1
+DataLicense: CC0-1.0
+SPDXID: SPDXRef-DOCUMENT
+DocumentName: smsync
+DocumentNamespace: http://spdx.org/spdxdocs/spdx-v2.1-95cdc13b-4402-4c6b-9347-ce1c8ecc77c5
+Creator: Person: Anonymous ()
+Creator: Organization: Anonymous ()
+Creator: Tool: reuse-0.8.0
+Created: 2020-02-06T09:57:40Z
+CreatorComment: <text>This document was created automatically using available reuse information consistent with REUSE.</text>
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-2fbc29b90468b124486293375b02a03a
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-82309b9922d62a3d405edf14e2d8cf0b
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-424c8d81a2eef5d86e01ccaf44ba3692
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-1abd9e3f5e34677161eab50944f3a75c
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-e963be2b7a7a2336d773f8ae352e3e13
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-894184d1c5c72f076d695e46861d63b0
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-dc3b9667d1bfafbc44c0fb81f5034531
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-55daf9cd3e5c7b8fd89ab5d14ef34603
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-46641bb919a2e5fd76e26c97300460a0
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-509b50cf0b3a75bf44d2bea382558868
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-a6f9a425f67a3108b8a94e4d8e6fa2e8
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-72a5375374e573c6977d7a56ae3a7be0
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-02dacbb4ae183b8ee2bcd0dced265913
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-4aed21eb89e42cb0dde6003fccc67d3b
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-e56c6b2dcf22f78da58d9ba0aa67f09d
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-3cea067e0c78a768a5c16accb60085c0
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-acfa1134731042178b69ddf34e06149d
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-2b5a50d0313679e2d833e9fbc79c8b36
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-a517fa61c5df050dea3f2ab9779fc53e
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-02955aa0fb5ed2c51df8a7cdb3f4d50d
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-d565faf40209aa251e6b36aef1c33385
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-2fb3b4486523c253b02ff6e037a6d75c
+Relationship: SPDXRef-DOCUMENT describes SPDXRef-9c5ffd7face7ec4f4f85800b9a830116
+
+FileName: ./.gitignore
+SPDXID: SPDXRef-2fbc29b90468b124486293375b02a03a
+FileChecksum: SHA1: 4f3954f13de894f1fe46c88d505b875db48973bf
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: CC0-1.0
+FileCopyrightText: <text>SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org></text>
+
+FileName: ./.gitlab-ci.yml
+SPDXID: SPDXRef-82309b9922d62a3d405edf14e2d8cf0b
+FileChecksum: SHA1: a6e8326dbb8ce995cddeb85208760913dad0e880
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>SPDX-FileCopyrightText: 2018-2020 Michael Picht</text>
+
+FileName: ./CHANGELOG.md
+SPDXID: SPDXRef-424c8d81a2eef5d86e01ccaf44ba3692
+FileChecksum: SHA1: 79128e854f603014fe7836aacd32e9e5df512411
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>SPDX-FileCopyrightText: 2018-2020 Michael Picht</text>
+
+FileName: ./Makefile
+SPDXID: SPDXRef-1abd9e3f5e34677161eab50944f3a75c
+FileChecksum: SHA1: bf08d5b8a65e98daefa6d3c6f4f48448e0929a60
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>SPDX-FileCopyrightText: 2018-2020 Michael Picht</text>
+
+FileName: ./README.md
+SPDXID: SPDXRef-e963be2b7a7a2336d773f8ae352e3e13
+FileChecksum: SHA1: 59d401f9d6beda52df4f71b15cef61e49536b6cc
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>SPDX-FileCopyrightText: 2018-2020 Michael Picht</text>
+
+FileName: ./VERSION
+SPDXID: SPDXRef-894184d1c5c72f076d695e46861d63b0
+FileChecksum: SHA1: bd995b15c92d73ccf2f3e65d51702f88efea8001
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>SPDX-FileCopyrightText: 2018-2020 Michael Picht</text>
+
+FileName: ./cmd/smsync/cli.go
+SPDXID: SPDXRef-dc3b9667d1bfafbc44c0fb81f5034531
+FileChecksum: SHA1: 2a7f6024cd70baba0b9fc512eb9d76dabad94131
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>2018-2020 Michael Picht <mipi@fsfe.org>
+Copyright (C) 2018-2020 Michael Picht <https://github.com/mipimipi/smsync>`</text>
+
+FileName: ./cmd/smsync/main.go
+SPDXID: SPDXRef-55daf9cd3e5c7b8fd89ab5d14ef34603
+FileChecksum: SHA1: eff3bd1e0c1a5b8bfb49bb66c01e446d880e24e9
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>2018-2020 Michael Picht <mipi@fsfe.org></text>
+
+FileName: ./cmd/smsync/print.go
+SPDXID: SPDXRef-46641bb919a2e5fd76e26c97300460a0
+FileChecksum: SHA1: 358c3c28bc4e935f5d81c0f85395fa17f13668e2
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>2018-2020 Michael Picht <mipi@fsfe.org></text>
+
+FileName: ./cmd/smsync/sync.go
+SPDXID: SPDXRef-509b50cf0b3a75bf44d2bea382558868
+FileChecksum: SHA1: 435fe863d68dd5b542049b2bac2306e3966b1ada
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>2018-2020 Michael Picht <mipi@fsfe.org></text>
+
+FileName: ./internal/smsync/cfg.go
+SPDXID: SPDXRef-a6f9a425f67a3108b8a94e4d8e6fa2e8
+FileChecksum: SHA1: d993d04a8097c3f00edc236dbdf8f61828e07620
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>2018-2020 Michael Picht <mipi@fsfe.org>
+SPDX-FileCopyrightText: 2018-2020 Michael Picht</text>
+
+FileName: ./internal/smsync/conversion.go
+SPDXID: SPDXRef-72a5375374e573c6977d7a56ae3a7be0
+FileChecksum: SHA1: 2ee3d1390ec188ab1ec9071db2718ec89b728b2e
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>2018-2020 Michael Picht <mipi@fsfe.org></text>
+
+FileName: ./internal/smsync/copy.go
+SPDXID: SPDXRef-02dacbb4ae183b8ee2bcd0dced265913
+FileChecksum: SHA1: e5ad0acc7512545c3c337dff07a3eeb45c34a3b0
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>2018-2020 Michael Picht <mipi@fsfe.org></text>
+
+FileName: ./internal/smsync/ffmpeg.go
+SPDXID: SPDXRef-4aed21eb89e42cb0dde6003fccc67d3b
+FileChecksum: SHA1: 77f27247ddeeccd43713ac94354f45724cc01b8e
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>2018-2020 Michael Picht <mipi@fsfe.org></text>
+
+FileName: ./internal/smsync/files.go
+SPDXID: SPDXRef-e56c6b2dcf22f78da58d9ba0aa67f09d
+FileChecksum: SHA1: 91676e771f71ff4c4cbe72ced1f0608c39d3770e
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>2018-2020 Michael Picht <mipi@fsfe.org></text>
+
+FileName: ./internal/smsync/flac.go
+SPDXID: SPDXRef-3cea067e0c78a768a5c16accb60085c0
+FileChecksum: SHA1: 2d4ec8419a95935434f1f611b10511051bae1cbe
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>2018-2020 Michael Picht <mipi@fsfe.org></text>
+
+FileName: ./internal/smsync/log.go
+SPDXID: SPDXRef-acfa1134731042178b69ddf34e06149d
+FileChecksum: SHA1: 9cc008ce3b8af0a265d348271bae07688c93945d
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>2018-2020 Michael Picht <mipi@fsfe.org></text>
+
+FileName: ./internal/smsync/mp3.go
+SPDXID: SPDXRef-2b5a50d0313679e2d833e9fbc79c8b36
+FileChecksum: SHA1: 4f292db1c00827734536d66c65abdae99aa8b87b
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>2018-2020 Michael Picht <mipi@fsfe.org></text>
+
+FileName: ./internal/smsync/ogg.go
+SPDXID: SPDXRef-a517fa61c5df050dea3f2ab9779fc53e
+FileChecksum: SHA1: ccc011e6fd8d3f3face0f125aadef2e30af77f32
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>2018-2020 Michael Picht <mipi@fsfe.org></text>
+
+FileName: ./internal/smsync/opus.go
+SPDXID: SPDXRef-02955aa0fb5ed2c51df8a7cdb3f4d50d
+FileChecksum: SHA1: 4ecb55875bf61d2ba3bd81177d8703307b474282
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>2018-2020 Michael Picht <mipi@fsfe.org></text>
+
+FileName: ./internal/smsync/process.go
+SPDXID: SPDXRef-d565faf40209aa251e6b36aef1c33385
+FileChecksum: SHA1: afdd2f808f3740972d95ddb9932b39a92fbad837
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>2018-2020 Michael Picht <mipi@fsfe.org></text>
+
+FileName: ./internal/smsync/tracking.go
+SPDXID: SPDXRef-2fb3b4486523c253b02ff6e037a6d75c
+FileChecksum: SHA1: b2b022f5f36e83a0ca870591760403b2ef1e1feb
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>2018-2020 Michael Picht <mipi@fsfe.org></text>
+
+FileName: ./pkg/PKGBUILD
+SPDXID: SPDXRef-9c5ffd7face7ec4f4f85800b9a830116
+FileChecksum: SHA1: 131c7f78e5276009ddd0e503fc895af04b62fd9e
+LicenseConcluded: NOASSERTION
+LicenseInfoInFile: GPL-3.0-or-later
+FileCopyrightText: <text>SPDX-FileCopyrightText: 2018-2020 Michael Picht</text>

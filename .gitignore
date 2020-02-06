@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: 2018-2020 Michael Picht
+# SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org>
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: CC0-1.0
 
 # exclude smsync executable, but not smsync directory
 *smsync*
