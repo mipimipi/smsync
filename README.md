@@ -3,6 +3,7 @@ SPDX-FileCopyrightText: 2018-2020 Michael Picht
 
 SPDX-License-Identifier: GPL-3.0-or-later
 -->
+[![Go Report Card](https://goreportcard.com/badge/gitlab.com/mipimipi/smsync)](https://goreportcard.com/report/gitlab.com/mipimipi/smsync)
 [![REUSE status](https://api.reuse.software/badge/gitlab.com/mipimipi/smsync)](https://api.reuse.software/info/gitlab.com/mipimipi/smsync)
 
 # Smart Music Sync (smsync)
