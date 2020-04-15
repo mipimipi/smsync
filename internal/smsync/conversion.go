@@ -59,28 +59,28 @@ var (
 	// suffices) to the supported conversions
 	validCvs = map[cvKey]conversion{
 		// valid conversions to FLAC
-		cvKey{"flac", "flac"}: all2FLAC,
-		cvKey{"wav", "flac"}:  all2FLAC,
+		{"flac", "flac"}: all2FLAC,
+		{"wav", "flac"}:  all2FLAC,
 		// valid conversions to MP3
-		cvKey{"flac", "mp3"}: all2MP3,
-		cvKey{"mp3", "mp3"}:  all2MP3,
-		cvKey{"ogg", "mp3"}:  all2MP3,
-		cvKey{"opus", "mp3"}: all2MP3,
-		cvKey{"wav", "mp3"}:  all2MP3,
+		{"flac", "mp3"}: all2MP3,
+		{"mp3", "mp3"}:  all2MP3,
+		{"ogg", "mp3"}:  all2MP3,
+		{"opus", "mp3"}: all2MP3,
+		{"wav", "mp3"}:  all2MP3,
 		// valid conversions to OGG
-		cvKey{"flac", "ogg"}: all2OGG,
-		cvKey{"mp3", "ogg"}:  all2OGG,
-		cvKey{"ogg", "ogg"}:  all2OGG,
-		cvKey{"opus", "ogg"}: all2OGG,
-		cvKey{"wav", "ogg"}:  all2OGG,
+		{"flac", "ogg"}: all2OGG,
+		{"mp3", "ogg"}:  all2OGG,
+		{"ogg", "ogg"}:  all2OGG,
+		{"opus", "ogg"}: all2OGG,
+		{"wav", "ogg"}:  all2OGG,
 		// valid conversions to OPUS
-		cvKey{"flac", "opus"}: all2OPUS,
-		cvKey{"mp3", "opus"}:  all2OPUS,
-		cvKey{"ogg", "opus"}:  all2OPUS,
-		cvKey{"opus", "opus"}: all2OPUS,
-		cvKey{"wav", "opus"}:  all2OPUS,
+		{"flac", "opus"}: all2OPUS,
+		{"mp3", "opus"}:  all2OPUS,
+		{"ogg", "opus"}:  all2OPUS,
+		{"opus", "opus"}: all2OPUS,
+		{"wav", "opus"}:  all2OPUS,
 		// copy
-		cvKey{"*", "*"}: cp,
+		{"*", "*"}: cp,
 	}
 )
 
