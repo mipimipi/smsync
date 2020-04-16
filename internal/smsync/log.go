@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package smsync
 
 // log.go implements some wrapper functionality for logging

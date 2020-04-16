@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org>
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package smsync
 
 // ffmpeg.go contains coding that is specific to the command line tool ffmpeg,
