@@ -1,0 +1,32 @@
+# github.com/eiannone/keyboard v0.0.0-20190314115158-7169d0afeb4f
+## explicit
+github.com/eiannone/keyboard
+# github.com/inconshreveable/mousetrap v1.0.0
+github.com/inconshreveable/mousetrap
+# github.com/konsorten/go-windows-terminal-sequences v1.0.1
+github.com/konsorten/go-windows-terminal-sequences
+# github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381
+## explicit
+github.com/logrusorgru/aurora
+# github.com/ricochet2200/go-disk-usage v0.0.0-20150921141558-f0d1b743428f
+## explicit
+github.com/ricochet2200/go-disk-usage/du
+# github.com/sirupsen/logrus v1.5.0
+## explicit
+github.com/sirupsen/logrus
+# github.com/spf13/cobra v1.0.0
+## explicit
+github.com/spf13/cobra
+# github.com/spf13/pflag v1.0.3
+github.com/spf13/pflag
+# gitlab.com/mipimipi/go-utils v0.0.0-20200415050052-bb00aca14cd0
+## explicit
+gitlab.com/mipimipi/go-utils
+gitlab.com/mipimipi/go-utils/file
+gitlab.com/mipimipi/go-utils/workerpool
+# golang.org/x/sys v0.0.0-20190422165155-953cdadca894
+golang.org/x/sys/unix
+golang.org/x/sys/windows
+# gopkg.in/yaml.v2 v2.2.8
+## explicit
+gopkg.in/yaml.v2

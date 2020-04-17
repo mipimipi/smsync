@@ -15,7 +15,7 @@ LDFLAGS=-ldflags "-X main.Version=$(value VERSION)"
 
 # build all executables
 all:
-	go build $(LDFLAGS) ./cmd/...
+	go build -mod=vendor $(LDFLAGS) ./cmd/...
 
 .PHONY: all clean install lint release
 
