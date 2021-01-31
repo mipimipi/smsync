@@ -180,24 +180,21 @@ The synchronization process is executed in the following steps:
 . smsync determines all files and directories of the source, that have changed since the last synchronization. In our example, there was no synchronization before (as otherwise the configuration file would have an entry `last_sync` that contained the time stamp of the last synchronization). Depending on the number of files, this could take a few minutes. smsync displays how many directories and files need to be synchronized and again, the user is asked for confirmation (if smsync hasn't been called with the option ' --yes`).
 
 . The replication / conversion of files and directories is executed. smsync shows the progress:
-
-    ```
++
             Elapsed   Remain #Conv    Avg    Avg    Estimated    Estimated        
      #TODO     Time     Time / min  Durat  Compr  Target Size   Free Space #Errs
     ----------------------------------------------------------------------------
      37290 00:06:06 13:50:10  38.8 11.36s   9.4%    126069 MB     79075 MB     0
-
-    ```
-
-    Besides the number of files that still need to be converted, not only the elapsed and the remaining time is displayed, but also 
-
++
+Besides the number of files that still need to be converted, not only the elapsed and the remaining time is displayed, but also 
++
     * the number of conversions per minute (which represents the "throughput" of smsync and can be used to optimize the number of assigned cpu's and the number of workers in the configuration file)
     * the average duration of a conversion
     * the average compression rate,
     * the estimated target size
     * and the estimated free diskspace (which is an estimation of the available diskspace on the target device *AFTER* all files will have been converted and can be very helpful to see at an early stage if the available space will be suffient). 
-
-    With the command line option `--verbose` the progress is displayed in more detail, i.e. each file is displayed after it has been converted.  
++
+With the command line option `--verbose` the progress is displayed in more detail, i.e. each file is displayed after it has been converted.  
 
 . After the synchronization is done, a success message is displayed and the current time is stored as `last_sync` in the configuration file.
 
@@ -237,7 +234,7 @@ to such a target folder structure:
           |        |- cover.jpg
           |- ...
 
-The folder "/home/musiclover/Music/SOURCE/Rock/Eric Clapton" hasn't been converted because the directory fits to the exclusion pattern.
+The folder `/home/musiclover/Music/SOURCE/Rock/Eric Clapton` hasn't been converted because the directory path matches the exclusion pattern.
 
 ==== FFMPEG errors
 
