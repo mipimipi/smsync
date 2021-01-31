@@ -101,7 +101,7 @@ In the example, the first rule tells smsync to convert FLAC files (i.e. files wi
 
 The second rule of the example tells smsync to simply copy MP3 files without converting them. Another possibility was to convert MP3 to MP3 by reducing the bit rate. This can be achieved by defining a dedicated conversion rule as explained above (instead of `copy`).
 
-The third rule tells smsync to copy all other files by using the wild card `'*'` as source file suffix. This is helpful, for example, to copy pictures. Without this rule, files that do neither have the suffix '.flac' nor '.mp3' would have been ignored in this example.
+The third rule tells smsync to copy all other files by using the wild card `'*'` as source file suffix. This is helpful, for example, to copy pictures. Without this rule, files that do neither have the suffix `.flac` nor `.mp3` would have been ignored in this example.
 
 Basically, a rule consists of a source suffix, a target suffix and a conversion. In some cases, it's not necessary to configure all of these:
 
@@ -116,16 +116,16 @@ Basically, a rule consists of a source suffix, a target suffix and a conversion.
 Basically, two things can be determined with a conversion parameter string:
 
 . The target bit rate.
-
-    Here, it's often distinguished between
-
++
+Here, it's often distinguished between
++
     * a constant bit rate (CBR), where the bit rate is constant - a special case is the "hard constant bitrate" (HCBR), which is specific to the OPUS format and guarantees that all frames have the same size,
     * an average bit rate (ABR), where the bit rate of the files varies, but in average it reaches a certain value,
     * or a variable bit rate (VBR), where the bit rate also varies, but the compression is done according to a certain quality.
 
 . The compression quality
-
-    Many (but not all) target formats support a "compression level" (CL). With this parameter, the compression quality can be steered.
++
+Many (but not all) target formats support a "compression level" (CL). With this parameter, the compression quality can be steered.
 
 The available or supported conversion parameters depend on the target format. The following sections describe the different possibilities.
 
@@ -250,25 +250,21 @@ WARNING: Please use only this option to interrupt the process. Interruption via 
 
 smsync has only a few options:
 
-* `--init` / `-i`
-  Do initial sync:
-  - Existing files and directories in the target folder are deleted (except the smsync files `smsync.yaml` and - if existing - `smsync.log`).
-  - A possibly existing `last_sync` in the config file is ignored. I.e. files and folders in the source directory are taken into account independent from their change time.
+* `--init` / `-i`: Do initial sync:
+    - Existing files and directories in the target folder are deleted (except the smsync files `smsync.yaml` and - if existing - `smsync.log`).
+    - A possibly existing `last_sync` in the config file is ignored. I.e. files and folders in the source directory are taken into account independent from their change time.
 
-* `--log` / `-l`
-  Write a log file.
-  
-  The file `smsync.log` is stored in the root folder of the target. A log file is always written in case of an error.
+* `--log` / `-l`: Write a log file.
++  
+The file `smsync.log` is stored in the root folder of the target. A log file is always written in case of an error.
 
-* `--verbose` / `-v`
-  Print detailed progress.
-  
-  Instead of the normal output, where only the aggregated progress in displayed, the name of each file and directory is displayed immediately after it has been converted or copied.
+* `--verbose` / `-v`: Print detailed progress.
++  
+Instead of the normal output, where only the aggregated progress in displayed, the name of each file and directory is displayed immediately after it has been converted or copied.
 
-* `--yes` / `-y`
-  Don't ask for confirmation.
-  
-  smsync starts directly without asking for user confirmations. With this option, it's possible to run smsync automatically via cron job.
+* `--yes` / `-y`: Don't ask for confirmation.
++  
+smsync starts directly without asking for user confirmations. With this option, it's possible to run smsync automatically via cron job.
 
 === Keeping source and target consistent
 
