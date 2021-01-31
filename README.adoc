@@ -127,44 +127,46 @@ Here, it's often distinguished between
 +
 Many (but not all) target formats support a "compression level" (CL). With this parameter, the compression quality can be steered.
 
-The available or supported conversion parameters depend on the target format. The following sections describe the different possibilities.
+The available or supported conversion parameters depend on the target format. The table summarizes the different options.
 
-===== FLAC
+[cols="1,5"] 
+|=== 
+|Format |Conversion Parameters 
 
-FLAC only supports a compression level (parameter `cl`). Possible values are: 0, ..., 12 where 0 means the highest quality. 5 is the default. Thus, for a conversion to FLAC, if no conversion rule is specified in `smsync.yaml`, `cl:5` is assumed. Consequently, allowed conversions are:
+|FLAC 
+a|FLAC only supports a compression level (parameter `cl`). Possible values are: 0, ..., 12 where 0 means the highest quality. 5 is the default. Thus, for a conversion to FLAC, if no conversion rule is specified in `smsync.yaml`, `cl:5` is assumed. Consequently, allowed conversions are:
 
 * `cl:<quality>`
 
 See also: http://ffmpeg.org/ffmpeg-codecs.html#flac-2[FFMpeg Codec Documentation].
 
-===== MP3
+|MP3
+a|MP3 supports ABR, CBR, both with bit rates from 8 to 500 kbps (kilo bit per second), and VBR with a quality from 0 to 9 (where 0 means highest quality). In addition, MP3 supports a compression level (parameter `cl`), which can have values 0, ..., 9 where 0 means the highest quality. Thus, the conversion `abr:192\|cl:3` in the example above specifies an average bit rate of 192 kbps and a compression level of 3. Consequently, allowed conversions are:
 
-MP3 supports ABR, CBR, both with bit rates from 8 to 500 kbps (kilo bit per second), and VBR with a quality from 0 to 9 (where 0 means highest quality). In addition, MP3 supports a compression level (parameter `cl`), which can have values 0, ..., 9 where 0 means the highest quality. Thus, the conversion `abr:192|cl:3` in the example above specifies an average bit rate of 192 kbps and a compression level of 3. Consequently, allowed conversions are:
-
-* `abr:<bitrate>|cl:<quality>` for average bitrate conversion
-* `cbr:<bitrate>|cl:<quality>` for constant bitrate conversion
-* `vbr:<quality>|cl:<quality>` for variable bitrate conversion
+* `abr:<bitrate>\|cl:<quality>` for average bitrate conversion
+* `cbr:<bitrate>\|cl:<quality>` for constant bitrate conversion
+* `vbr:<quality>\|cl:<quality>` for variable bitrate conversion
 
 See also: http://ffmpeg.org/ffmpeg-codecs.html#libmp3lame-1[FFMpeg Codec Documentation].
 
-===== OGG (Vorbis)
-
-This format supports conversions with average and variable bit rate. For ABR, bit rates from 8 to 500 kbps are supported. For VBR, possible values are -1.0, ..., 10.0 where 10.0 means the best quality. VBR with quality 3.0 is the default. Thus, for a conversion to OGG (Vorbis), if no conversion rule is specified in `smsync.yaml`, `vbr:3.0` is assumed. OGG (Vorbis) doesn't support compression levels. Consequently, allowed conversions are:
+|OGG (Vorbis)
+a|This format supports conversions with average and variable bit rate. For ABR, bit rates from 8 to 500 kbps are supported. For VBR, possible values are -1.0, ..., 10.0 where 10.0 means the best quality. VBR with quality 3.0 is the default. Thus, for a conversion to OGG (Vorbis), if no conversion rule is specified in `smsync.yaml`, `vbr:3.0` is assumed. OGG (Vorbis) doesn't support compression levels. Consequently, allowed conversions are:
 
 * `abr:<bitrate>` for average bitrate conversion
 * `vbr:<quality>` for variable bitrate conversion
 
 See also: http://ffmpeg.org/ffmpeg-codecs.html#libvorbis[FFMpeg Codec Documentation].
 
-===== OPUS
+|OPUS
+a|OPUS supports conversions with variable (VBR), constant (CBR) and hard constant bit rate (HCBR). The latter guarantees that all frames have the same size. Allowed values are 6 to 510 kbps. In addition, OPUS supports a compression level that ranges from 0 to 10, where 10 is the highest quality. If no compression level is specified, `cl:10`is assumed.  Consequently, allowed conversions are:
 
-OPUS supports conversions with variable (VBR), constant (CBR) and hard constant bit rate (HCBR). The latter guarantees that all frames have the same size. Allowed values are 6 to 510 kbps. In addition, OPUS supports a compression level that ranges from 0 to 10, where 10 is the highest quality. If no compression level is specified, `cl:10`is assumed.  Consequently, allowed conversions are:
-
-* `vbr:<bitrate>|cl:<quality>` for variable bitrate conversion
-* `cbr:<bitrate>|cl:<quality>` for constant bitrate conversion
-* `hcbr:<bitrate>|cl:<quality>` for hard constant bitrate conversion
+* `vbr:<bitrate>\|cl:<quality>` for variable bitrate conversion
+* `cbr:<bitrate>\|cl:<quality>` for constant bitrate conversion
+* `hcbr:<bitrate>\|cl:<quality>` for hard constant bitrate conversion
 
 See also: http://ffmpeg.org/ffmpeg-codecs.html#libopus-1[FFMpeg Codec Documentation] or https://mf4.xiph.org/jenkins/view/opus/job/opus-tools/ws/man/opusenc.html[opusenc documentation].
+
+|=== 
 
 === Synchronization Process
 
