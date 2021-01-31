@@ -203,46 +203,24 @@ The synchronization process is executed in the following steps:
 
 In the example, the synchronization would convert such a source folder structure:
 
-[blockdiag]
-....
-    // set labels to nodes
-    A [label = "/home/musiclover/Music/SOURCE"];
-    B [label = "..."];
-    C [label = "Rock"];
-    D [label = "..."];
-    E [label = "Dire Straits"];
-    F [label = "..."];
-    G [label = "Love Over Gold"];
-    H [label = "..."];
-    I [label = "Private Investigations.flac"];
-    J [label = "..."];
-    K [label = "cover.jpg"];
-    L [label = "..."];
-    M [label = "Eric Clapton"];
-    N [label = "Unplugged"];
-    O [label = "..."];
-    P [label = "Layla.mp3"];
-    Q [label = "..."];
-    R [label = "folder.png"];
-
-    A -> B
-    A -> C
-    C -> D
-    C -> E
-    C -> L
-    C -> M
-    E -> F
-    E -> G
-    G -> H
-    G -> I
-    G -> J
-    G -> K
-    M -> N
-    N -> O
-    N -> P
-    N -> Q
-    N -> R
-....
+    /home/musiclover/Music/SOURCE
+      |- ...
+      |- Rock
+          |- ...
+          |- Dire Straits
+          |   |- ...
+          |   |- Love Over Gold
+          |        |- ...
+          |        |- Private Investigations.flac
+          |        |- ...
+          |        |- cover.jpg
+          |- ...
+          |- Eric Clapton
+              |- Unplugged
+                  |- ...
+                  |- Layla.mp3
+                  |- ...
+                  |- folder.png
 
 to such a target folder structure:
 
