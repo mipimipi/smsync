@@ -7,8 +7,19 @@ Files: go.mod
        go.sum
        VERSION
        vendor/modules.txt
-Copyright: 2018-2020 Michael Picht <mipi@fsfe.org>
+Copyright: 2018-2021 Michael Picht <mipi@fsfe.org>
 License: CC-BY-NC-SA-4.0
+
+Files: .gitignore
+       .gitlab-ci.yml
+       CHANGELOG.md
+       Makefile
+       README.adoc
+       cmd/*
+       internal/*
+       pkg/*
+Copyright: 2018-2021 Michael Picht <mipi@fsfe.org>
+License: GPL-3.0-or-later
 
 Files: vendor/github.com/eiannone/keyboard/termingo.go
 Copyright: 2012 termbox-go authors
