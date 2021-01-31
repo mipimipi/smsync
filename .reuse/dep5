@@ -10,6 +10,11 @@ Files: go.mod
 Copyright: 2018-2020 Michael Picht <mipi@fsfe.org>
 License: CC-BY-NC-SA-4.0
 
+Files: vendor/github.com/eiannone/keyboard/termingo.go
+Copyright: 2012 termbox-go authors
+           2015 Emanuele Iannone 
+License: 0BSD
+
 Files: vendor/github.com/eiannone/keyboard/*
 Copyright: 2012 termbox-go authors
            2015 Emanuele Iannone 

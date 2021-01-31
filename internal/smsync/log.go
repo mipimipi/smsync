@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -91,15 +92,14 @@ func (f *smsyncTextFormatter) Format(entry *log.Entry) ([]byte, error) {
 // CreateLogger creates and initializes the logger for smsync
 func CreateLogger(level log.Level) error {
 	// set log file
-	fp := "/home/mipi/Musik/smsync/smsync.log"
-	/*	fp, err := filepath.Abs(filepath.Join(".", LogFile))
-		if err != nil {
-			if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
-				panic(e.Error())
-			}
-			return err
+	fp, err := filepath.Abs(filepath.Join(".", LogFile))
+	if err != nil {
+		if _, e := fmt.Fprintln(os.Stderr, err); e != nil {
+			panic(e.Error())
 		}
-	*/
+		return err
+	}
+
 	// delete log file if it already exists
 	exists, err := file.Exists(fp)
 	if err != nil {
