@@ -29,7 +29,7 @@ deploy_smsync-git:
         - chmod g+ws build
         - setfacl -m u::rwx,g::rwx build
         - setfacl -d --set u::rwx,g::rwx,o::- build          
-        - cp pkg/PKGBUILD build
+        - cp ./PKGBUILD build/.
         - cd build  
         - sudo -u nobody makepkg --printsrcinfo > .SRCINFO
         - git add PKGBUILD .SRCINFO
