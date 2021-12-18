@@ -16,6 +16,7 @@ deploy_smsync-git:
         - echo "$AUR_SSH_KEY" | tr -d '\r' | ssh-add -
         - mkdir -p ~/.ssh
         - chmod 700 ~/.ssh
+        - echo ${AUR_URL}
         - ssh-keyscan ${AUR_URL} > ~/.ssh/known_hosts
         - chmod 644 ~/.ssh/known_hosts
         # set git config
