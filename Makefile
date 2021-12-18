@@ -1,19 +1,22 @@
 # use bash
 SHELL=/bin/bash
 
-# set project VERSION if VERSION hasn't been passed from command line
-ifndef $(value VERSION)
-	VERSION=$(cat ./VERSION)
+# set project VERSION to last tag name. If no tag exists, set it to v0.0.0
+$(eval TAGS=$(shell git rev-list --tags))
+ifdef TAGS
+	VERSION=$(shell git describe --tags --abbrev=0)
+else
+	VERSION=v0.0.0	
 endif
 
+.PHONY: all clean install lint release
+
 # setup the -ldflags option for go build
-LDFLAGS=-ldflags "-X main.Version=$(value VERSION)"
+LDFLAGS=-ldflags "-X main.Version=$(VERSION)"
 
 # build all executables
 all:
-	go build -mod=vendor $(LDFLAGS) ./cmd/...
-
-.PHONY: all clean install lint release
+	go build -mod=mod $(LDFLAGS) ./cmd/...
 
 lint:
 	reuse lint
@@ -30,3 +33,16 @@ clean:
 	for CMD in `ls cmd`; do \
 		rm -f ./$$CMD; \
 	done
+
+# (1) adjust version in PKGBUILD and in man documentation to RELEASE, commit
+#     and push changes
+# (2) create an annotated tag with name RELEASE
+release:
+	@if ! [ -z $(RELEASE) ]; then \
+		REL=$(RELEASE); \
+		sed -i -e "s/pkgver=.*/pkgver=$${REL#v}/" ./PKGBUILD; \
+		git commit -a -s -m "release $(RELEASE)"; \
+		git push; \
+		git tag -a $(RELEASE) -m "release $(RELEASE)"; \
+		git push origin $(RELEASE); \
+	fi
