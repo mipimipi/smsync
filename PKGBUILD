@@ -29,14 +29,6 @@ pkgver() {
     )
 }
 
-prepare() {
-  mkdir -p gopath/src/$_pkgorg
-  ln -rTsf $_pkgname gopath/src/$_pkgorg/$_pkgname
-  export GOPATH="$srcdir"/gopath
-  cd gopath/src/$_pkgorg/$_pkgname
-  dep ensure
-}
-
 build() {
     cd "$srcdir/$_pkgname"
     make
