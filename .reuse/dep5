@@ -6,7 +6,6 @@ Source: gitlab.com/mipimipi/smsync
 Files: go.mod
        go.sum
        VERSION
-       vendor/modules.txt
 Copyright: 2018-2021 Michael Picht <mipi@fsfe.org>
 License: CC-BY-NC-SA-4.0
 
@@ -14,71 +13,10 @@ Files: .gitignore
        .gitlab-ci.yml
        CHANGELOG.md
        Makefile
+       PKGBUILD
        README.adoc
        cmd/*
        internal/*
-       pkg/*
 Copyright: 2018-2021 Michael Picht <mipi@fsfe.org>
 License: GPL-3.0-or-later
 
-Files: vendor/github.com/eiannone/keyboard/termingo.go
-Copyright: 2012 termbox-go authors
-           2015 Emanuele Iannone 
-License: 0BSD
-
-Files: vendor/github.com/eiannone/keyboard/*
-Copyright: 2012 termbox-go authors
-           2015 Emanuele Iannone 
-License: MIT
-
-Files: vendor/github.com/inconshreveable/mousetrap/*
-Copyright: 2014 Alan Shreve 
-License: Apache-2.0
-
-Files: vendor/github.com/konsorten/go-windows-terminal-sequences/*
-Copyright: 2018 marvin + konsorten GmbH <open-source@konsorten.de>
-License: MIT
-
-Files: vendor/github.com/ricochet2200/go-disk-usage/*
-Copyright: Unknown 
-License: Unlicense
-
-Files: vendor/github.com/sirupsen/logrus/*
-Copyright: 2014 Simon Eskildsen
-License: MIT
-
-Files: vendor/github.com/spf13/cobra/*
-Copyright: 2013 Steve Francia
-License: Apache-2.0
-
-Files: vendor/github.com/spf13/pflag/*
-Copyright: 2012 Alex Ogier
-           2012 The Go Authors
-License: BSD-3-Clause
-
-Files: vendor/gitlab.com/mipimipi/go-utils/*
-Copyright: 2020 Michael Picht <mipi@fsfe.org>
-License: GPL-3.0-or-later
-
-Files: vendor/github.com/logrusorgru/aurora/*
-Copyright: 2016-2019 The Aurora Authors
-License: LicenseRef-MyLicense
-
-Files: vendor/golang.org/*
-Copyright: 2009 The Go Authors
-License: LicenseRef-MyLicense
-
-Files: vendor/gopkg.in/yaml.v2/*
-Copyright: 2011-2016 Canonical Ltd.
-License: Apache-2.0
-
-Files: vendor/gopkg.in/yaml.v2/apic.go
-       vendor/gopkg.in/yaml.v2/emitterc.go
-       vendor/gopkg.in/yaml.v2/parserc.go
-       vendor/gopkg.in/yaml.v2/readerc.go
-       vendor/gopkg.in/yaml.v2/scannerc.go
-       vendor/gopkg.in/yaml.v2/writerc.go
-       vendor/gopkg.in/yaml.v2/yamlh.go
-       vendor/gopkg.in/yaml.v2/yamlprivateh.go
-Copyright: 2006 Kirill Simonov
-License: LicenseRef-MyLicense
