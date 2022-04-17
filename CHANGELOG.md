@@ -1,3 +1,9 @@
+## [Release 3.4.6](https://gitlab.com/mipimipi/smsync/-/tags/3.4.6) (2022-04-17)
+
+### Added
+
+* Support of aarch64
+
 ## [Release 3.4.0](https://gitlab.com/mipimipi/smsync/-/tags/3.4.0) (2020-02-09)
 
 ### Added
