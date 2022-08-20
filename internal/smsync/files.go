@@ -5,7 +5,6 @@
 package smsync
 
 import (
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -91,19 +90,10 @@ func deleteObsoleteFiles(cfg *Config, srcDir file.Info) {
 	}
 
 	// read entries of target directory
-	content, err := os.ReadDir(trgDir)
+	trgEntrs, err := os.ReadDir(trgDir)
 	if err != nil {
 		log.Errorf("deleteObsoleteFiles: %v", err)
 		return
-	}
-	trgEntrs := make([]fs.FileInfo, 0, len(content))
-	for _, item := range content {
-		trgEntr, err := item.Info()
-		if err != nil {
-			log.Errorf("deleteObsoleteFiles: %v", err)
-			return
-		}
-		trgEntrs = append(trgEntrs, trgEntr)
 	}
 
 	// loop over all entries of target directory
@@ -127,7 +117,7 @@ func deleteObsoleteFiles(cfg *Config, srcDir file.Info) {
 			// if entry is a file ...
 
 			// if entry is not regular: do nothing and continue loop
-			if !trgEntr.Mode().IsRegular() {
+			if !trgEntr.Type().IsRegular() {
 				continue
 			}
 			// exclude smsync files (smsync.log or smsync.yaml) from deletion logic
