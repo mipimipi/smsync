@@ -1,3 +1,9 @@
+## [Release 3.5.0](https://gitlab.com/mipimipi/smsync/-/tags/3.5.0) (2022-08-20)
+
+### Changed
+
+* Update to go 1.19: Replaced deprecated stuff
+
 ## [Release 3.4.6](https://gitlab.com/mipimipi/smsync/-/tags/3.4.6) (2022-04-17)
 
 ### Added

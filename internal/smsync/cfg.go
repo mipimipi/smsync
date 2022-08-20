@@ -11,7 +11,6 @@ package smsync
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -296,7 +295,7 @@ func (cfgY *cfgYml) read() error {
 	defer log.Debug("smsync.cfgYml.read: END")
 
 	// read config file
-	cfgFile, err := ioutil.ReadFile(filepath.Join(".", cfgFile))
+	cfgFile, err := os.ReadFile(filepath.Join(".", cfgFile))
 	if err != nil {
 		// determine working directory for error message
 		wd, err0 := os.Getwd()
@@ -336,7 +335,7 @@ func (cfgY *cfgYml) write() {
 		return
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(".", cfgFile), out, 0777); err != nil {
+	if err := os.WriteFile(filepath.Join(".", cfgFile), out, 0777); err != nil {
 		log.Errorf("cfgYml.write: %v", err)
 		return
 	}

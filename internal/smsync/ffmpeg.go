@@ -9,7 +9,6 @@ package smsync
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -55,7 +54,7 @@ func execFFMPEG(srcFile string, trgFile string, params *[]string) error {
 		// assemble error file name
 		errFile := filepath.Join(errDir, filepath.Base(file.PathTrunk(trgFile))) + ".log"
 		// write stdout into error file
-		if e := ioutil.WriteFile(errFile, out, 0644); e != nil {
+		if e := os.WriteFile(errFile, out, 0644); e != nil {
 			log.Errorf("Couldn't write FFMPEG error file '%s's: %v", errFile, e)
 		}
 

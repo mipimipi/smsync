@@ -5,7 +5,7 @@
 package smsync
 
 import (
-	"io/ioutil"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -91,10 +91,19 @@ func deleteObsoleteFiles(cfg *Config, srcDir file.Info) {
 	}
 
 	// read entries of target directory
-	trgEntrs, err := ioutil.ReadDir(trgDir)
+	content, err := os.ReadDir(trgDir)
 	if err != nil {
 		log.Errorf("deleteObsoleteFiles: %v", err)
 		return
+	}
+	trgEntrs := make([]fs.FileInfo, 0, len(content))
+	for _, item := range content {
+		trgEntr, err := item.Info()
+		if err != nil {
+			log.Errorf("deleteObsoleteFiles: %v", err)
+			return
+		}
+		trgEntrs = append(trgEntrs, trgEntr)
 	}
 
 	// loop over all entries of target directory
@@ -148,7 +157,7 @@ func deleteTrg(dir string) {
 	defer log.Debug("smsync.deleteTrg: END")
 
 	// read entries of target directory
-	trgEntrs, err := ioutil.ReadDir(dir)
+	trgEntrs, err := os.ReadDir(dir)
 	if err != nil {
 		log.Errorf("deleteTrg: %v", err)
 		return
