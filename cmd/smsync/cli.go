@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org>
-//
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 package main
 
 // cli.go implements the command line interface for smsync.
@@ -15,7 +11,7 @@ import (
 )
 
 var preamble = `smsync (Smart Music Sync) ` + Version + `
-Copyright (C) 2018-2020 Michael Picht <https://github.com/mipimipi/smsync>`
+Copyright (C) 2018-2022 Michael Picht <https://github.com/mipimipi/smsync>`
 
 var helpTemplate = preamble + `
 {{with (or .Long .Short)}}{{. | trimTrailingWhitespaces}}

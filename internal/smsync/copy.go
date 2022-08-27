@@ -1,14 +1,10 @@
-// SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org>
-//
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 package smsync
 
 import (
 	"fmt"
 	"strings"
 
-	"gitlab.com/mipimipi/go-utils/file"
+	"gitlab.com/go-utilities/file"
 )
 
 // implementation of interface "conversion" for simple file copy

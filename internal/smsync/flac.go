@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org>
-//
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 package smsync
 
 import (
@@ -10,9 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"gitlab.com/mipimipi/go-utils"
-
 	log "github.com/sirupsen/logrus"
+	s "gitlab.com/go-utilities/strings"
 )
 
 // implementation of interface "conversion" for conversions to FLAC
@@ -26,7 +21,7 @@ func (cvAll2FLAC) exec(srcFile string, trgFile string, cvStr string) error {
 	params = append(params, "-codec:a", "flac")
 
 	// set compression level
-	params = append(params, "-compression_level", utils.SplitMulti(cvStr, "|:")[1])
+	params = append(params, "-compression_level", s.SplitMulti(cvStr, "|:")[1])
 
 	// execute ffmpeg
 	return execFFMPEG(srcFile, trgFile, &params)

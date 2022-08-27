@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org>
-//
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 package smsync
 
 // ffmpeg.go contains coding that is specific to the command line tool ffmpeg,
@@ -14,7 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.com/mipimipi/go-utils/file"
+	"gitlab.com/go-utilities/file"
+	fp "gitlab.com/go-utilities/filepath"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -52,7 +49,7 @@ func execFFMPEG(srcFile string, trgFile string, params *[]string) error {
 		}
 
 		// assemble error file name
-		errFile := filepath.Join(errDir, filepath.Base(file.PathTrunk(trgFile))) + ".log"
+		errFile := filepath.Join(errDir, filepath.Base(fp.PathTrunk(trgFile))) + ".log"
 		// write stdout into error file
 		if e := os.WriteFile(errFile, out, 0644); e != nil {
 			log.Errorf("Couldn't write FFMPEG error file '%s's: %v", errFile, e)

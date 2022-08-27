@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org>
-//
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 package main
 
 import (
@@ -11,7 +7,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"gitlab.com/mipimipi/go-utils"
+	t "gitlab.com/go-utilities/time"
 	"gitlab.com/mipimipi/smsync/internal/smsync"
 )
 
@@ -94,7 +90,7 @@ func printFinal(trck *smsync.Tracking, verbose bool) {
 	} else {
 		fmt.Printf("\n:: Done :)\n")
 	}
-	split := utils.SplitDuration(trck.Elapsed)
+	split := t.SplitDuration(trck.Elapsed)
 	fmt.Printf("   Processed %d files and directories in %s\n",
 		trck.Done,
 		fmt.Sprintf("%dh %02dmin %02ds",
@@ -140,7 +136,7 @@ func printProgress(trck *smsync.Tracking, first, wantstop bool) {
 
 	// local function to print durations as formatted string (HH:MM:SS)
 	split := func(d time.Duration) string {
-		sp := utils.SplitDuration(d)
+		sp := t.SplitDuration(d)
 		return fmt.Sprintf("%02d:%02d:%02d", sp[time.Hour], sp[time.Minute], sp[time.Second])
 	}
 

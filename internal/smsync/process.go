@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org>
-//
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 package smsync
 
 import (
@@ -10,8 +6,8 @@ import (
 
 	"github.com/ricochet2200/go-disk-usage/du"
 	log "github.com/sirupsen/logrus"
-	"gitlab.com/mipimipi/go-utils/file"
-	wp "gitlab.com/mipimipi/go-utils/workerpool"
+	"gitlab.com/go-utilities/file"
+	wp "gitlab.com/go-utilities/workerpool"
 )
 
 type (

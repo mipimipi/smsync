@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org>
-//
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 package main
 
 import (
@@ -12,8 +8,8 @@ import (
 
 	"github.com/eiannone/keyboard"
 	log "github.com/sirupsen/logrus"
-	"gitlab.com/mipimipi/go-utils"
-	"gitlab.com/mipimipi/go-utils/file"
+	"gitlab.com/go-utilities/file"
+	"gitlab.com/go-utilities/msg"
 	"gitlab.com/mipimipi/smsync/internal/smsync"
 )
 
@@ -131,7 +127,7 @@ func synchronize(level log.Level, verbose bool) error {
 	// print summary and ask user for OK
 	printCfgSummary(cfg)
 	if !cli.noConfirm {
-		if !utils.UserOK("\n:: Start synchronization") {
+		if !msg.UserOK("\n:: Start synchronization") {
 			log.Infof("Synchronization not started due to user input")
 			defer smsync.CleanUp(cfg)
 			return nil
@@ -142,7 +138,7 @@ func synchronize(level log.Level, verbose bool) error {
 	runtime.GOMAXPROCS(int(cfg.NumCpus))
 
 	// start automatic progress string which increments every second
-	stop, confirm := utils.ProgressStr(":: Find differences (this can take a few minutes)", 1000)
+	stop, confirm := msg.ProgressStr(":: Find differences (this can take a few minutes)", 1000)
 
 	// get files and directories that need to be synched
 	files := smsync.GetSyncFiles(cfg, cli.init)
@@ -162,7 +158,7 @@ func synchronize(level log.Level, verbose bool) error {
 
 	// print summary and ask user for OK to continue
 	if !cli.noConfirm {
-		if !utils.UserOK(fmt.Sprintf("\n:: %d files and directories to be synchronized. Continue", len(*files))) {
+		if !msg.UserOK(fmt.Sprintf("\n:: %d files and directories to be synchronized. Continue", len(*files))) {
 			log.Infof("Synchronization not started due to user input")
 			smsync.CleanUp(cfg)
 			return nil

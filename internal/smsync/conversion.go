@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org>
-//
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 package smsync
 
 import (
@@ -12,7 +8,8 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"gitlab.com/mipimipi/go-utils/file"
+	"gitlab.com/go-utilities/file"
+	fp "gitlab.com/go-utilities/filepath"
 )
 
 type (
@@ -120,7 +117,7 @@ func convert(cfg *Config, srcFile file.Info) cvOutput {
 		cv = cp
 	} else {
 		// determine transformation function for srcSuffix -> trgSuffix
-		cv = validCvs[cvKey{srcSuffix: file.Suffix(srcFile.Path()), trgSuffix: cvm.TrgSuffix}]
+		cv = validCvs[cvKey{srcSuffix: fp.Suffix(srcFile.Path()), trgSuffix: cvm.TrgSuffix}]
 	}
 
 	// execute conversion

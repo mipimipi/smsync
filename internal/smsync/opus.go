@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org>
-//
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 package smsync
 
 import (
@@ -10,7 +6,7 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
-	"gitlab.com/mipimipi/go-utils"
+	s "gitlab.com/go-utilities/strings"
 )
 
 // implementation of interface "conversion" for conversions to OPUS
@@ -23,7 +19,7 @@ func (cv cvAll2OPUS) exec(srcFile string, trgFile string, cvStr string) error {
 	// set OPUS codec
 	params = append(params, "-codec:a", "libopus")
 
-	a := utils.SplitMulti(cvStr, "|:")
+	a := s.SplitMulti(cvStr, "|:")
 
 	// set bit rate
 	params = append(params, "-b:a", a[1]+"k")

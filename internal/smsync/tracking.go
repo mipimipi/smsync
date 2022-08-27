@@ -1,13 +1,9 @@
-// SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org>
-//
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 package smsync
 
 import (
 	"time"
 
-	"gitlab.com/mipimipi/go-utils/file"
+	"gitlab.com/go-utilities/file"
 )
 
 // Tracking contains attributes that are used to keep track of the progress of

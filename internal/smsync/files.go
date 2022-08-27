@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org>
-//
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 package smsync
 
 import (
@@ -11,8 +7,9 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"gitlab.com/mipimipi/go-utils"
-	"gitlab.com/mipimipi/go-utils/file"
+	"gitlab.com/go-utilities/file"
+	fp "gitlab.com/go-utilities/filepath"
+	"gitlab.com/go-utilities/reflect"
 )
 
 // errDir is the directory that stores error logs from conversion
@@ -32,14 +29,14 @@ func assembleTrgFile(cfg *Config, srcFile string) string {
 	// if corresponding conversion rule is for '*' ...
 	if cvm.TrgSuffix == suffixStar {
 		// ... target suffix is same as source suffix
-		trgSuffix = file.Suffix(srcFile)
+		trgSuffix = fp.Suffix(srcFile)
 	} else {
 		// ... otherwise take target suffix from conversion rule
 		trgSuffix = cvm.TrgSuffix
 	}
 
-	trgFile, err := file.PathRelCopy(cfg.SrcDir.Path(),
-		file.PathTrunk(srcFile)+"."+trgSuffix,
+	trgFile, err := fp.PathRelCopy(cfg.SrcDir.Path(),
+		fp.PathTrunk(srcFile)+"."+trgSuffix,
 		cfg.TrgDir.Path())
 	if err != nil {
 		log.Errorf("Target path cannot be assembled: %v", err)
@@ -72,7 +69,7 @@ func deleteObsoleteFiles(cfg *Config, srcDir file.Info) {
 	)
 
 	// assemble target directory path
-	trgDir, err = file.PathRelCopy(cfg.SrcDir.Path(),
+	trgDir, err = fp.PathRelCopy(cfg.SrcDir.Path(),
 		srcDir.Path(),
 		cfg.TrgDir.Path())
 	if err != nil {
@@ -125,8 +122,8 @@ func deleteObsoleteFiles(cfg *Config, srcDir file.Info) {
 				continue
 			}
 			// check if counterpart file on source side exists
-			tr := file.PathTrunk(trgEntr.Name())
-			fs, err := filepath.Glob(file.EscapePattern(filepath.Join(srcDir.Path(), tr)) + ".*")
+			tr := fp.PathTrunk(trgEntr.Name())
+			fs, err := filepath.Glob(fp.EscapePattern(filepath.Join(srcDir.Path(), tr)) + ".*")
 			if err != nil {
 				log.Errorf("deleteObsoleteFiles: %v", err)
 				return
@@ -202,7 +199,7 @@ func GetSyncFiles(cfg *Config, init bool) (files *[]*file.Info) {
 
 			// if a directory is excluded, itself and all sub directories and
 			// files are not relevant
-			if utils.Contains(cfg.Excludes, srcFile.Path()) {
+			if reflect.Contains(cfg.Excludes, srcFile.Path()) {
 				return false, file.InvalidFromSuper
 			}
 			// if relevance is propagated from the parent, this directory is not
@@ -238,7 +235,7 @@ func GetSyncFiles(cfg *Config, init bool) (files *[]*file.Info) {
 				log.Debug("Parent dir changed")
 
 				// assemble target directory
-				trgDir, _ := file.PathRelCopy(cfg.SrcDir.Path(), srcFile.Path(), cfg.TrgDir.Path())
+				trgDir, _ := fp.PathRelCopy(cfg.SrcDir.Path(), srcFile.Path(), cfg.TrgDir.Path())
 				// check if target directory exists
 				if exists, err := file.Exists(trgDir); err == nil && !exists {
 					log.Debug("Trg doesn't exist -> FALSE, NONE FROM SUPER")

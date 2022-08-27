@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2018-2020 Michael Picht <mipi@fsfe.org>
-//
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 package smsync
 
 // cfg.go implements the logic that is needed for the configuration
@@ -18,7 +14,9 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"gitlab.com/mipimipi/go-utils/file"
+	"gitlab.com/go-utilities/file"
+	fp "gitlab.com/go-utilities/filepath"
+
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -156,8 +154,8 @@ func (cfg *Config) Get(init bool) error {
 // retrieved, a pointer to the cvm structure and true is returned, otherwise
 // nil and false
 func (cfg *Config) getCv(f string) (*cvm, bool) {
-	if _, ok := cfg.Cvs[file.Suffix(f)]; ok {
-		return cfg.Cvs[file.Suffix(f)], true
+	if _, ok := cfg.Cvs[fp.Suffix(f)]; ok {
+		return cfg.Cvs[fp.Suffix(f)], true
 	}
 	if _, ok := cfg.Cvs[suffixStar]; ok {
 		return cfg.Cvs[suffixStar], true
@@ -177,7 +175,7 @@ func (cfg *Config) getExcludes(excls *[]string) {
 		}
 
 		// expand directory
-		a, err := filepath.Glob(file.EscapePattern(filepath.Join(cfg.SrcDir.Path(), excl)))
+		a, err := filepath.Glob(fp.EscapePattern(filepath.Join(cfg.SrcDir.Path(), excl)))
 		if err != nil {
 			log.Errorf("Config.getExcludes: %v", err)
 			return
