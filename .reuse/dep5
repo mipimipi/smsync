@@ -6,7 +6,7 @@ Source: gitlab.com/mipimipi/smsync
 Files: go.mod
        go.sum
        VERSION
-Copyright: 2018-2021 Michael Picht <mipi@fsfe.org>
+Copyright: 2018-2022 Michael Picht <mipi@fsfe.org>
 License: CC-BY-NC-SA-4.0
 
 Files: .gitignore
@@ -17,6 +17,6 @@ Files: .gitignore
        README.adoc
        cmd/*
        internal/*
-Copyright: 2018-2021 Michael Picht <mipi@fsfe.org>
+Copyright: 2018-2022 Michael Picht <mipi@fsfe.org>
 License: GPL-3.0-or-later
 
